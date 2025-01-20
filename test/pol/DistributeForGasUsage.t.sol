@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.26;
 
 import { IBeraChef } from "src/pol/interfaces/IBeraChef.sol";
 import { IBGT } from "src/pol/interfaces/IBGT.sol";

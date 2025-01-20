@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.20;
+pragma solidity 0.8.26;
 
+import { IERC6372 } from "@openzeppelin/contracts/interfaces/IERC6372.sol";
+import { Time } from "@openzeppelin/contracts/utils/types/Time.sol";
 // chosen to use an initializer instead of a constructor
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 // chosen not to use Solady because EIP-2612 is not needed
@@ -18,6 +20,7 @@ import { Multicallable } from "solady/src/utils/Multicallable.sol";
 import { Utils } from "../libraries/Utils.sol";
 import { IBGT } from "./interfaces/IBGT.sol";
 import { IBGTStaker } from "./interfaces/IBGTStaker.sol";
+import { IBlockRewardController } from "./interfaces/IBlockRewardController.sol";
 
 /// @title Bera Governance Token
 /// @author Berachain Team
@@ -33,6 +36,9 @@ contract BGT is IBGT, ERC20VotesUpgradeable, OwnableUpgradeable, Multicallable {
 
     /// @dev The maximum amount of blocks that the activate or drop boost delay can be set.
     uint32 private constant BOOST_MAX_BLOCK_DELAY = 8191;
+
+    /// @dev The length of EIP-4788 buffer, in seconds.
+    uint64 internal constant HISTORY_BUFFER_LENGTH = 8191;
 
     /// @dev Represents 100%. Chosen to be less granular.
     uint256 private constant ONE_HUNDRED_PERCENT = 1e4;
@@ -56,6 +62,9 @@ contract BGT is IBGT, ERC20VotesUpgradeable, OwnableUpgradeable, Multicallable {
 
     /// @notice The block delay for dropping boosts.
     uint32 public dropBoostDelay;
+
+    /// @notice The BGT terms and conditions.
+    string public bgtTermsAndConditions;
 
     /// @notice The struct of queued boosts
     /// @param blockNumberLast The last block number boost balance was queued
@@ -191,6 +200,15 @@ contract BGT is IBGT, ERC20VotesUpgradeable, OwnableUpgradeable, Multicallable {
         emit DropBoostDelayChanged(_dropBoostDelay);
     }
 
+    /**
+     * @notice Set the BGT terms and conditions.
+     * @dev Only the owner can set the terms and conditions.
+     */
+    function setBgtTermsAndConditions(string calldata _bgtTermsAndConditions) external onlyOwner {
+        bgtTermsAndConditions = _bgtTermsAndConditions;
+        emit BgtTermsAndConditionsChanged(_bgtTermsAndConditions);
+    }
+
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                    VALIDATOR BOOSTS                        */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
@@ -254,7 +272,7 @@ contract BGT is IBGT, ERC20VotesUpgradeable, OwnableUpgradeable, Multicallable {
         // check if the user has enough boosted balance to drop
         if (boosted[msg.sender][pubkey] < dropBalance) NotEnoughBoostedBalance.selector.revertWith();
         (qdb.balance, qdb.blockNumberLast) = (dropBalance, uint32(block.number));
-        emit QueueDropBoost(msg.sender, pubkey, dropBalance);
+        emit QueueDropBoost(msg.sender, pubkey, amount);
     }
 
     /// @inheritdoc IBGT
@@ -283,7 +301,7 @@ contract BGT is IBGT, ERC20VotesUpgradeable, OwnableUpgradeable, Multicallable {
         delete dropBoostQueue[user][pubkey];
         IBGTStaker(staker).withdraw(user, amount);
 
-        emit DropBoost(user, pubkey, amount);
+        emit DropBoost(msg.sender, user, pubkey, amount);
         return true;
     }
 
@@ -357,6 +375,20 @@ contract BGT is IBGT, ERC20VotesUpgradeable, OwnableUpgradeable, Multicallable {
         emit Redeem(msg.sender, receiver, amount);
     }
 
+    /// @inheritdoc IBGT
+    function burnExceedingReserves() external {
+        IBlockRewardController br = IBlockRewardController(_blockRewardController);
+        uint256 potentialMintableBGT = HISTORY_BUFFER_LENGTH * br.getMaxBGTPerBlock();
+        uint256 currentReservesAmount = address(this).balance;
+        uint256 outstandingRequiredAmount = totalSupply() + potentialMintableBGT;
+        if (currentReservesAmount <= outstandingRequiredAmount) return;
+
+        uint256 excessAmountToBurn = currentReservesAmount - outstandingRequiredAmount;
+        SafeTransferLib.safeTransferETH(address(0), excessAmountToBurn);
+
+        emit ExceedingReservesBurnt(msg.sender, excessAmountToBurn);
+    }
+
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                          GETTERS                           */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
@@ -397,6 +429,16 @@ contract BGT is IBGT, ERC20VotesUpgradeable, OwnableUpgradeable, Multicallable {
         UserBoost storage userBoost = userBoosts[account];
         (uint128 boost, uint128 _queuedBoost) = (userBoost.boost, userBoost.queuedBoost);
         return balanceOf(account) - boost - _queuedBoost;
+    }
+
+    /// @inheritdoc IERC6372
+    function clock() public view virtual override returns (uint48) {
+        return Time.timestamp();
+    }
+
+    /// @inheritdoc IERC6372
+    function CLOCK_MODE() public view virtual override returns (string memory) {
+        return "mode=timestamp";
     }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/

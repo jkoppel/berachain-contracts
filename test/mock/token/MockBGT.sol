@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity 0.8.26;
 
+import { IERC6372 } from "@openzeppelin/contracts/interfaces/IERC6372.sol";
+import { Time } from "@openzeppelin/contracts/utils/types/Time.sol";
 import {
     ERC20Upgradeable,
     IERC20,
@@ -18,5 +20,15 @@ contract MockBGT is ERC20VotesUpgradeable, OwnableUpgradeable {
 
     function mint(address account, uint256 amount) external onlyOwner {
         _mint(account, amount);
+    }
+
+    /// @inheritdoc IERC6372
+    function clock() public view virtual override returns (uint48) {
+        return Time.timestamp();
+    }
+
+    /// @inheritdoc IERC6372
+    function CLOCK_MODE() public view virtual override returns (string memory) {
+        return "mode=timestamp";
     }
 }

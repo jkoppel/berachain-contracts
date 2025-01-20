@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
 import { FixedPointMathLib } from "solady/src/utils/FixedPointMathLib.sol";
@@ -266,12 +266,13 @@ abstract contract StakingTest is Test {
     function test_SetRewardsDurationDuringCycle() public virtual {
         performNotify(100 ether);
         performStake(user, 100 ether);
-
+        uint256 blockTimestamp = vm.getBlockTimestamp();
         // reward rate is computed over default rewards duration of 7 days
         uint256 startingRate = FixedPointMathLib.fullMulDiv(100 ether, PRECISION, 7 days);
         assertEq(VAULT.rewardRate(), startingRate);
 
-        vm.warp(block.timestamp + 1 days);
+        vm.warp(blockTimestamp + 1 days);
+        blockTimestamp = vm.getBlockTimestamp();
         assertApproxEqAbs(VAULT.earned(user), FixedPointMathLib.fullMulDiv(startingRate, 1 days, PRECISION), 1e2);
 
         // changing rewards duration is allowed during reward cycle
@@ -280,7 +281,8 @@ abstract contract StakingTest is Test {
 
         // does not affect reward rate and thus user earned amount...
         assertEq(VAULT.rewardRate(), startingRate);
-        vm.warp(block.timestamp + 1 days);
+        vm.warp(blockTimestamp + 1 days);
+        blockTimestamp = vm.getBlockTimestamp();
         assertApproxEqAbs(VAULT.earned(user), FixedPointMathLib.fullMulDiv(startingRate, 2 days, PRECISION), 1e2);
 
         // ... until a new amount is notified to the vault
@@ -290,7 +292,8 @@ abstract contract StakingTest is Test {
         uint256 newRate = (100 ether * PRECISION + leftOver) / 4 days;
         assertEq(VAULT.rewardRate(), newRate);
 
-        vm.warp(block.timestamp + 1 days);
+        vm.warp(blockTimestamp + 1 days);
+        blockTimestamp = vm.getBlockTimestamp();
         uint256 expectedEarned = FixedPointMathLib.fullMulDiv(startingRate, 2 days, PRECISION)
             + FixedPointMathLib.fullMulDiv(newRate, 1 days, PRECISION);
         assertApproxEqAbs(VAULT.earned(user), expectedEarned, 1e2);
@@ -299,25 +302,29 @@ abstract contract StakingTest is Test {
     /// @dev Changing rewards duration during reward cycle afftects users staking in different times.
     function test_SetRewardsDurationDuringCycleMultipleUsers() public virtual {
         address user2 = makeAddr("user2");
+        uint256 blockTimestamp = vm.getBlockTimestamp();
 
         performNotify(100 ether);
         performStake(user, 100 ether);
 
         uint256 startingRate = FixedPointMathLib.fullMulDiv(100 ether, PRECISION, 7 days);
-        vm.warp(block.timestamp + 1 days);
+        vm.warp(blockTimestamp + 1 days);
+        blockTimestamp = vm.getBlockTimestamp();
 
         _setRewardsDuration(4 days);
 
         // user staking after _setRewardsDuration is still earning at the same rate until a new notify
         performStake(user2, 100 ether);
-        vm.warp(block.timestamp + 1 days);
+        vm.warp(blockTimestamp + 1 days);
+        blockTimestamp = vm.getBlockTimestamp();
 
         performNotify(100 ether);
 
         uint256 leftOver = 100 ether - FixedPointMathLib.fullMulDiv(startingRate, 2 days, PRECISION);
         uint256 newRate = FixedPointMathLib.fullMulDiv(100 ether + leftOver, PRECISION, 4 days);
 
-        vm.warp(block.timestamp + 1 days);
+        vm.warp(blockTimestamp + 1 days);
+        blockTimestamp = vm.getBlockTimestamp();
         uint256 userExpectedEarned = FixedPointMathLib.fullMulDiv(startingRate, 1 days, PRECISION)
             + FixedPointMathLib.fullMulDiv(startingRate, 1 days, PRECISION) / 2
             + FixedPointMathLib.fullMulDiv(newRate, 1 days, PRECISION) / 2;

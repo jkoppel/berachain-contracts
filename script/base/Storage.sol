@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.26;
 
 import { Honey } from "src/honey/Honey.sol";
 import { HoneyFactory } from "src/honey/HoneyFactory.sol";

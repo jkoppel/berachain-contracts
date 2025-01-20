@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.26;
 
 uint256 constant WBERA_SALT = 1;
 uint256 constant BGT_SALT = 1;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.21;
+pragma solidity 0.8.26;
 
 import { IBlockRewardController } from "src/pol/interfaces/IBlockRewardController.sol";
 
@@ -37,6 +37,11 @@ contract NoopBlockRewardController is IBlockRewardController {
 
     /// @inheritdoc IBlockRewardController
     function computeReward(uint256, uint256, uint256, int256) external pure returns (uint256) {
+        return 0;
+    }
+
+    /// @inheritdoc IBlockRewardController
+    function getMaxBGTPerBlock() external pure returns (uint256) {
         return 0;
     }
 

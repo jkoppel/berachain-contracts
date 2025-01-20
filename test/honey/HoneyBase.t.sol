@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.26;
 
 import { StdCheats } from "forge-std/StdCheats.sol";
 import { SoladyTest } from "solady/test/utils/SoladyTest.sol";
@@ -54,9 +54,12 @@ abstract contract HoneyBaseTest is StdCheats, SoladyTest, Create2Deployer {
         address _pythPriceOracleImpl = deployWithCreate2(256, type(PythPriceOracle).creationCode);
         oracle = PythPriceOracle(deployProxyWithCreate2(address(_pythPriceOracleImpl), 0));
 
-        oracle.initialize(governance, address(pyth));
-        vm.prank(governance);
+        oracle.initialize(governance);
+
+        vm.startPrank(governance);
+        oracle.setPythSource(address(pyth));
         oracle.grantRole(MANAGER_ROLE, address(this));
+        vm.stopPrank();
 
         pyth.setData(daiFeed, int64(99_993_210), uint64(31_155), int32(-8), block.timestamp);
         oracle.setPriceFeed(address(dai), daiFeed);

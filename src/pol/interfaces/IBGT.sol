@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.26;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -30,19 +30,19 @@ interface IBGT is IPOLErrors, IERC20, IERC20Metadata, IVotes {
 
     /**
      * @notice Emitted when sender queues a new boost for a validator with an amount of BGT
-     * @param sender The address of the sender.
+     * @param user The address of the user.
      * @param pubkey The pubkey of the validator to be queued for boost.
-     * @param amount The amount of BGT to boost with.
+     * @param amount The amount of BGT enqueued for boosting during function call.
      */
-    event QueueBoost(address indexed sender, bytes indexed pubkey, uint128 amount);
+    event QueueBoost(address indexed user, bytes indexed pubkey, uint128 amount);
 
     /**
      * @notice Emitted when sender cancels a queued boost for a validator with an amount of BGT
-     * @param sender The address of the sender.
+     * @param user The address of the user.
      * @param pubkey The pubkey of the validator to be canceled from queued boosts.
      * @param amount The amount of BGT to cancel from queued boosts.
      */
-    event CancelBoost(address indexed sender, bytes indexed pubkey, uint128 amount);
+    event CancelBoost(address indexed user, bytes indexed pubkey, uint128 amount);
 
     /**
      * @notice Emitted when sender activates a new boost for a validator
@@ -57,7 +57,7 @@ interface IBGT is IPOLErrors, IERC20, IERC20Metadata, IVotes {
      * @notice Emitted when an user queues a drop boost for a validator.
      * @param user The address of the user.
      * @param pubkey The pubkey of the validator to remove boost from.
-     * @param amount The amount of BGT boost to remove.
+     * @param amount The amount of BGT boost enqueued for dropping boost during function call.
      */
     event QueueDropBoost(address indexed user, bytes indexed pubkey, uint128 amount);
 
@@ -72,23 +72,42 @@ interface IBGT is IPOLErrors, IERC20, IERC20Metadata, IVotes {
     /**
      * @notice Emitted when sender removes an amount of BGT boost from a validator
      * @param sender The address of the sender.
+     * @param user The address of the user dropping boost.
      * @param pubkey The pubkey of the validator to remove boost from.
      * @param amount The amount of BGT boost to remove.
      */
-    event DropBoost(address indexed sender, bytes indexed pubkey, uint128 amount);
+    event DropBoost(address indexed sender, address indexed user, bytes indexed pubkey, uint128 amount);
 
-    /// @notice Emitted when the BGT token is redeemed for the native token.
+    /**
+     * @notice Emitted when the BGT token is redeemed for the native token.
+     * @param from The address of the redeemer.
+     * @param receiver The address of the receiver.
+     * @param amount The amount of redeemed  BGT (and thus, of received BERA).
+     */
     event Redeem(address indexed from, address indexed receiver, uint256 amount);
 
-    /// @notice Emitted when the activate boost delay is changed.
-    /// @param newDelay The new delay for activating boosts.
+    /**
+     * @notice Emitted when the activate boost delay is changed.
+     * @param newDelay The new delay for activating boosts.
+     */
     event ActivateBoostDelayChanged(uint32 newDelay);
 
-    /// @notice Emitted when the drop boost delay is changed.
-    /// @param newDelay The new delay for dropping boosts.
+    /**
+     * @notice Emitted when the drop boost delay is changed.
+     * @param newDelay The new delay for dropping boosts.
+     */
     event DropBoostDelayChanged(uint32 newDelay);
 
-    /// @notice Returns the BGT staker contract address.
+    /**
+     * @notice Emitted when the BGT terms and conditions are changed.
+     * @param newTermsAndConditions The new terms and conditions.
+     */
+    event BgtTermsAndConditionsChanged(string newTermsAndConditions);
+
+    /**
+     * @notice Returns the BGT staker contract address.
+     * @return The address of the staker.
+     */
     function staker() external view returns (address);
 
     /**
@@ -102,6 +121,13 @@ interface IBGT is IPOLErrors, IERC20, IERC20Metadata, IVotes {
      * @return The drop boost delay.
      */
     function dropBoostDelay() external view returns (uint32);
+
+    /**
+     * @notice Emitted when the native token exceeding reserves are burnt.
+     * @param caller The address of the caller.
+     * @param amount The amount of BERA burnt.
+     */
+    event ExceedingReservesBurnt(address caller, uint256 amount);
 
     /**
      * @notice Approve an address to send BGT or approve another address to transfer BGT from it.
@@ -272,4 +298,12 @@ interface IBGT is IPOLErrors, IERC20, IERC20Metadata, IVotes {
      * @param account The address of the account.
      */
     function unboostedBalanceOf(address account) external view returns (uint256);
+
+    /**
+     * @notice Burns the excess BERA held by this contract to redeem BGTs.
+     * @dev Since CL at deployment is minting to this contract a quantity of native token sufficient to redeem
+     * the upper bound of BGT production range, this contract may hold excess BERA. Can burn BERA exceeding
+     * BGT.totalSupply() + outstanding rewards.
+     */
+    function burnExceedingReserves() external;
 }

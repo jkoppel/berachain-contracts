@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.21;
+pragma solidity 0.8.26;
 
 /// @notice A mock implementation of the EIP-4788 Beacon Roots contract.
 contract Mock4788BeaconRoots {

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.26;
 
 import { console2 } from "forge-std/Script.sol";
 import { BaseScript } from "../../base/Base.s.sol";
@@ -16,11 +16,9 @@ contract DeployRewardVaultScript is BaseScript, Storage {
     address internal constant LP_BERA_WBTC = address(0);
     address internal constant LP_USDC_HONEY = address(0);
     address internal constant LP_BEE_HONEY = address(0);
-    address internal constant LP_USDS_HONEY = address(0);
 
     // Placeholder. Change before running the script.
-    address[] internal STAKING_TOKENS =
-        [LP_BERA_HONEY, LP_BERA_ETH, LP_BERA_WBTC, LP_USDC_HONEY, LP_BEE_HONEY, LP_USDS_HONEY];
+    address[] internal STAKING_TOKENS = [LP_BERA_HONEY, LP_BERA_ETH, LP_BERA_WBTC, LP_USDC_HONEY, LP_BEE_HONEY];
 
     function run() public virtual broadcast {
         _validateCode("RewardVaultFactory", REWARD_VAULT_FACTORY_ADDRESS);

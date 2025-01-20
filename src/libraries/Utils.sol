@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 // solhint-disable-next-line compiler-version
-pragma solidity ^0.8.0;
+pragma solidity 0.8.26;
 
 import { SafeTransferLib } from "solady/src/utils/SafeTransferLib.sol";
 

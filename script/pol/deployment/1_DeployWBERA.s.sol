@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.26;
 
 import { BaseScript } from "../../base/Base.s.sol";
 import { WBERADeployer } from "../logic/WBERADeployer.sol";

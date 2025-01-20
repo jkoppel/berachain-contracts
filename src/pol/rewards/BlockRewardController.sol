@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity 0.8.26;
 
 import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -198,6 +198,15 @@ contract BlockRewardController is IBlockRewardController, OwnableUpgradeable, UU
                 reward = FixedPointMathLib.mulWad(_rewardRate, coeff);
             }
         }
+    }
+
+    /// @inheritdoc IBlockRewardController
+    function getMaxBGTPerBlock() public view returns (uint256 amount) {
+        amount = computeReward(FixedPointMathLib.WAD, rewardRate, boostMultiplier, rewardConvexity);
+        if (amount < minBoostedRewardRate) {
+            amount = minBoostedRewardRate;
+        }
+        amount += baseRate;
     }
 
     /// @inheritdoc IBlockRewardController

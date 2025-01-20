@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.26;
 
 import { LibClone } from "solady/src/utils/LibClone.sol";
 
@@ -61,6 +61,9 @@ contract POLGasSimulationSimple is GovernanceBaseTest {
         deployPOL(address(timelock));
         wbera = new WBERA();
         deployBGTFees(address(timelock));
+
+        // NOTE: for gov.getVotes to work, the block timestamp must be a realistic one (greater than zero).
+        vm.warp(1 days);
 
         // Provide initial tokens for testing
         deal(address(bgt), address(this), 100_000_000_000 ether);

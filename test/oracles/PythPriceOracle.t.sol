@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.25;
+pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
 import { PythPriceOracle } from "src/extras/PythPriceOracle.sol";
@@ -20,7 +20,9 @@ contract PythPriceOracleTest is Test, Create2Deployer {
     }
 
     modifier initialize() {
-        _pythPriceOracle.initialize(_governance, address(_mockedPyth));
+        _pythPriceOracle.initialize(_governance);
+        vm.prank(_governance);
+        _pythPriceOracle.setPythSource(address(_mockedPyth));
 
         bytes32 role_ = _pythPriceOracle.MANAGER_ROLE();
         vm.prank(_governance);
@@ -32,18 +34,22 @@ contract PythPriceOracleTest is Test, Create2Deployer {
     function test_initialize_zeroAddress() public {
         // Governance address cannot be zero
         vm.expectRevert(IPriceOracle.ZeroAddress.selector);
-        _pythPriceOracle.initialize(address(0), address(0x1));
+        _pythPriceOracle.initialize(address(0));
 
         // Pyth oracle address cannot be zero
+        _pythPriceOracle.initialize(address(0x1));
+        vm.prank(address(0x1));
         vm.expectRevert(IPriceOracle.ZeroAddress.selector);
-        _pythPriceOracle.initialize(address(0x1), address(0));
+        _pythPriceOracle.setPythSource(address(0));
     }
 
     function testFuzz_initialize(address governance_, address pythOracle_) public {
         assumeNotZeroAddress(pythOracle_);
         assumeNotZeroAddress(governance_);
 
-        _pythPriceOracle.initialize(governance_, pythOracle_);
+        _pythPriceOracle.initialize(governance_);
+        vm.prank(governance_);
+        _pythPriceOracle.setPythSource(pythOracle_);
 
         assertEq(address(_pythPriceOracle.pyth()), pythOracle_);
     }
@@ -61,7 +67,9 @@ contract PythPriceOracleTest is Test, Create2Deployer {
     function test_setPriceFeed_WrongFeed() public {
         // Initialize with wrong Pyth oracle address in order to revert when try to call getPrice
         // TODO: Update if setter is add
-        _pythPriceOracle.initialize(_governance, address(0x2));
+        _pythPriceOracle.initialize(_governance);
+        vm.prank(_governance);
+        _pythPriceOracle.setPythSource(address(0x2));
         bytes32 role_ = _pythPriceOracle.MANAGER_ROLE();
         vm.prank(_governance);
         _pythPriceOracle.grantRole(role_, _manager);

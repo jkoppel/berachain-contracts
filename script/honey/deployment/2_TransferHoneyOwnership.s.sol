@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.26;
 
 import { console2 } from "forge-std/Script.sol";
 import { BaseScript } from "../../base/Base.s.sol";
@@ -11,11 +11,15 @@ import { HONEY_ADDRESS, HONEY_FACTORY_ADDRESS, HONEY_FACTORY_READER_ADDRESS } fr
 
 contract TransferHoneyOwnership is RBAC, BaseScript, Storage {
     // Placeholder. Change before run script
+    address constant NEW_OWNER = address(0); // TIMELOCK_ADDRESS
     address constant HONEY_FACTORY_MANAGER = address(0);
 
     function run() public virtual broadcast {
         require(HONEY_FACTORY_MANAGER != address(0), "HONEY_FACTORY_MANAGER not set");
-        _validateCode("TimeLock", TIMELOCK_ADDRESS);
+        require(NEW_OWNER != address(0), "NEW_OWNER not set");
+        if (NEW_OWNER == TIMELOCK_ADDRESS) {
+            _validateCode("TimeLock", TIMELOCK_ADDRESS);
+        }
 
         transferHoneyOwnership();
         transferHoneyFactoryOwnership();
@@ -35,13 +39,11 @@ contract TransferHoneyOwnership is RBAC, BaseScript, Storage {
             role: honey.DEFAULT_ADMIN_ROLE()
         });
 
-        RBAC.AccountDescription memory governance =
-            RBAC.AccountDescription({ name: "governance", addr: TIMELOCK_ADDRESS });
+        RBAC.AccountDescription memory governance = RBAC.AccountDescription({ name: "governance", addr: NEW_OWNER });
 
         RBAC.AccountDescription memory deployer = RBAC.AccountDescription({ name: "deployer", addr: msg.sender });
 
-        _grantRole(adminRole, governance);
-        _revokeRole(adminRole, deployer);
+        _transferRole(adminRole, deployer, governance);
     }
 
     // transfer ownership of HoneyFactory to timelock and set the manager role to honeyFactoryManager
@@ -71,20 +73,16 @@ contract TransferHoneyOwnership is RBAC, BaseScript, Storage {
             role: honeyFactory.PAUSER_ROLE()
         });
 
-        RBAC.AccountDescription memory governance =
-            RBAC.AccountDescription({ name: "governance", addr: TIMELOCK_ADDRESS });
+        RBAC.AccountDescription memory governance = RBAC.AccountDescription({ name: "governance", addr: NEW_OWNER });
 
         RBAC.AccountDescription memory manager =
             RBAC.AccountDescription({ name: "manager", addr: HONEY_FACTORY_MANAGER });
 
         RBAC.AccountDescription memory deployer = RBAC.AccountDescription({ name: "deployer", addr: msg.sender });
 
-        _grantRole(adminRole, governance);
-        _grantRole(managerRole, manager);
-        _grantRole(pauserRole, manager);
-        _revokeRole(pauserRole, deployer);
-        _revokeRole(managerRole, deployer);
-        _revokeRole(adminRole, deployer);
+        _transferRole(pauserRole, deployer, manager);
+        _transferRole(managerRole, deployer, manager);
+        _transferRole(adminRole, deployer, governance);
     }
 
     // transfer ownership of HoneyFactory's Beacon to timelock
@@ -94,9 +92,9 @@ contract TransferHoneyOwnership is RBAC, BaseScript, Storage {
 
         console2.log("Transferring ownership of HoneyFactory's Beacon...");
         UpgradeableBeacon beacon = UpgradeableBeacon(honeyFactory.beacon());
-        beacon.transferOwnership(TIMELOCK_ADDRESS);
-        require(beacon.owner() == TIMELOCK_ADDRESS, "Ownership of HoneyFactory's Beacon not transferred to timelock");
-        console2.log("Ownership of HoneyFactory's Beacon transferred to:", TIMELOCK_ADDRESS);
+        beacon.transferOwnership(NEW_OWNER);
+        require(beacon.owner() == NEW_OWNER, "Ownership of HoneyFactory's Beacon not transferred to timelock");
+        console2.log("Ownership of HoneyFactory's Beacon transferred to:", NEW_OWNER);
     }
 
     // transfer ownership of HoneyFactoryReader to timelock
@@ -111,12 +109,10 @@ contract TransferHoneyOwnership is RBAC, BaseScript, Storage {
             role: honeyFactoryReader.DEFAULT_ADMIN_ROLE()
         });
 
-        RBAC.AccountDescription memory governance =
-            RBAC.AccountDescription({ name: "governance", addr: TIMELOCK_ADDRESS });
+        RBAC.AccountDescription memory governance = RBAC.AccountDescription({ name: "governance", addr: NEW_OWNER });
 
         RBAC.AccountDescription memory deployer = RBAC.AccountDescription({ name: "deployer", addr: msg.sender });
 
-        _grantRole(adminRole, governance);
-        _revokeRole(adminRole, deployer);
+        _transferRole(adminRole, deployer, governance);
     }
 }

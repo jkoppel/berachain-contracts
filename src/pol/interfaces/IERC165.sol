@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity 0.8.26;
+pragma solidity ^0.8.26;
 
 // Based on official specification in https://eips.ethereum.org/EIPS/eip-165
 interface ERC165 {

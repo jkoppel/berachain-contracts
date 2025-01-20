@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.26;
 
 import { console2 } from "forge-std/Script.sol";
 import { BaseScript } from "../../base/Base.s.sol";
@@ -21,18 +21,22 @@ import "../../base/Storage.sol";
 
 contract TransferPOLOwnershipScript is RBAC, BaseScript, Storage {
     // Placholder. Change before running the script.
+    address internal constant NEW_OWNER = address(0); // TIMELOCK_ADDRESS;
     address internal constant VAULT_FACTORY_MANAGER = address(0);
     address internal constant DISTRIBUTOR_MANAGER = address(0);
     address internal constant FEE_COLLECTOR_MANAGER = address(0);
 
     function run() public virtual broadcast {
         // Check if the managers are set
+        require(NEW_OWNER != address(0), "NEW_OWNER must be set");
         require(VAULT_FACTORY_MANAGER != address(0), "VAULT_FACTORY_MANAGER must be set");
         require(DISTRIBUTOR_MANAGER != address(0), "DISTRIBUTOR_MANAGER must be set");
         require(FEE_COLLECTOR_MANAGER != address(0), "FEE_COLLECTOR_MANAGER must be set");
 
         // create contracts instance from deployed addresses
-        _validateCode("TimeLock", TIMELOCK_ADDRESS);
+        if (NEW_OWNER == TIMELOCK_ADDRESS) {
+            _validateCode("TimeLock", NEW_OWNER);
+        }
         _loadStorageContracts();
 
         console2.log("Transferring ownership of POL contracts...");
@@ -45,12 +49,11 @@ contract TransferPOLOwnershipScript is RBAC, BaseScript, Storage {
     function transferPOLOwnership() internal {
         // BGT
         console2.log("Transferring ownership of BGT...");
-        bgt.transferOwnership(TIMELOCK_ADDRESS);
-        require(bgt.owner() == TIMELOCK_ADDRESS, "Ownership transfer failed for BGT");
-        console2.log("Ownership of BGT transferred to:", TIMELOCK_ADDRESS);
+        bgt.transferOwnership(NEW_OWNER);
+        require(bgt.owner() == NEW_OWNER, "Ownership transfer failed for BGT");
+        console2.log("Ownership of BGT transferred to:", NEW_OWNER);
 
-        RBAC.AccountDescription memory governance =
-            RBAC.AccountDescription({ name: "governance", addr: TIMELOCK_ADDRESS });
+        RBAC.AccountDescription memory governance = RBAC.AccountDescription({ name: "governance", addr: NEW_OWNER });
 
         RBAC.AccountDescription memory vaultFactoryManager =
             RBAC.AccountDescription({ name: "vaultFactoryManager", addr: VAULT_FACTORY_MANAGER });
@@ -79,32 +82,27 @@ contract TransferPOLOwnershipScript is RBAC, BaseScript, Storage {
             name: "VAULT_PAUSER_ROLE",
             role: rewardVaultFactory.VAULT_PAUSER_ROLE()
         });
-        _grantRole(rewardVaultFactoryAdminRole, governance);
-        _grantRole(rewardVaultFactoryPauserRole, vaultFactoryManager);
-        _grantRole(rewardVaultFactoryManagerRole, vaultFactoryManager);
-        // Revoke roles from the deployer
-        _revokeRole(rewardVaultFactoryPauserRole, deployer);
-        _revokeRole(rewardVaultFactoryManagerRole, deployer);
-        _revokeRole(rewardVaultFactoryAdminRole, deployer);
+
+        _transferRole(rewardVaultFactoryPauserRole, deployer, vaultFactoryManager);
+        _transferRole(rewardVaultFactoryManagerRole, deployer, vaultFactoryManager);
+        _transferRole(rewardVaultFactoryAdminRole, deployer, governance);
 
         console2.log("Transferring ownership of RewardVault's Beacon...");
         UpgradeableBeacon beacon = UpgradeableBeacon(rewardVaultFactory.beacon());
-        beacon.transferOwnership(TIMELOCK_ADDRESS);
-        console2.log("Ownership of RewardVault's Beacon transferred to:", TIMELOCK_ADDRESS);
+        beacon.transferOwnership(NEW_OWNER);
+        console2.log("Ownership of RewardVault's Beacon transferred to:", NEW_OWNER);
 
         // Berachef
         console2.log("Transferring ownership of Berachef...");
-        beraChef.transferOwnership(TIMELOCK_ADDRESS);
-        require(beraChef.owner() == TIMELOCK_ADDRESS, "Ownership transfer failed for Berachef");
-        console2.log("Ownership of Berachef transferred to:", TIMELOCK_ADDRESS);
+        beraChef.transferOwnership(NEW_OWNER);
+        require(beraChef.owner() == NEW_OWNER, "Ownership transfer failed for Berachef");
+        console2.log("Ownership of Berachef transferred to:", NEW_OWNER);
 
         // BlockRewardController
         console2.log("Transferring ownership of BlockRewardController...");
-        blockRewardController.transferOwnership(TIMELOCK_ADDRESS);
-        require(
-            blockRewardController.owner() == TIMELOCK_ADDRESS, "Ownership transfer failed for BlockRewardController"
-        );
-        console2.log("Ownership of BlockRewardController transferred to:", TIMELOCK_ADDRESS);
+        blockRewardController.transferOwnership(NEW_OWNER);
+        require(blockRewardController.owner() == NEW_OWNER, "Ownership transfer failed for BlockRewardController");
+        console2.log("Ownership of BlockRewardController transferred to:", NEW_OWNER);
 
         // Distributor
         RBAC.RoleDescription memory distributorAdminRole = RBAC.RoleDescription({
@@ -113,7 +111,6 @@ contract TransferPOLOwnershipScript is RBAC, BaseScript, Storage {
             name: "DEFAULT_ADMIN_ROLE",
             role: distributor.DEFAULT_ADMIN_ROLE()
         });
-        _grantRole(distributorAdminRole, governance);
 
         // NOTE: the manager role on the distributor is not assigned to anyone, hence there is no need to revoke it.
         RBAC.RoleDescription memory distributorManagerRole = RBAC.RoleDescription({
@@ -122,16 +119,17 @@ contract TransferPOLOwnershipScript is RBAC, BaseScript, Storage {
             name: "MANAGER_ROLE",
             role: distributor.MANAGER_ROLE()
         });
-        _grantRole(distributorManagerRole, distributorManager);
-        _revokeRole(distributorAdminRole, deployer);
+
+        _transferRole(distributorManagerRole, deployer, distributorManager);
+        _transferRole(distributorAdminRole, deployer, governance);
     }
 
     function transferBGTFeesOwnership() internal {
         // BGTStaker
         console2.log("Transferring ownership of BGTStaker...");
-        bgtStaker.transferOwnership(TIMELOCK_ADDRESS);
-        require(bgtStaker.owner() == TIMELOCK_ADDRESS, "Ownership transfer failed for BGTStaker");
-        console2.log("Ownership of BGTStaker transferred to:", TIMELOCK_ADDRESS);
+        bgtStaker.transferOwnership(NEW_OWNER);
+        require(bgtStaker.owner() == NEW_OWNER, "Ownership transfer failed for BGTStaker");
+        console2.log("Ownership of BGTStaker transferred to:", NEW_OWNER);
 
         // FeeCollector
         RBAC.RoleDescription memory feeCollectorAdminRole = RBAC.RoleDescription({
@@ -152,18 +150,14 @@ contract TransferPOLOwnershipScript is RBAC, BaseScript, Storage {
             name: "PAUSER_ROLE",
             role: feeCollector.PAUSER_ROLE()
         });
-        RBAC.AccountDescription memory governance =
-            RBAC.AccountDescription({ name: "governance", addr: TIMELOCK_ADDRESS });
+        RBAC.AccountDescription memory governance = RBAC.AccountDescription({ name: "governance", addr: NEW_OWNER });
         RBAC.AccountDescription memory feeCollectorManager =
             RBAC.AccountDescription({ name: "feeCollectorManager", addr: FEE_COLLECTOR_MANAGER });
         RBAC.AccountDescription memory deployer = RBAC.AccountDescription({ name: "deployer", addr: msg.sender });
-        _grantRole(feeCollectorAdminRole, governance);
-        _grantRole(feeCollectorPauserRole, feeCollectorManager);
-        _grantRole(feeCollectorManagerRole, feeCollectorManager);
-        // Revoke roles from the deployer
-        _revokeRole(feeCollectorPauserRole, deployer);
-        _revokeRole(feeCollectorManagerRole, deployer);
-        _revokeRole(feeCollectorAdminRole, deployer);
+
+        _transferRole(feeCollectorPauserRole, deployer, feeCollectorManager);
+        _transferRole(feeCollectorManagerRole, deployer, feeCollectorManager);
+        _transferRole(feeCollectorAdminRole, deployer, governance);
     }
 
     function _loadStorageContracts() internal {

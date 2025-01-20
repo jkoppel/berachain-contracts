@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.26;
 
 import { Create2Deployer } from "src/base/Create2Deployer.sol";
 import { WBERA } from "src/WBERA.sol";

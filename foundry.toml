@@ -28,7 +28,7 @@ fs_permissions = [{ access = "read", path = "./test"}]
 
 [profile.deploy]
 via_ir = true
-optimizer_runs = 800
+optimizer_runs = 666
 
 [profile.deploy_small]
 via_ir = true

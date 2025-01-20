@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity >=0.8.4;
+pragma solidity ^0.8.26;
 
 import { IPOLErrors } from "./IPOLErrors.sol";
 
@@ -92,6 +92,13 @@ interface IBlockRewardController is IPOLErrors {
         external
         pure
         returns (uint256);
+
+    /**
+     * @notice Returns the current max BGT production per block.
+     * @dev Exposed for BGT contract to calculate the max burnable native token amount.
+     * @return amount The maximum amount of BGT that can be minted in one block.
+     */
+    function getMaxBGTPerBlock() external view returns (uint256 amount);
 
     /**
      * @notice Processes the rewards for the specified block and mints BGT to validator's operator and distributor.

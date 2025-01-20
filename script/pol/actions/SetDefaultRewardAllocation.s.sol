@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.26;
 
 import { console2 } from "forge-std/console2.sol";
 import { BaseScript } from "../../base/Base.s.sol";
@@ -13,24 +13,21 @@ import { BERACHEF_ADDRESS } from "../POLAddresses.sol";
 /// @dev This actions can be run only by an account with ADMIN role.
 contract WhitelistIncentiveTokenScript is BaseScript, Storage {
     // Placeholder. Default reward allocation vault addresses and weights.
-    // BERA-HONEY 30%
+    // BERA-HONEY 35%
     address internal constant REWARD_VAULT_BERA_HONEY = address(0);
-    uint96 internal constant REWARD_VAULT_BERA_HONEY_WEIGHT = 3000;
-    // BERA-ETH 20%
+    uint96 internal constant REWARD_VAULT_BERA_HONEY_WEIGHT = 3500;
+    // BERA-ETH 25%
     address internal constant REWARD_VAULT_BERA_ETH = address(0);
-    uint96 internal constant REWARD_VAULT_BERA_ETH_WEIGHT = 2000;
-    // BERA-WBTC 20%
+    uint96 internal constant REWARD_VAULT_BERA_ETH_WEIGHT = 2500;
+    // BERA-WBTC 25%
     address internal constant REWARD_VAULT_BERA_WBTC = address(0);
-    uint96 internal constant REWARD_VAULT_BERA_WBTC_WEIGHT = 2000;
-    // USDC-HONEY 10%
+    uint96 internal constant REWARD_VAULT_BERA_WBTC_WEIGHT = 2500;
+    // USDC-HONEY 7.5%
     address internal constant REWARD_VAULT_USDC_HONEY = address(0);
-    uint96 internal constant REWARD_VAULT_USDC_HONEY_WEIGHT = 1000;
-    // BEE-HONEY 10%
+    uint96 internal constant REWARD_VAULT_USDC_HONEY_WEIGHT = 750;
+    // BEE-HONEY 7.5%
     address internal constant REWARD_VAULT_BEE_HONEY = address(0);
-    uint96 internal constant REWARD_VAULT_BEE_HONEY_WEIGHT = 1000;
-    // USDS-HONEY 10%
-    address internal constant REWARD_VAULT_USDS_HONEY = address(0);
-    uint96 internal constant REWARD_VAULT_USDS_HONEY_WEIGHT = 1000;
+    uint96 internal constant REWARD_VAULT_BEE_HONEY_WEIGHT = 750;
 
     // Placeholder. Change before running the script.
     address[] internal REWARD_VAULTS = [
@@ -38,8 +35,7 @@ contract WhitelistIncentiveTokenScript is BaseScript, Storage {
         REWARD_VAULT_BERA_ETH,
         REWARD_VAULT_BERA_WBTC,
         REWARD_VAULT_USDC_HONEY,
-        REWARD_VAULT_BEE_HONEY,
-        REWARD_VAULT_USDS_HONEY
+        REWARD_VAULT_BEE_HONEY
     ];
 
     // Placeholder. Change before running the script.
@@ -48,8 +44,7 @@ contract WhitelistIncentiveTokenScript is BaseScript, Storage {
         REWARD_VAULT_BERA_ETH_WEIGHT,
         REWARD_VAULT_BERA_WBTC_WEIGHT,
         REWARD_VAULT_USDC_HONEY_WEIGHT,
-        REWARD_VAULT_BEE_HONEY_WEIGHT,
-        REWARD_VAULT_USDS_HONEY_WEIGHT
+        REWARD_VAULT_BEE_HONEY_WEIGHT
     ];
 
     function run() public virtual broadcast {

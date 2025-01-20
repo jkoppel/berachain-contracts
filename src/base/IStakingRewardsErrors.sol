@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity >=0.8.4;
+pragma solidity ^0.8.26;
 
 /// @notice Interface of staking rewards errors
 interface IStakingRewardsErrors {

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity 0.8.26;
 
 import { IBeraChef } from "src/pol/interfaces/IBeraChef.sol";
 import { StakingRewards } from "src/base/StakingRewards.sol";

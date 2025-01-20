@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.20;
+pragma solidity 0.8.26;
 
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -21,9 +21,6 @@ contract PythPriceOracle is IPriceOracle, AccessControlUpgradeable, UUPSUpgradea
     /// @notice Mapping of asset to (Pyth) price feed ID.
     mapping(address asset => bytes32 id) public feeds;
 
-    /// @dev This gap is used to prevent storage collisions.
-    uint256[256] private __gap;
-
     /// @notice Emitted when the oracle source is changed.
     event OracleChanged(address oracle);
     /// @notice Emitted when a price feed is changed.
@@ -36,18 +33,16 @@ contract PythPriceOracle is IPriceOracle, AccessControlUpgradeable, UUPSUpgradea
         _disableInitializers();
     }
 
-    function initialize(address governance_, address pythOracle_) external initializer {
+    function initialize(address governance_) external initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
-        __PriceOracle_init_unchained(governance_, pythOracle_);
+        __PriceOracle_init_unchained(governance_);
     }
 
-    function __PriceOracle_init_unchained(address governance_, address pythOracle_) internal onlyInitializing {
+    function __PriceOracle_init_unchained(address governance_) internal onlyInitializing {
         if (governance_ == address(0)) ZeroAddress.selector.revertWith();
-        if (pythOracle_ == address(0)) ZeroAddress.selector.revertWith();
 
         _grantRole(DEFAULT_ADMIN_ROLE, governance_);
-        pyth = IPyth(pythOracle_);
     }
 
     function _authorizeUpgrade(address newImplementation) internal virtual override {
@@ -96,7 +91,9 @@ contract PythPriceOracle is IPriceOracle, AccessControlUpgradeable, UUPSUpgradea
 
     /// @inheritdoc IPriceOracle
     function getPrice(address asset) public view returns (Data memory data) {
-        if (feeds[asset] == bytes32(0)) UnavailableData.selector.revertWith(asset);
+        if (!_pythAndFeedAreSet(asset)) {
+            UnavailableData.selector.revertWith(asset);
+        }
 
         PythStructs.Price memory price = pyth.getPrice(feeds[asset]);
         return _wrapData(price);
@@ -104,7 +101,9 @@ contract PythPriceOracle is IPriceOracle, AccessControlUpgradeable, UUPSUpgradea
 
     /// @inheritdoc IPriceOracle
     function getPriceUnsafe(address asset) public view returns (Data memory data) {
-        if (feeds[asset] == bytes32(0)) UnavailableData.selector.revertWith(asset);
+        if (!_pythAndFeedAreSet(asset)) {
+            UnavailableData.selector.revertWith(asset);
+        }
 
         PythStructs.Price memory price = pyth.getPriceUnsafe(feeds[asset]);
         return _wrapData(price);
@@ -112,7 +111,9 @@ contract PythPriceOracle is IPriceOracle, AccessControlUpgradeable, UUPSUpgradea
 
     /// @inheritdoc IPriceOracle
     function getPriceNoOlderThan(address asset, uint256 age) external view returns (Data memory data) {
-        if (feeds[asset] == bytes32(0)) UnavailableData.selector.revertWith(asset);
+        if (!_pythAndFeedAreSet(asset)) {
+            UnavailableData.selector.revertWith(asset);
+        }
 
         PythStructs.Price memory price = pyth.getPriceNoOlderThan(feeds[asset], age);
         return _wrapData(price);
@@ -120,11 +121,21 @@ contract PythPriceOracle is IPriceOracle, AccessControlUpgradeable, UUPSUpgradea
 
     /// @inheritdoc IPriceOracle
     function priceAvailable(address asset) external view returns (bool) {
-        if (feeds[asset] == bytes32(0)) {
+        if (!_pythAndFeedAreSet(asset)) {
             return false;
         }
 
         Data memory data = getPriceUnsafe(asset);
         return data.publishTime != 0;
+    }
+
+    function _pythAndFeedAreSet(address asset) internal view returns (bool) {
+        if (address(pyth) == address(0)) {
+            return false;
+        }
+        if (feeds[asset] == bytes32(0)) {
+            return false;
+        }
+        return true;
     }
 }

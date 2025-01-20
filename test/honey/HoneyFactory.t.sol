@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.26;
 
 import { LibClone } from "solady/src/utils/LibClone.sol";
 import { ERC20 } from "solady/src/tokens/ERC20.sol";
@@ -131,6 +131,34 @@ contract HoneyFactoryTest is HoneyBaseTest {
         vm.prank(governance);
         vm.expectRevert(abi.encodeWithSelector(IHoneyErrors.VaultAlreadyRegistered.selector, address(dai)));
         factory.createVault(address(dai));
+    }
+
+    function test_setPriceOracle_failsIfNotAdmin(address priceOracle_) external {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, address(this), factory.DEFAULT_ADMIN_ROLE()
+            )
+        );
+        factory.setPriceOracle(priceOracle_);
+    }
+
+    function test_setPriceOracle_failsIfZero() external {
+        vm.expectRevert(abi.encodeWithSelector(IHoneyErrors.ZeroAddress.selector));
+
+        vm.prank(governance);
+        factory.setPriceOracle(address(0));
+    }
+
+    function test_setPriceOracle(address priceOracle_) external {
+        vm.assume(priceOracle_ != address(0));
+
+        vm.expectEmit();
+        emit IHoneyFactory.PriceOracleSet(priceOracle_);
+
+        vm.prank(governance);
+        factory.setPriceOracle(priceOracle_);
+
+        assertEq(address(factory.priceOracle()), priceOracle_);
     }
 
     function test_setReferenceCollateral_failsWithoutManager() external {
@@ -265,7 +293,7 @@ contract HoneyFactoryTest is HoneyBaseTest {
     }
 
     function test_setMaxDelay_failsOutOfRange() external {
-        uint256 newMaxDelay = 61 seconds;
+        uint256 newMaxDelay = 121 seconds;
         vm.prank(manager);
         vm.expectRevert(abi.encodeWithSelector(IHoneyErrors.AmountOutOfRange.selector));
         factory.setMaxFeedDelay(newMaxDelay);
@@ -479,6 +507,9 @@ contract HoneyFactoryTest is HoneyBaseTest {
 
     function test_BaskedModeIsDisabledWhenBadAssetIsDepeggedAndFullyLiquidated_WhenRedeem() external {
         // basket mode is disabled because all the feeds are pegged and the price is not stale
+        vm.prank(governance);
+        factory.setLiquidationEnabled(true);
+
         assertFalse(factory.isBasketModeEnabled(false));
 
         _factoryMint(dai, 100e18, receiver, false);
@@ -695,12 +726,13 @@ contract HoneyFactoryTest is HoneyBaseTest {
         assertEq(daiVault.balanceOf(address(factory)), daiToMint * daiMintRate / 1e18);
         assertEq(usdtVault.balanceOf(address(factory)), usdtToMint * 10 ** 12 * usdtMintRate / 1e18);
 
+        uint256 daiWeight = daiToMint * 1e18 / (daiToMint + usdtVault.convertToShares(usdtToMint));
         vm.prank(manager);
-        factory.setGlobalCap(0.45e18);
+        factory.setGlobalCap(daiWeight);
 
-        usdt.approve(address(factory), 100e6 - usdtToMint);
+        dai.approve(address(factory), 1e18);
         vm.expectRevert(IHoneyErrors.ExceedGlobalCap.selector);
-        factory.mint(address(usdt), 100e6 - usdtToMint, receiver, false);
+        factory.mint(address(dai), 1e18, receiver, false);
     }
 
     function testFuzz_mint_failsIfExceedsRelativeCap(uint256 usdtToMint, uint256 referenceCollateralToMint) external {
@@ -1331,6 +1363,9 @@ contract HoneyFactoryTest is HoneyBaseTest {
     }
 
     function test_liquidate_failsWhenBadCollateralIsNotRegisteredAsBadCollateral() external {
+        vm.prank(governance);
+        factory.setLiquidationEnabled(true);
+
         // new unregistered usdt token instance
         vm.expectRevert(IHoneyErrors.AssetIsNotBadCollateral.selector);
         factory.liquidate(address(usdt), address(dai), 100e18);
@@ -1352,6 +1387,9 @@ contract HoneyFactoryTest is HoneyBaseTest {
     }
 
     function test_liquidate_failsIfReferenceCollateralIsBadCollateral() external {
+        vm.prank(governance);
+        factory.setLiquidationEnabled(true);
+
         vm.prank(manager);
         factory.setCollateralAssetStatus(address(dai), true);
 
@@ -1360,6 +1398,9 @@ contract HoneyFactoryTest is HoneyBaseTest {
     }
 
     function test_liquidate_failsWithNoAllowance() external {
+        vm.prank(governance);
+        factory.setLiquidationEnabled(true);
+
         uint256 daiToProvide = 100e18;
         dai.approve(address(factory), daiToProvide - 1);
 
@@ -1371,6 +1412,9 @@ contract HoneyFactoryTest is HoneyBaseTest {
     }
 
     function test_liquidate_WhenThereIsNoSufficientBadCollateral() external {
+        vm.prank(governance);
+        factory.setLiquidationEnabled(true);
+
         uint256 daiToMint = 100e18;
         _factoryMint(dai, daiToMint, receiver, false);
         uint256 usdtToMint = 50e6;
@@ -1412,6 +1456,9 @@ contract HoneyFactoryTest is HoneyBaseTest {
         external
     {
         uint256 maxRoundingErrorDecimal = dai.decimals() - usdt.decimals() - 2;
+
+        vm.prank(governance);
+        factory.setLiquidationEnabled(true);
 
         daiToMint = _bound(daiToMint, 1e18, type(uint128).max);
         _initialMint(daiToMint);
@@ -1460,6 +1507,8 @@ contract HoneyFactoryTest is HoneyBaseTest {
     )
         external
     {
+        vm.prank(governance);
+        factory.setLiquidationEnabled(true);
         // Mint and deposit DAI:
         daiToMint = _bound(daiToMint, 1e18, type(uint128).max);
         _initialMint(daiToMint);
@@ -1540,6 +1589,9 @@ contract HoneyFactoryTest is HoneyBaseTest {
     )
         external
     {
+        vm.prank(governance);
+        factory.setLiquidationEnabled(true);
+
         daiToMint = _bound(daiToMint, 1e18, daiBalance);
         uint256 usdtToMint = daiToMint / 10 ** 12;
         dummyToMint = _bound(dummyToMint, 1e20, dummyBalance > daiToMint * 1e2 ? daiToMint * 1e2 : dummyBalance);
@@ -1593,15 +1645,15 @@ contract HoneyFactoryTest is HoneyBaseTest {
         assertEq(usdtVault.balanceOf(address(factory)), usdtToMint * 10 ** 12 * usdtMintRate / 1e18);
 
         vm.prank(governance);
-        factory.setRecapitalizeBalanceThreshold(address(usdt), 100e6);
+        factory.setRecapitalizeBalanceThreshold(address(dai), 101e18);
 
+        uint256 daiWeight = daiToMint * 1e18 / (daiToMint + usdtVault.convertToShares(usdtToMint));
         vm.prank(manager);
-        factory.setGlobalCap(0.45e18);
+        factory.setGlobalCap(daiWeight);
 
-        // NOTE: 1% of 100 has been taken as fees
-        usdt.approve(address(factory), 99e6 - usdtToMint);
+        dai.approve(address(factory), 1e18);
         vm.expectRevert(IHoneyErrors.ExceedGlobalCap.selector);
-        factory.recapitalize(address(usdt), 99e6 - usdtToMint);
+        factory.recapitalize(address(dai), 1e18);
     }
 
     function testFuzz_recapitalize_failsWhenExceedRelativeCap(
@@ -2263,6 +2315,98 @@ contract HoneyFactoryTest is HoneyBaseTest {
         vm.prank(newPauser);
         factory.pause();
         assertEq(factory.paused(), true);
+    }
+
+    // NOTE: the previous implementation of _isCappedGlobal was blocking a valid mint
+    // because it checked the weights of all the collateral assets. It has been fixed since then.
+    // NOTE: since the above mentioned fix has been implemented, we also added some enforcement
+    // to the setGlobalCap; hence this test may have became obsolete.
+    function test_LoweredGlobalCapDoesNotBlockMintWithOtherAssets() external {
+        _factoryMint(dai, 40e18, msg.sender, false);
+        _factoryMint(usdt, 40e6, msg.sender, false);
+        _factoryMint(dummy, 20e20, msg.sender, false);
+
+        vm.prank(manager);
+        factory.setGlobalCap(0.4e18);
+
+        vm.prank(manager);
+        factory.setRelativeCap(address(usdt), 1.2e18);
+
+        usdt.approve(address(factory), 1e6);
+        vm.expectRevert(IHoneyErrors.ExceedGlobalCap.selector);
+        factory.mint(address(usdt), 1e6, msg.sender, false);
+
+        _factoryMint(dummy, 20e20, msg.sender, false);
+    }
+
+    // NOTE: the previous implementation of _isCappedGlobal was blocking the redeems
+    // when a user frontrunned the decrease of global cap.
+    function test_LoweredGlobalCapDoesNotBlockRedeem() public {
+        _factoryMint(dai, 4e18, address(this), false);
+        _factoryMint(usdt, 3e6, address(this), false);
+        _factoryMint(dummy, 3e20, address(this), false);
+
+        // Set the starting global cap to 50%
+        vm.prank(manager);
+        factory.setGlobalCap(0.5e18);
+
+        // Frontrunning transaction to mint more token2 to be between 40% and 50% of the total weight
+        _factoryMint(usdt, 1e6, address(this), false);
+
+        // Reduce the global cap to 40%
+        vm.prank(manager);
+        factory.setGlobalCap(0.4e18);
+
+        // Try to mint for an asset that's below the global cap (and it's the reference asset) to reduce the weight of
+        // token2
+        // This was reverting due to exceeding the global cap
+        _factoryMint(dai, 1, address(this), false);
+
+        // Try to redeem for token2 to get below the global cap
+        // This was reverting due to exceeding the global cap
+        factory.redeem(address(usdt), 0.8e18, address(this), false);
+    }
+
+    function test_withdrawFeeDenialOfService() public {
+        // Set PoL fee rate to a low amount to have fees go to feeReceiver
+        vm.prank(governance);
+        factory.setPOLFeeCollectorFeeRate(1e18 / 10);
+
+        dai.approve(address(factory), dai.balanceOf(address(this)));
+        usdt.approve(address(factory), usdt.balanceOf(address(this)));
+
+        // Mint initial tokens
+        factory.mint(address(dai), 200e18, address(this), false);
+        factory.mint(address(usdt), 10e6, address(this), false);
+
+        // Accumulate fees by repeatedly minting and redeeming
+        for (uint256 i = 0; i < 100; i++) {
+            factory.mint(address(usdt), 1e6, address(this), false);
+            factory.redeem(address(usdt), 1e6, address(this), false);
+        }
+
+        // Mark Token 2 as bad collateral to bypass checks
+        vm.prank(manager);
+        factory.setCollateralAssetStatus(address(usdt), true);
+
+        // Attempt to redeem the entire supply of shares for token 2
+        uint256 totalSupply = usdtVault.totalSupply();
+
+        // Scratch storage for next expectRevert
+        uint256 redeemedShares = totalSupply * usdtRedeemRate / 1e18;
+        uint256 polFees = (totalSupply - redeemedShares) / 10;
+        uint256 expectedSharesPostOperation = totalSupply - polFees - redeemedShares;
+        uint256 expectedAssetsPostOperation = usdtVault.convertToAssets(expectedSharesPostOperation);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IHoneyErrors.InsufficientAssets.selector, expectedAssetsPostOperation, expectedSharesPostOperation
+            )
+        );
+        factory.redeem(address(usdt), totalSupply, address(this), false);
+
+        // Fees can still be withdrawn
+        factory.withdrawFee(address(usdt), feeReceiver);
     }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/

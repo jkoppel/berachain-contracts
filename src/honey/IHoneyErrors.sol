@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.26;
 
 /// @notice Interface of Honey errors
 interface IHoneyErrors {
@@ -47,6 +47,8 @@ interface IHoneyErrors {
     error NotPegged(address asset);
     // Signature: 0x1f2a2005
     error ZeroAmount();
-    // Signature:
+    // Signature: 0x6ce14a8b
     error UnexpectedBasketModeStatus();
+    // Signature: 0x5419864a
+    error CapCanCauseDenialOfService();
 }

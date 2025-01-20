@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.19;
+pragma solidity 0.8.26;
 
 import { ERC20 } from "solady/src/tokens/ERC20.sol";
 import { ERC4626 } from "solady/src/tokens/ERC4626.sol";
@@ -26,7 +26,7 @@ contract HoneyFactory is IHoneyFactory, VaultAdmin {
     uint256 private constant DEFAULT_PEG_OFFSET = 0.002e18;
 
     /// @dev The constant representing the default mint/redeem rate.
-    uint256 private constant DEFAULT_MINT_REDEEM_RATE = 0.998e18;
+    uint256 private constant DEFAULT_MINT_REDEEM_RATE = 0.9995e18;
 
     /// @notice The constant representing the default minimum amount of shares to recapitalize.
     /// @dev It's set to 1 share.
@@ -37,7 +37,7 @@ contract HoneyFactory is IHoneyFactory, VaultAdmin {
     uint256 private constant MAX_PEG_OFFSET = 0.02e18;
 
     /// @notice The constant representing the max price feed delay tolerance in seconds allowed.
-    uint256 private constant MAX_PRICE_FEED_DELAY_TOLERANCE = 60 seconds;
+    uint256 private constant MAX_PRICE_FEED_DELAY_TOLERANCE = 120 seconds;
 
     /// @notice The Honey token contract.
     Honey public honey;
@@ -107,11 +107,11 @@ contract HoneyFactory is IHoneyFactory, VaultAdmin {
         polFeeCollectorFeeRate = ONE_HUNDRED_PERCENT_RATE;
 
         // NOTE: based on the average block time of ~2 seconds.
-        priceFeedMaxDelay = 4 seconds;
+        priceFeedMaxDelay = 10 seconds;
         minSharesToRecapitalize = DEFAULT_MIN_SHARES_TO_RECAPITALIZE;
         priceOracle = IPriceOracle(_priceOracle);
         globalCap = ONE_HUNDRED_PERCENT_RATE;
-        liquidationEnabled = true;
+        liquidationEnabled = false;
     }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
@@ -195,6 +195,20 @@ contract HoneyFactory is IHoneyFactory, VaultAdmin {
     /// @notice Set the global cap limit.
     function setGlobalCap(uint256 limit) external {
         _checkRole(MANAGER_ROLE);
+
+        // A change in the weights distribution that frontruns this transaction
+        // may cause a DoS in the redeem of Honey
+        uint256[] memory weights = _getWeights(true, false);
+        uint256 max = 0;
+        for (uint256 i = 0; i < registeredAssets.length; i++) {
+            if (weights[i] > max) {
+                max = weights[i];
+            }
+        }
+        if (limit < max) {
+            CapCanCauseDenialOfService.selector.revertWith();
+        }
+
         globalCap = limit;
         emit GlobalCapSet(limit);
     }
@@ -257,6 +271,15 @@ contract HoneyFactory is IHoneyFactory, VaultAdmin {
         emit RecapitalizeBalanceThresholdSet(asset, target);
     }
 
+    /// @notice Replace the price oracle.
+    /// @param priceOracle_ The new price oracle to use.
+    function setPriceOracle(address priceOracle_) external {
+        _checkRole(DEFAULT_ADMIN_ROLE);
+        if (priceOracle_ == address(0)) ZeroAddress.selector.revertWith();
+        priceOracle = IPriceOracle(priceOracle_);
+        emit PriceOracleSet(priceOracle_);
+    }
+
     /// @dev Create a new ERC4626 vault for a pair of asset - Honey and register it with VaultAdmin.
     /// @dev Reverts if the vault for the given asset is already registered.
     /// @dev Reverts if the asset is zero address during `vault.initialize`.
@@ -314,7 +337,7 @@ contract HoneyFactory is IHoneyFactory, VaultAdmin {
             }
 
             honeyToMint = _mint(asset, amount, receiver, false);
-            if (!_isCappedGlobal()) {
+            if (!_isCappedGlobal(true, asset)) {
                 ExceedGlobalCap.selector.revertWith();
             }
         } else {
@@ -377,7 +400,7 @@ contract HoneyFactory is IHoneyFactory, VaultAdmin {
                 }
             }
 
-            if (!_isCappedGlobal()) {
+            if (!_isCappedGlobal(false, asset)) {
                 ExceedGlobalCap.selector.revertWith();
             }
 
@@ -440,7 +463,7 @@ contract HoneyFactory is IHoneyFactory, VaultAdmin {
         if (!_isCappedRelative(goodCollateral)) {
             ExceedRelativeCap.selector.revertWith();
         }
-        if (!_isCappedGlobal()) {
+        if (!_isCappedGlobal(false, badCollateral)) {
             ExceedGlobalCap.selector.revertWith();
         }
 
@@ -487,7 +510,7 @@ contract HoneyFactory is IHoneyFactory, VaultAdmin {
         if (!_isCappedRelative(asset)) {
             ExceedRelativeCap.selector.revertWith();
         }
-        if (!_isCappedGlobal()) {
+        if (!_isCappedGlobal(true, asset)) {
             ExceedGlobalCap.selector.revertWith();
         }
 
@@ -686,9 +709,21 @@ contract HoneyFactory is IHoneyFactory, VaultAdmin {
         return weight <= relativeCap[asset];
     }
 
-    function _isCappedGlobal() internal view returns (bool) {
+    function _isCappedGlobal(bool isMint, address collateralAsset) internal view returns (bool) {
         uint256[] memory weights = _getWeights(true, false);
         for (uint256 i = 0; i < registeredAssets.length; i++) {
+            // Upon mint, we don't care about the other collaterals, as their weight can
+            // only decrease; also, shall we check them all, it's enough to have at least
+            // one of them that exceeds their weight to prevent the current mint.
+            if (isMint && registeredAssets[i] != collateralAsset) {
+                continue;
+            }
+            // Upon redeem, we always allows the weight of the asset to be reduced, even if
+            // its current weight is already over the globalCap (due to a lowered value),
+            // as long as it doesn't cause the other collateral to exceeds the limit.
+            if (!isMint && registeredAssets[i] == collateralAsset) {
+                continue;
+            }
             if (weights[i] > globalCap) {
                 return false;
             }
@@ -736,6 +771,13 @@ contract HoneyFactory is IHoneyFactory, VaultAdmin {
         uint256 totalAssets = ERC20(asset).balanceOf(address(vault));
         if (vault.convertToAssets(totalShares) > totalAssets) {
             InsufficientAssets.selector.revertWith(totalAssets, totalShares);
+        }
+
+        // A user cannot redeem also the collected fees
+        uint256 vaultShares = vault.balanceOf(address(this));
+        if (vaultShares < collectedAssetFees[asset]) {
+            uint256 vaultAssets = vault.convertToAssets(vaultShares);
+            InsufficientAssets.selector.revertWith(vaultAssets, vaultShares);
         }
     }
 }

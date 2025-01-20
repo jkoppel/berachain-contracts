@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.4;
+pragma solidity 0.8.26;
 
 import { WETH } from "solady/src/tokens/WETH.sol";
 

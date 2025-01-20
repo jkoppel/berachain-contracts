@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity 0.8.26;
 
 contract BeaconDepositMock {
     mapping(bytes => address) public pubkeyToOperator;

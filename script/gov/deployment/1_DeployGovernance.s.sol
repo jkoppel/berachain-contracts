@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.26;
 
 import { console2 } from "forge-std/Script.sol";
 import { IERC20 } from "forge-std/interfaces/IERC20.sol";
@@ -18,19 +18,15 @@ contract DeployGovernance is BaseScript {
     address constant GOV_GUARDIAN = address(0);
 
     /// Governance params
-    /// @notice The average block time in milli-seconds
-    uint256 internal constant AVG_BLOCK_TIME_MS = 1020;
     /// @notice Minimum amount of delegated governance tokens for proposal creation
     /// @dev This is a pure number; the decimals are handled later on.
-    uint256 public constant GOV_PROPOSAL_THRESHOLD = 1000;
+    uint256 public constant GOV_PROPOSAL_THRESHOLD = 10_000;
     /// @notice Time delay between proposal creation and voting period
-    /// @dev This is time-based; the blocks are computed later on.
     uint256 public constant GOV_VOTING_DELAY = 1 hours;
     /// @notice Time duration of the voting period
-    /// @dev This is time-based; the blocks are computed later on.
-    uint256 public constant GOV_VOTING_PERIOD = 7 days;
+    uint256 public constant GOV_VOTING_PERIOD = 5 days;
     /// @notice Numerator of the needed quorum percentage
-    uint256 public constant GOV_QUORUM_NUMERATOR = 10;
+    uint256 public constant GOV_QUORUM_NUMERATOR = 20;
     /// @notice Time duration of the enforced time-lock
     uint256 public constant TIMELOCK_MIN_DELAY = 2 days;
 
@@ -41,7 +37,6 @@ contract DeployGovernance is BaseScript {
         GovDeployer govDeployer = new GovDeployer(
             BGT_ADDRESS,
             GOV_GUARDIAN,
-            AVG_BLOCK_TIME_MS,
             GOV_PROPOSAL_THRESHOLD,
             GOV_VOTING_DELAY,
             GOV_VOTING_PERIOD,
@@ -58,8 +53,8 @@ contract DeployGovernance is BaseScript {
         require(address(gov.timelock()) == TIMELOCK_ADDRESS, "Governance timelock address mismatch");
         uint256 threshold = GOV_PROPOSAL_THRESHOLD * 10 ** IERC20(BGT_ADDRESS).decimals();
         require(gov.proposalThreshold() == threshold, "Governance proposal threshold mismatch");
-        require(gov.votingDelay() == govDeployer.timeToBlocks(GOV_VOTING_DELAY), "Governance voting delay mismatch");
-        require(gov.votingPeriod() == govDeployer.timeToBlocks(GOV_VOTING_PERIOD), "Governance voting period mismatch");
+        require(gov.votingDelay() == GOV_VOTING_DELAY, "Governance voting delay mismatch");
+        require(gov.votingPeriod() == GOV_VOTING_PERIOD, "Governance voting period mismatch");
         require(gov.quorumNumerator() == GOV_QUORUM_NUMERATOR, "Governance quorum numerator mismatch");
 
         TimeLock timelock = TimeLock(payable(govDeployer.TIMELOCK_CONTROLLER()));

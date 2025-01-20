@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.26;
 
 import { LibClone } from "solady/src/utils/LibClone.sol";
 import { IGovernor } from "@openzeppelin/contracts/governance/IGovernor.sol";
@@ -78,6 +78,7 @@ contract BerachainGovernanceTest is GovernanceBaseTest {
 
         // Bring the chain two block forward in order to contabilize the voting power to the contract
         vm.roll(block.number + 2);
+        vm.warp(block.timestamp + 1);
     }
 
     function test_ProposeFailsWithInvalidDescription() public {
@@ -91,7 +92,7 @@ contract BerachainGovernanceTest is GovernanceBaseTest {
     function test_ProposeFailsIfInsufficienVotes() public {
         address proposer = makeAddr("proposer");
         uint256 proposalThreshold = gov.proposalThreshold();
-        assertLt(gov.getVotes(proposer, block.number - 1), PROPOSAL_THRESHOLD);
+        assertLt(gov.getVotes(proposer, block.timestamp - 1), PROPOSAL_THRESHOLD);
         vm.expectRevert(
             abi.encodeWithSelector(
                 IGovernor.GovernorInsufficientProposerVotes.selector, proposer, 0, proposalThreshold
@@ -102,82 +103,38 @@ contract BerachainGovernanceTest is GovernanceBaseTest {
     }
 
     function test_CreatePendingProposal() public {
-        assertGt(gov.getVotes(address(this), block.number - 1), PROPOSAL_THRESHOLD);
+        assertGt(gov.getVotes(address(this), block.timestamp - 1), PROPOSAL_THRESHOLD);
 
         uint256 proposalId = _createTestProposal(address(this), _targets, _calldatas, "Test Proposal");
 
         assertTrue(gov.state(proposalId) == IGovernor.ProposalState.Pending);
-        vm.roll(gov.proposalSnapshot(proposalId) + 1);
+        vm.warp(gov.proposalSnapshot(proposalId) + 1);
         assertTrue(gov.state(proposalId) == IGovernor.ProposalState.Active);
     }
 
     function test_CreateSucceededProposal() public returns (uint256 proposalId) {
         proposalId = _createTestProposal(address(this), _targets, _calldatas, "Test Proposal");
-        vm.roll(gov.proposalSnapshot(proposalId) + 1);
+        vm.warp(gov.proposalSnapshot(proposalId) + 1);
 
         gov.castVote(proposalId, VOTE_IN_FAVOUR);
 
-        vm.roll(gov.proposalDeadline(proposalId) + 1);
+        vm.warp(gov.proposalDeadline(proposalId) + 1);
         assertTrue(gov.state(proposalId) == IGovernor.ProposalState.Succeeded);
     }
 
     function test_CreateFailedProposal() public returns (uint256 proposalId) {
         proposalId = _createTestProposal(address(this), _targets, _calldatas, "Test Proposal");
-        vm.roll(gov.proposalSnapshot(proposalId) + 1);
+        vm.warp(gov.proposalSnapshot(proposalId) + 1);
 
         gov.castVote(proposalId, VOTE_AGAINST);
 
-        vm.roll(gov.proposalDeadline(proposalId) + 1);
+        vm.warp(gov.proposalDeadline(proposalId) + 1);
         assertTrue(gov.state(proposalId) == IGovernor.ProposalState.Defeated);
-    }
-
-    function test_AcceleratedProposal() public returns (uint256 proposalId) {
-        proposalId = _createTestProposal(address(this), _targets, _calldatas, "Test Proposal");
-
-        address voter = _makeDelegatee("voter", 40_000_000_000e18);
-        address voter2 = _makeDelegatee("voter2", 30_000_000_000e18);
-        address voter3 = _makeDelegatee("voter3", 10e18);
-
-        vm.roll(gov.proposalSnapshot(proposalId) + 1);
-
-        // Vote in favour not reaching quorum
-        vm.prank(voter3);
-        gov.castVote(proposalId, VOTE_IN_FAVOUR);
-        assertTrue(gov.state(proposalId) == IGovernor.ProposalState.Active);
-
-        // Quorum reached, but against votes are greater than votes in favour
-        vm.prank(voter2);
-        gov.castVote(proposalId, VOTE_AGAINST);
-        assertTrue(gov.state(proposalId) == IGovernor.ProposalState.Active);
-
-        // Vote in favour is greater than votes against, so proposal succeeds ignoring deadline
-        vm.prank(voter);
-        gov.castVote(proposalId, VOTE_IN_FAVOUR);
-        assertTrue(gov.state(proposalId) == IGovernor.ProposalState.Succeeded);
-    }
-
-    function test_state_WhenAcceleratedProposalAndQueued() external {
-        uint256 proposalId = test_AcceleratedProposal();
-
-        gov.queue(proposalId);
-        assertTrue(gov.state(proposalId) == IGovernor.ProposalState.Queued);
-    }
-
-    function test_state_WhenAcceleratedProposalAndCanceledByGuardianship() public {
-        uint256 proposalId = test_AcceleratedProposal();
-
-        bytes32 timelockProposalId = _getTimelockProposalId(proposalId);
-
-        gov.queue(proposalId);
-
-        vm.prank(_guardian);
-        timelock.cancel(timelockProposalId);
-        assertTrue(gov.state(proposalId) == IGovernor.ProposalState.Canceled);
     }
 
     function test_CancelProposalFailsIfProposalActive() public {
         uint256 proposalId = _createTestProposal(address(this), _targets, _calldatas, "Test Proposal");
-        vm.roll(gov.proposalSnapshot(proposalId) + 1);
+        vm.warp(gov.proposalSnapshot(proposalId) + 1);
         vm.expectRevert(
             abi.encodeWithSelector(
                 IGovernor.GovernorUnexpectedProposalState.selector,
@@ -209,7 +166,7 @@ contract BerachainGovernanceTest is GovernanceBaseTest {
 
     function test_VoteCastingFailsIfMissingVotingPower() public {
         uint256 proposalId = _createTestProposal(address(this), _targets, _calldatas, "Test Proposal");
-        vm.roll(gov.proposalSnapshot(proposalId) + 1);
+        vm.warp(gov.proposalSnapshot(proposalId) + 1);
         assertTrue(gov.state(proposalId) == IGovernor.ProposalState.Active);
 
         address voter = makeAddr("voter");
@@ -289,7 +246,7 @@ contract BerachainGovernanceTest is GovernanceBaseTest {
     function test_ExecuteProposal_FailsIfSucceededButNotQueued() public {
         uint256 proposalId =
             _createSuccessedProposal(address(this), _targets, _calldatas, "Test Proposal", address(this));
-        bytes32 id = _getTimelockProposalId(proposalId);
+        bytes32 id = gov.getTimelockOperationId(proposalId);
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -320,7 +277,7 @@ contract BerachainGovernanceTest is GovernanceBaseTest {
     function test_GuardianCancelProposalFailsIfAddressDoesNotHaveRole() public {
         address fakeGuardian = makeAddr("fakeGuardian");
         uint256 proposalId = _createQueuedProposal(address(this), _targets, _calldatas, "Test Proposal", address(this));
-        bytes32 timelockProposalId = _getTimelockProposalId(proposalId);
+        bytes32 timelockProposalId = gov.getTimelockOperationId(proposalId);
 
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -338,7 +295,7 @@ contract BerachainGovernanceTest is GovernanceBaseTest {
         timelock.grantRole(timelock.CANCELLER_ROLE(), guardian);
 
         uint256 proposalId = _createQueuedProposal(address(this), _targets, _calldatas, "Test Proposal", address(this));
-        bytes32 timelockProposalId = _getTimelockProposalId(proposalId);
+        bytes32 timelockProposalId = gov.getTimelockOperationId(proposalId);
         assertTrue(
             timelock.getOperationState(timelockProposalId) == TimelockControllerUpgradeable.OperationState.Waiting
         );
@@ -359,7 +316,7 @@ contract BerachainGovernanceTest is GovernanceBaseTest {
         timelock.grantRole(timelock.CANCELLER_ROLE(), guardian);
 
         uint256 proposalId = _createQueuedProposal(address(this), _targets, _calldatas, "Test Proposal", address(this));
-        bytes32 timelockProposalId = _getTimelockProposalId(proposalId);
+        bytes32 timelockProposalId = gov.getTimelockOperationId(proposalId);
 
         vm.warp(block.timestamp + MIN_DELAY_TIMELOCK + 1);
         assertTrue(
@@ -427,6 +384,48 @@ contract BerachainGovernanceTest is GovernanceBaseTest {
         assertEq(newTimelockImpl, _getImplAddress(address(timelock)));
     }
 
+    // Test the 51% majority
+    function test_ProposeSuccedsWithMajority() external {
+        mockBgt.mint(address(this), 41e18);
+        assertEq(51e18, mockBgt.balanceOf(address(this)));
+
+        address otherVoter = _makeDelegatee("other-voter", 49e18);
+        assertEq(49e18, mockBgt.balanceOf(otherVoter));
+
+        assertEq(100e18, mockBgt.totalSupply());
+
+        uint256 proposalId = _createTestProposal(address(this), _targets, _calldatas, "Test Proposal");
+        vm.warp(gov.proposalSnapshot(proposalId) + 1);
+
+        gov.castVote(proposalId, VOTE_IN_FAVOUR);
+        vm.prank(otherVoter);
+        gov.castVote(proposalId, VOTE_AGAINST);
+
+        vm.warp(gov.proposalDeadline(proposalId) + 1);
+        assertTrue(gov.state(proposalId) == IGovernor.ProposalState.Succeeded);
+    }
+
+    // Test the 51% majority
+    function test_ProposeFailsWithoutMajority() external {
+        mockBgt.mint(address(this), 40.9e18);
+        assertEq(50.9e18, mockBgt.balanceOf(address(this)));
+
+        address otherVoter = _makeDelegatee("other-voter", 49.1e18);
+        assertEq(49.1e18, mockBgt.balanceOf(otherVoter));
+
+        assertEq(100e18, mockBgt.totalSupply());
+
+        uint256 proposalId = _createTestProposal(address(this), _targets, _calldatas, "Test Proposal");
+        vm.warp(gov.proposalSnapshot(proposalId) + 1);
+
+        gov.castVote(proposalId, VOTE_IN_FAVOUR);
+        vm.prank(otherVoter);
+        gov.castVote(proposalId, VOTE_AGAINST);
+
+        vm.warp(gov.proposalDeadline(proposalId) + 1);
+        assertTrue(gov.state(proposalId) == IGovernor.ProposalState.Defeated);
+    }
+
     function _upgradeViaVoting(address _target, address _newImplementation) internal {
         address[] memory targetToUpgrade = new address[](1);
         targetToUpgrade[0] = _target;
@@ -436,9 +435,9 @@ contract BerachainGovernanceTest is GovernanceBaseTest {
         uint256 proposalId = gov.propose(targetToUpgrade, new uint256[](1), callDataToUpgrade, "Upgrade Timelock");
 
         // Voting Delay is of 1 day
-        vm.roll(gov.proposalSnapshot(proposalId) + 1);
+        vm.warp(gov.proposalSnapshot(proposalId) + 1);
         gov.castVote(proposalId, VOTE_IN_FAVOUR);
-        vm.roll(gov.proposalDeadline(proposalId) + 1);
+        vm.warp(gov.proposalDeadline(proposalId) + 1);
 
         gov.queue(proposalId);
         vm.warp(block.timestamp + MIN_DELAY_TIMELOCK + 1);
@@ -455,13 +454,6 @@ contract BerachainGovernanceTest is GovernanceBaseTest {
         mockBgt.mint(delegatee, votingPower);
         vm.prank(delegatee);
         mockBgt.delegate(delegatee);
-    }
-
-    function _getTimelockProposalId(uint256 proposalId) internal view returns (bytes32) {
-        (,,, bytes32 descriptionHash) = gov.proposalDetails(proposalId);
-        // timelock salt = bytes20(address(gov)) ^ descriptionHash
-        bytes32 salt = bytes20(address(gov)) ^ descriptionHash;
-        return timelock.hashOperationBatch(_targets, new uint256[](_targets.length), _calldatas, 0, salt);
     }
 
     function _getImplAddress(address proxy) internal view returns (address) {
@@ -495,13 +487,13 @@ contract BerachainGovernanceTest is GovernanceBaseTest {
         returns (uint256 proposalId)
     {
         proposalId = _createTestProposal(proposer, targets, calldatas, description);
-        vm.roll(gov.proposalSnapshot(proposalId) + 1);
+        vm.warp(gov.proposalSnapshot(proposalId) + 1);
 
         vm.prank(voter);
         gov.castVote(proposalId, 1);
 
         // Move time forward to pass the voting period
-        vm.roll(gov.proposalDeadline(proposalId) + 1);
+        vm.warp(gov.proposalDeadline(proposalId) + 1);
     }
 
     function _createQueuedProposal(

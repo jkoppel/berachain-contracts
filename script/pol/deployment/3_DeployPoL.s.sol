@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.26;
 
 import { console2 } from "forge-std/Script.sol";
 import { BaseScript } from "../../base/Base.s.sol";
@@ -34,7 +34,7 @@ contract DeployPoLScript is BaseScript, ConfigPOL, RBAC {
 
     // FeeCollector params
     // The amount to be paid out to the fee collector in order to claim fees.
-    uint256 internal constant PAYOUT_AMOUNT = 10_000 ether; // WBERA
+    uint256 internal constant PAYOUT_AMOUNT = 5000 ether; // WBERA
 
     // BeraChef params
     // The block delay for activate queued reward allocation.
@@ -85,13 +85,21 @@ contract DeployPoLScript is BaseScript, ConfigPOL, RBAC {
         distributor = polDeployer.distributor();
         _checkDeploymentAddress("Distributor", address(distributor), DISTRIBUTOR_ADDRESS);
 
+        // Give roles to the deployer
+        RBAC.AccountDescription memory deployer = RBAC.AccountDescription({ name: "deployer", addr: msg.sender });
+
+        // NOTE: the manager role on the distributor is not assigned to anyone, hence there is no need to revoke it.
+        RBAC.RoleDescription memory distributorManagerRole = RBAC.RoleDescription({
+            contractName: "Distributor",
+            contractAddr: DISTRIBUTOR_ADDRESS,
+            name: "MANAGER_ROLE",
+            role: distributor.MANAGER_ROLE()
+        });
+
+        _grantRole(distributorManagerRole, deployer);
+
         rewardVaultFactory = polDeployer.rewardVaultFactory();
         _checkDeploymentAddress("RewardVaultFactory", address(rewardVaultFactory), REWARD_VAULT_FACTORY_ADDRESS);
-
-        // Give roles to the deployer
-        RBAC.AccountDescription memory vaultManager =
-            RBAC.AccountDescription({ name: "vaultManager", addr: msg.sender });
-        RBAC.AccountDescription memory vaultPauser = RBAC.AccountDescription({ name: "vaultPauser", addr: msg.sender });
 
         RBAC.RoleDescription memory rewardVaultFactoryManagerRole = RBAC.RoleDescription({
             contractName: "RewardVaultFactory",
@@ -106,8 +114,8 @@ contract DeployPoLScript is BaseScript, ConfigPOL, RBAC {
             role: rewardVaultFactory.VAULT_PAUSER_ROLE()
         });
 
-        _grantRole(rewardVaultFactoryManagerRole, vaultManager);
-        _grantRole(rewardVaultFactoryPauserRole, vaultPauser);
+        _grantRole(rewardVaultFactoryManagerRole, deployer);
+        _grantRole(rewardVaultFactoryPauserRole, deployer);
     }
 
     /// @dev Deploy BGTStaker and FeeCollector
@@ -129,10 +137,7 @@ contract DeployPoLScript is BaseScript, ConfigPOL, RBAC {
         console2.log("Set the payout amount to %d", PAYOUT_AMOUNT);
 
         // Give roles to the deployer
-        RBAC.AccountDescription memory feeCollectorManager =
-            RBAC.AccountDescription({ name: "feeCollectorManager", addr: msg.sender });
-        RBAC.AccountDescription memory feeCollectorPauser =
-            RBAC.AccountDescription({ name: "feeCollectorPauser", addr: msg.sender });
+        RBAC.AccountDescription memory deployer = RBAC.AccountDescription({ name: "deployer", addr: msg.sender });
 
         RBAC.RoleDescription memory feeCollectorManagerRole = RBAC.RoleDescription({
             contractName: "FeeCollector",
@@ -147,7 +152,7 @@ contract DeployPoLScript is BaseScript, ConfigPOL, RBAC {
             role: feeCollector.PAUSER_ROLE()
         });
 
-        _grantRole(feeCollectorManagerRole, feeCollectorManager);
-        _grantRole(feeCollectorPauserRole, feeCollectorPauser);
+        _grantRole(feeCollectorManagerRole, deployer);
+        _grantRole(feeCollectorPauserRole, deployer);
     }
 }

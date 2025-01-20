@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.26;
 
 /// @notice This is the interface of HoneyFactory.
 /// @author Berachain Team
@@ -78,6 +78,10 @@ interface IHoneyFactory {
     /// @param asset The asset that the relative cap is set.
     /// @param relativeCap The relative cap.
     event RelativeCapSet(address asset, uint256 relativeCap);
+
+    /// @notice Emitted when the price oracle is replaced.
+    /// @param oracle The address of the new price oracle.
+    event PriceOracleSet(address oracle);
 
     /// @notice Emitted when the liquidate is performed.
     /// @param badAsset The bad asset that is liquidated.

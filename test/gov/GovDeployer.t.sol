@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.26;
 
 import { Test } from "forge-std/Test.sol";
 
@@ -17,7 +17,6 @@ import { MockERC20 } from "../mock/token/MockERC20.sol";
 contract GovDeployerTest is Test {
     address private immutable _voteToken;
     address private immutable _guardian;
-    uint256 private constant AVG_BLOCK_TIME_MS = 2 seconds;
     uint256 private constant PROPOSAL_TRESHOLD = 1000e18;
     uint256 private constant VOTING_DELAY = 2 seconds;
     uint256 private constant VOTING_PERIOD = 2 seconds;
@@ -36,24 +35,6 @@ contract GovDeployerTest is Test {
         new GovDeployer(
             address(0),
             _guardian,
-            AVG_BLOCK_TIME_MS,
-            PROPOSAL_TRESHOLD,
-            VOTING_DELAY,
-            VOTING_PERIOD,
-            QUORUM_NUMERATOR_VALUE,
-            TIMELOCK_MIN_DELAY,
-            GOV_SALT,
-            TIMELOCK_SALT
-        );
-    }
-
-    function test_GovDeployRevertAvgBlockTimeIsZero() public {
-        vm.expectRevert();
-        // panic: division or modulo by zero (0x12)
-        new GovDeployer(
-            _voteToken,
-            _guardian,
-            0,
             PROPOSAL_TRESHOLD,
             VOTING_DELAY,
             VOTING_PERIOD,
@@ -74,7 +55,6 @@ contract GovDeployerTest is Test {
         new GovDeployer(
             _voteToken,
             _guardian,
-            AVG_BLOCK_TIME_MS,
             PROPOSAL_TRESHOLD,
             VOTING_DELAY,
             VOTING_PERIOD,
@@ -91,7 +71,6 @@ contract GovDeployerTest is Test {
         new GovDeployer(
             fakeVoteToken,
             _guardian,
-            AVG_BLOCK_TIME_MS,
             PROPOSAL_TRESHOLD,
             VOTING_DELAY,
             VOTING_PERIOD,
@@ -106,7 +85,6 @@ contract GovDeployerTest is Test {
         GovDeployer deployer = new GovDeployer(
             _voteToken,
             _guardian,
-            AVG_BLOCK_TIME_MS,
             PROPOSAL_TRESHOLD,
             VOTING_DELAY,
             VOTING_PERIOD,

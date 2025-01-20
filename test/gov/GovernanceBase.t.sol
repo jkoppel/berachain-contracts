@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.26;
 
 import { IGovernor } from "@openzeppelin/contracts/governance/IGovernor.sol";
 
@@ -120,14 +120,14 @@ abstract contract GovernanceBaseTest is POLTest {
 
         uint256 votingStart = gov.proposalSnapshot(proposalId);
 
-        if (block.number < votingStart) {
-            vm.roll(votingStart + 1); // move to the block where voting is allowed
+        if (block.timestamp < votingStart) {
+            vm.warp(votingStart + 1); // move to the block where voting is allowed
         }
 
         gov.castVote(proposalId, 1);
 
         // Move time forward to pass the voting period
-        vm.roll(gov.proposalDeadline(proposalId) + 1);
+        vm.warp(gov.proposalDeadline(proposalId) + 1);
 
         if (gov.state(proposalId) == IGovernor.ProposalState.Succeeded) {
             gov.queue(

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: BUSL-1.1
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.26;
 
 /// @title Provide asset prices in USD with WAD precision
 /// @dev Generic interface that wraps the Pyth oracle

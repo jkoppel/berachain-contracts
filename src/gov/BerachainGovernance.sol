@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Compatible with OpenZeppelin Contracts ^5.0.0
-pragma solidity ^0.8.20;
+pragma solidity 0.8.26;
 
 import { GovernorUpgradeable } from "@openzeppelin-gov/GovernorUpgradeable.sol";
 import { TimelockControllerUpgradeable } from "@openzeppelin-gov/TimelockControllerUpgradeable.sol";
@@ -72,50 +72,39 @@ contract BerachainGovernance is
     }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
-    /*                       ADMIN FUNCTIONS                      */
+    /*                       CUSTOM CHANGES                       */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
     function _authorizeUpgrade(address newImplementation) internal override onlyGovernance { }
 
-    /// @inheritdoc GovernorTimelockControlUpgradeable
-    function state(uint256 proposalId)
-        public
+    /**
+     * @notice We have a requirement of 51% threshold for proposal approval
+     * @dev forVotes / (forVotes + againstVotes) >= 51%
+     */
+    function _voteSucceeded(uint256 proposalId)
+        internal
         view
-        override(GovernorUpgradeable, GovernorTimelockControlUpgradeable)
-        returns (ProposalState)
+        virtual
+        override(GovernorUpgradeable, GovernorCountingSimpleUpgradeable)
+        returns (bool)
     {
-        ProposalState currentState = GovernorTimelockControlUpgradeable.state(proposalId);
+        (uint256 againstVotes, uint256 forVotes,) = proposalVotes(proposalId);
+        uint256 threshold = (forVotes + againstVotes) * 51 / 100;
 
-        // Accelerate the proposal if it has reached the quorum; regardless of the deadline.
-        if (currentState == ProposalState.Active && _quorumReached(proposalId) && _voteSucceeded(proposalId)) {
-            // NOTE: once allecerated, the state must be fixed to keep it consistent
-            if (proposalEta(proposalId) == 0) {
-                // The proposal has not been queued yet
-                return ProposalState.Succeeded;
-            } else if (_isProposalPendingOnTimelock(proposalId)) {
-                return ProposalState.Queued;
-            } else {
-                // The proposal has been cancelled by the guardianship
-                return ProposalState.Canceled;
-            }
-        }
-
-        return currentState;
+        return forVotes >= threshold;
     }
 
     /**
      * @dev Helper method in place of GovernorTimelockControlUpgradeable private methods
      */
-    function _isProposalPendingOnTimelock(uint256 proposalId) private view returns (bool) {
+    function getTimelockOperationId(uint256 proposalId) external view returns (bytes32 operationId) {
         TimelockControllerUpgradeable timelock = TimelockControllerUpgradeable(payable(_executor()));
 
         // Compute timelock operation ID:
         (address[] memory targets, uint256[] memory values, bytes[] memory calldatas, bytes32 descriptionHash) =
             proposalDetails(proposalId);
         bytes32 salt = bytes20(address(this)) ^ descriptionHash;
-        bytes32 operationId = timelock.hashOperationBatch(targets, values, calldatas, 0, salt);
-
-        return timelock.isOperationPending(operationId);
+        operationId = timelock.hashOperationBatch(targets, values, calldatas, 0, salt);
     }
 
     function _countVote(
@@ -137,7 +126,19 @@ contract BerachainGovernance is
         return GovernorCountingSimpleUpgradeable._countVote(proposalId, account, support, totalWeight, params);
     }
 
-    // The following functions are overrides required by Solidity.
+    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
+    /*                     REQUIRED OVERRIDES                     */
+    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
+
+    /// @inheritdoc GovernorTimelockControlUpgradeable
+    function state(uint256 proposalId)
+        public
+        view
+        override(GovernorUpgradeable, GovernorTimelockControlUpgradeable)
+        returns (ProposalState)
+    {
+        return GovernorTimelockControlUpgradeable.state(proposalId);
+    }
 
     /// @inheritdoc GovernorTimelockControlUpgradeable
     function proposalNeedsQueuing(uint256 proposalId)

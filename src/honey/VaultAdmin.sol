@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BUSL-1.1
 // To support named parameters in mapping types and custom operators for user-defined value types.
-pragma solidity ^0.8.19;
+pragma solidity 0.8.26;
 
 import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";

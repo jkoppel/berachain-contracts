@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.26;
 
 import "forge-std/Test.sol";
 
@@ -11,6 +11,7 @@ import { SafeTransferLib } from "solady/src/utils/SafeTransferLib.sol";
 
 import { IBGT, IERC20 } from "src/pol/interfaces/IBGT.sol";
 import { IPOLErrors, IStakingRewardsErrors } from "src/pol/interfaces/IPOLErrors.sol";
+import { BlockRewardController } from "src/pol/rewards/BlockRewardController.sol";
 import { POLTest } from "./POL.t.sol";
 
 contract BGTTest is POLTest {
@@ -334,8 +335,12 @@ contract BGTTest is POLTest {
         uint256 blockNumber = block.number;
 
         vm.roll(blockNumber + 100);
+
         // again queue drop boost
-        bgt.queueDropBoost(valData.pubkey, uint128(dropAmount - dropAmount1));
+        uint128 dropAmount2 = uint128(dropAmount - dropAmount1);
+        vm.expectEmit(true, true, true, true);
+        emit IBGT.QueueDropBoost(user, valData.pubkey, dropAmount2);
+        bgt.queueDropBoost(valData.pubkey, dropAmount2);
         vm.stopPrank();
         (blockNumberLast, balance) = bgt.dropBoostQueue(user, valData.pubkey);
         assertEq(blockNumberLast, uint32(blockNumber + 100));
@@ -427,7 +432,7 @@ contract BGTTest is POLTest {
 
         vm.prank(user);
         vm.expectEmit(true, true, true, true);
-        emit IBGT.DropBoost(user, valData.pubkey, uint128(dropAmount));
+        emit IBGT.DropBoost(user, user, valData.pubkey, uint128(dropAmount));
         bgt.dropBoost(user, valData.pubkey);
 
         // check the states after dropping the boost.
@@ -811,6 +816,67 @@ contract BGTTest is POLTest {
         assertEq(address(bgt).balance, 1000 ether - amount);
         assertEq(bgt.balanceOf(address(distributor)), 1000 ether - amount);
         assertEq(receiverAddr.balance, amount);
+    }
+
+    function testFuzz_SetBgtTermsAndConditions(string memory termsAndConditions) public {
+        // add a random character to the end of the string to ensure that the string is not empty
+        termsAndConditions = string.concat(termsAndConditions, "+");
+        string memory _oldTermsAndConditions = bgt.bgtTermsAndConditions();
+        vm.expectEmit();
+        emit IBGT.BgtTermsAndConditionsChanged(termsAndConditions);
+        vm.prank(governance);
+        bgt.setBgtTermsAndConditions(termsAndConditions);
+        assertEq(bgt.bgtTermsAndConditions(), termsAndConditions);
+        assertNotEq(bgt.bgtTermsAndConditions(), _oldTermsAndConditions);
+    }
+
+    function test_SetBgtTermsAndConditions() public {
+        testFuzz_SetBgtTermsAndConditions("BGT TERMS AND CONDITIONS");
+    }
+
+    function test_SetBgtTermsAndConditions_FailsIfNotOwner() public {
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, address(this)));
+        bgt.setBgtTermsAndConditions("BGT TERMS AND CONDITIONS");
+    }
+
+    function testFuzz_BurnExcess(
+        address caller,
+        uint256 nativeTokenBalance,
+        uint256 bgtSupply,
+        uint256 minRewardPerBlock
+    )
+        public
+    {
+        uint256 baseRate = 0.5 ether;
+        minRewardPerBlock =
+            _bound(minRewardPerBlock, 0, BlockRewardController(blockRewardController).MAX_MIN_BOOSTED_REWARD_RATE());
+
+        uint256 maxBgtPerBlock = minRewardPerBlock + baseRate;
+        uint256 potentialMintableAmountInBuffer = 8191 * maxBgtPerBlock;
+
+        bgtSupply = _bound(bgtSupply, 0, 1e6 ether - potentialMintableAmountInBuffer);
+        nativeTokenBalance = _bound(nativeTokenBalance, bgtSupply + potentialMintableAmountInBuffer, 1e6 ether);
+
+        // Simulate amount of BGT circulating
+        testFuzz_Mint(address(distributor), bgtSupply);
+
+        // Simulate native token accumulated in BGT contract
+        vm.deal(address(bgt), nativeTokenBalance);
+
+        vm.startPrank(governance);
+        BlockRewardController(blockRewardController).setMinBoostedRewardRate(minRewardPerBlock);
+        BlockRewardController(blockRewardController).setBaseRate(baseRate);
+        vm.stopPrank();
+
+        vm.prank(caller);
+        if (nativeTokenBalance > bgtSupply + potentialMintableAmountInBuffer) {
+            vm.expectEmit();
+            emit IBGT.ExceedingReservesBurnt(caller, nativeTokenBalance - bgtSupply - potentialMintableAmountInBuffer);
+        }
+        bgt.burnExceedingReserves();
+
+        assertGe(address(bgt).balance, bgt.totalSupply());
+        assertEq(address(bgt).balance, bgt.totalSupply() + potentialMintableAmountInBuffer);
     }
 
     // Internal Helper functions
