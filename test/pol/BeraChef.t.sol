@@ -224,19 +224,14 @@ contract BeraChefTest is POLTest {
         assertEq(beraChef.isWhitelistedVault(receiver), isWhitelisted);
     }
 
-    /// @dev Should fail if default reward allocation contains a weight percentage equal to 0
-    function testFail_SetDefaultRewardAllocationWithZeroPercentageWeight() public {
-        address receiverOne = makeAddr("recevierOne");
-        address receiverTwo = makeAddr("recevierTwo");
+    /// @dev Should revert if new reward allocation contains a weight percentage equal to 0
+    function test_FailIfNewRewardAllocationWith_ZeroPercentageWeight() public {
         IBeraChef.Weight[] memory weights = new IBeraChef.Weight[](3);
         weights[0] = IBeraChef.Weight(receiver, 5000);
-        weights[1] = IBeraChef.Weight(receiverOne, 0);
-        weights[2] = IBeraChef.Weight(receiverTwo, 5000);
+        weights[1] = IBeraChef.Weight(receiver, 5000);
+        weights[2] = IBeraChef.Weight(receiver2, 0);
 
-        vm.startPrank(governance);
-        beraChef.setVaultWhitelistedStatus(receiverOne, true, "");
-        beraChef.setVaultWhitelistedStatus(receiverTwo, true, "");
-
+        vm.prank(operator);
         vm.expectRevert(IPOLErrors.ZeroPercentageWeight.selector);
         beraChef.queueNewRewardAllocation(valData.pubkey, uint64(block.number + 1), weights);
     }
