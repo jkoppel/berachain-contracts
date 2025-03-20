@@ -13,9 +13,11 @@ import { FeeCollector } from "src/pol/FeeCollector.sol";
 import { BGTFeeDeployer } from "src/pol/BGTFeeDeployer.sol";
 import { POLDeployer } from "src/pol/POLDeployer.sol";
 import { WBERA } from "src/WBERA.sol";
+import { Create2Deployer } from "src/base/Create2Deployer.sol";
 import { BeaconDepositMock } from "test/mock/pol/BeaconDepositMock.sol";
+import { BGTIncentiveDistributor } from "src/pol/rewards/BGTIncentiveDistributor.sol";
 
-abstract contract POLTest is Test {
+abstract contract POLTest is Test, Create2Deployer {
     uint256 internal constant TEST_BGT_PER_BLOCK = 5 ether;
     uint64 internal constant DISTRIBUTE_FOR_TIMESTAMP = 1_234_567_890;
     uint256 internal constant PAYOUT_AMOUNT = 1e18;
@@ -26,6 +28,7 @@ abstract contract POLTest is Test {
     // beacon deposit address defined in the contract.
     address internal beaconDepositContract = 0x4242424242424242424242424242424242424242;
     address internal operator = makeAddr("operator");
+    address internal bgtIncentiveReceiverManager = makeAddr("bgtIncentiveReceiverManager");
 
     struct ValData {
         bytes32 beaconBlockRoot;
@@ -47,6 +50,7 @@ abstract contract POLTest is Test {
     POLDeployer internal polDeployer;
     BGTFeeDeployer internal feeDeployer;
     WBERA internal wbera;
+    address internal bgtIncentiveDistributor;
 
     /// @dev A function invoked before each test case is run.
     function setUp() public virtual {
@@ -67,6 +71,9 @@ abstract contract POLTest is Test {
         bgt.setMinter(address(blockRewardController));
         bgt.setStaker(address(bgtStaker));
         bgt.whitelistSender(address(distributor), true);
+
+        factory.setBGTIncentiveDistributor(bgtIncentiveDistributor);
+        beraChef.setCommissionChangeDelay(2 * 8191);
         // add native token to BGT for backing
         vm.deal(address(bgt), 100_000 ether);
         vm.stopPrank();
@@ -77,6 +84,15 @@ abstract contract POLTest is Test {
         bgt.initialize(owner);
     }
 
+    function deployBGTIncentiveDistributor(address owner) internal {
+        address bgtIncentiveDistributorImpl = deployWithCreate2(0, type(BGTIncentiveDistributor).creationCode);
+        bgtIncentiveDistributor = (deployProxyWithCreate2(bgtIncentiveDistributorImpl, 0));
+        BGTIncentiveDistributor(bgtIncentiveDistributor).initialize(owner);
+        bytes32 managerRole = BGTIncentiveDistributor(bgtIncentiveDistributor).MANAGER_ROLE();
+        vm.prank(owner);
+        BGTIncentiveDistributor(bgtIncentiveDistributor).grantRole(managerRole, bgtIncentiveReceiverManager);
+    }
+
     function deployBGTFees(address owner) internal {
         feeDeployer = new BGTFeeDeployer(address(bgt), owner, address(wbera), 0, 0, PAYOUT_AMOUNT);
         bgtStaker = feeDeployer.bgtStaker();
@@ -85,6 +101,7 @@ abstract contract POLTest is Test {
 
     function deployPOL(address owner) internal {
         deployBGT(owner);
+        deployBGTIncentiveDistributor(owner);
 
         // deploy the beacon deposit contract at the address defined in the contract.
         deployCodeTo("BeaconDepositMock.sol", beaconDepositContract);

@@ -9,6 +9,19 @@ contract PausableERC20 is PausableUpgradeable, MockERC20 {
         return super.transfer(recipient, amount);
     }
 
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    )
+        public
+        override
+        whenNotPaused
+        returns (bool)
+    {
+        return super.transferFrom(sender, recipient, amount);
+    }
+
     function pause() external {
         _pause();
     }

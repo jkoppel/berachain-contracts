@@ -5,14 +5,14 @@ import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/ac
 import { UUPSUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import { LibClone } from "solady/src/utils/LibClone.sol";
 import { UpgradeableBeacon } from "solady/src/utils/UpgradeableBeacon.sol";
-import { Utils } from "../../libraries/Utils.sol";
-import { IRewardVaultFactory } from "../interfaces/IRewardVaultFactory.sol";
-import { RewardVault } from "./RewardVault.sol";
+import { Utils } from "../libraries/Utils.sol";
+import { IRewardVaultFactory_V0 } from "./interfaces/IRewardVaultFactory_V0.sol";
+import { RewardVault_V0 } from "./RewardVault_V0.sol";
 
-/// @title RewardVaultFactory
+/// @title RewardVaultFactory_V0
 /// @author Berachain Team
 /// @notice Factory contract for creating RewardVaults and keeping track of them.
-contract RewardVaultFactory is IRewardVaultFactory, AccessControlUpgradeable, UUPSUpgradeable {
+contract RewardVaultFactory_V0 is IRewardVaultFactory_V0, AccessControlUpgradeable, UUPSUpgradeable {
     using Utils for bytes4;
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
@@ -42,10 +42,6 @@ contract RewardVaultFactory is IRewardVaultFactory, AccessControlUpgradeable, UU
 
     /// @notice Array of all vaults that have been created.
     address[] public allVaults;
-
-    /// @notice The address of the BGTIncentiveDistributor contract to receive
-    /// the BGT booster share of the incentive tokens.
-    address public bgtIncentiveDistributor;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -84,18 +80,11 @@ contract RewardVaultFactory is IRewardVaultFactory, AccessControlUpgradeable, UU
 
     function _authorizeUpgrade(address newImplementation) internal override onlyRole(DEFAULT_ADMIN_ROLE) { }
 
-    /// @inheritdoc IRewardVaultFactory
-    function setBGTIncentiveDistributor(address _bgtIncentiveDistributor) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_bgtIncentiveDistributor == address(0)) ZeroAddress.selector.revertWith();
-        emit BGTIncentiveDistributorSet(_bgtIncentiveDistributor, bgtIncentiveDistributor);
-        bgtIncentiveDistributor = _bgtIncentiveDistributor;
-    }
-
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                        VAULT CREATION                      */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-    /// @inheritdoc IRewardVaultFactory
+    /// @inheritdoc IRewardVaultFactory_V0
     function createRewardVault(address stakingToken) external returns (address) {
         address cachedAddress = getVault[stakingToken];
         if (cachedAddress != address(0)) return cachedAddress;
@@ -117,7 +106,7 @@ contract RewardVaultFactory is IRewardVaultFactory, AccessControlUpgradeable, UU
         emit VaultCreated(stakingToken, vault);
 
         // Initialize the vault.
-        RewardVault(vault).initialize(beaconDepositContract, bgt, distributor, stakingToken);
+        RewardVault_V0(vault).initialize(beaconDepositContract, bgt, distributor, stakingToken);
 
         return vault;
     }
@@ -126,7 +115,7 @@ contract RewardVaultFactory is IRewardVaultFactory, AccessControlUpgradeable, UU
     /*                          READS                             */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-    /// @inheritdoc IRewardVaultFactory
+    /// @inheritdoc IRewardVaultFactory_V0
     function predictRewardVaultAddress(address stakingToken) external view returns (address) {
         bytes32 salt;
         assembly ("memory-safe") {
@@ -136,7 +125,7 @@ contract RewardVaultFactory is IRewardVaultFactory, AccessControlUpgradeable, UU
         return LibClone.predictDeterministicAddressERC1967BeaconProxy(beacon, salt, address(this));
     }
 
-    /// @inheritdoc IRewardVaultFactory
+    /// @inheritdoc IRewardVaultFactory_V0
     function allVaultsLength() external view returns (uint256) {
         return allVaults.length;
     }

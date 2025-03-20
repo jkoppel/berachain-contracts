@@ -16,6 +16,7 @@ import { BGTFeeDeployer } from "src/pol/BGTFeeDeployer.sol";
 import { POLDeployer } from "src/pol/POLDeployer.sol";
 import { WBERA } from "src/WBERA.sol";
 import { BeaconDeposit } from "src/pol/BeaconDeposit.sol";
+import { BGTIncentiveDistributor } from "src/pol/rewards/BGTIncentiveDistributor.sol";
 
 abstract contract Storage {
     BGT internal bgt;
@@ -33,4 +34,5 @@ abstract contract Storage {
     Honey internal honey;
     HoneyFactory internal honeyFactory;
     HoneyFactoryReader internal honeyFactoryReader;
+    BGTIncentiveDistributor internal bgtIncentiveDistributor;
 }

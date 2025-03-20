@@ -14,11 +14,23 @@ contract ValidateUpgrade is Script {
         // Either contract name should point to the deployed contract that is being upgraded using
         // @custom:oz-upgrades-from ContractV1
         // or `referenceContract` should be specified in the Options object.
+
+        // Check BeraChef safe upgrade
         Options memory options; // create an empty options object.
-        // use below if ContractV2 does not have upgrades-from annotation.
-        // options.referenceContract = "ContractV1"; // specify the reference contract name.
-        Upgrades.validateUpgrade("ContractV2.sol", options);
-        console2.log("contract can be upgraded successfully.");
+        options.referenceContract = "BeraChef_V0.sol:BeraChef_V0";
+        Upgrades.validateUpgrade("BeraChef.sol", options);
+        console2.log("BeraChef can be upgraded successfully.");
+
+        // Check RewardVault safe upgrade
+        options.referenceContract = "RewardVault_V0.sol:RewardVault_V0";
+        Upgrades.validateUpgrade("RewardVault.sol", options);
+        console2.log("RewardVault can be upgraded successfully.");
+
+        // Check RewardVaultFactory safe upgrade
+        options.referenceContract = "RewardVaultFactory_V0.sol:RewardVaultFactory_V0";
+        Upgrades.validateUpgrade("RewardVaultFactory.sol", options);
+        console2.log("RewardVaultFactory can be upgraded successfully.");
+
         vm.stopBroadcast();
     }
 }

@@ -49,6 +49,14 @@ interface IPOLErrors is IStakingRewardsErrors {
     error NotFactoryVault();
     // Signature: 0x978dc040
     error ZeroPercentageWeight();
+    // Signature: 0xab396d11
+    error InvalidCommissionValue();
+    // Signature: 0x0c32c4fa
+    error CommissionChangeAlreadyQueued();
+    // Signature: 0xe9269446
+    error CommissionNotQueuedOrDelayNotPassed();
+    // Signature: 0xc1abde53
+    error InvalidCommissionChangeDelay();
 
     /*                   BLOCK REWARD CONTROLLLER                  */
 
@@ -148,4 +156,20 @@ interface IPOLErrors is IStakingRewardsErrors {
     /// @dev Error thrown when the caller is not the current operator.
     // Signature: 0x819a0d0b
     error NotNewOperator();
+
+    /*                        BGT INCENTIVE DISTRIBUTOR                */
+    // Signature: 0x1ec5aa51
+    error InvalidArray();
+    // Signature: 0x68b5c198
+    error InvalidDistribution();
+    // Signature: 0x9dd854d3
+    error InvalidMerkleRoot();
+    // Signature: 0x0995309b
+    error RewardInactive();
+    // Signature: 0x5958c647
+    error InvalidRewardClaimDelay();
+    // Signature: 0x75f9d00c
+    error InsufficientIncentiveTokens();
+    // Signature: 0xc1ab6dc1
+    error InvalidToken();
 }

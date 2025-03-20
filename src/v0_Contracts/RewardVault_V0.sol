@@ -7,28 +7,25 @@ import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/P
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import { FixedPointMathLib } from "solady/src/utils/FixedPointMathLib.sol";
 
-import { Utils } from "../../libraries/Utils.sol";
-import { IBeaconDeposit } from "../interfaces/IBeaconDeposit.sol";
-import { IRewardVault } from "../interfaces/IRewardVault.sol";
-import { FactoryOwnable } from "../../base/FactoryOwnable.sol";
-import { StakingRewards } from "../../base/StakingRewards.sol";
-import { IBeraChef } from "../interfaces/IBeraChef.sol";
-import { IDistributor } from "../interfaces/IDistributor.sol";
-import { IBGTIncentiveDistributor } from "../interfaces/IBGTIncentiveDistributor.sol";
-/// @title Rewards Vault
+import { Utils } from "../libraries/Utils.sol";
+import { IBeaconDeposit } from "../pol/interfaces/IBeaconDeposit.sol";
+import { IRewardVault_V0 } from "./interfaces/IRewardVault_V0.sol";
+import { FactoryOwnable } from "../base/FactoryOwnable.sol";
+import { StakingRewards } from "../base/StakingRewards.sol";
+
+/// @title Rewards Vault_V0
 /// @author Berachain Team
 /// @notice This contract is the vault for the Berachain rewards, it handles the staking and rewards accounting of BGT.
 /// @dev This contract is taken from the stable and tested:
 /// https://github.com/Synthetixio/synthetix/blob/develop/contracts/StakingRewards.sol
 /// We are using this model instead of 4626 because we want to incentivize staying in the vault for x period of time to
 /// to be considered a 'miner' and not a 'trader'.
-
-contract RewardVault is
+contract RewardVault_V0 is
     PausableUpgradeable,
     ReentrancyGuardUpgradeable,
     FactoryOwnable,
     StakingRewards,
-    IRewardVault
+    IRewardVault_V0
 {
     using Utils for bytes4;
     using SafeERC20 for IERC20;
@@ -61,11 +58,6 @@ contract RewardVault is
     uint256 private constant MAX_INCENTIVE_RATE = 1e36; // for 18 decimal token, this will mean 1e18 incentiveTokens
         // per BGT emission.
 
-    // Safe gas limit for low level call operations to avoid griefing.
-    // This is mostly for low level call like approve, receiveIncentive (IBGTIncentiveDistributor which uses
-    // transferFrom).
-    uint256 private constant SAFE_GAS_LIMIT = 500_000;
-
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                          STORAGE                           */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
@@ -95,7 +87,7 @@ contract RewardVault is
         _disableInitializers();
     }
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function initialize(
         address _beaconDepositContract,
         address _bgt,
@@ -147,20 +139,20 @@ contract RewardVault is
     /*                       ADMIN FUNCTIONS                      */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function setDistributor(address _rewardDistribution) external onlyFactoryOwner {
         if (_rewardDistribution == address(0)) ZeroAddress.selector.revertWith();
         distributor = _rewardDistribution;
         emit DistributorSet(_rewardDistribution);
     }
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function notifyRewardAmount(bytes calldata pubkey, uint256 reward) external onlyDistributor {
         _notifyRewardAmount(reward);
         _processIncentives(pubkey, reward);
     }
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function recoverERC20(address tokenAddress, uint256 tokenAmount) external onlyFactoryOwner {
         if (tokenAddress == address(stakeToken)) CannotRecoverStakingToken.selector.revertWith();
         if (incentives[tokenAddress].minIncentiveRate != 0) CannotRecoverIncentiveToken.selector.revertWith();
@@ -168,12 +160,12 @@ contract RewardVault is
         emit Recovered(tokenAddress, tokenAmount);
     }
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function setRewardsDuration(uint256 _rewardsDuration) external onlyFactoryOwner {
         _setRewardsDuration(_rewardsDuration);
     }
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function whitelistIncentiveToken(
         address token,
         uint256 minIncentiveRate,
@@ -202,7 +194,7 @@ contract RewardVault is
         emit IncentiveTokenWhitelisted(token, minIncentiveRate, manager);
     }
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function removeIncentiveToken(address token) external onlyFactoryVaultManager onlyWhitelistedToken(token) {
         delete incentives[token];
         // delete the token from the list.
@@ -210,7 +202,7 @@ contract RewardVault is
         emit IncentiveTokenRemoved(token);
     }
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function updateIncentiveManager(
         address token,
         address newManager
@@ -227,7 +219,7 @@ contract RewardVault is
         emit IncentiveManagerChanged(token, newManager, currentManager);
     }
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function setMaxIncentiveTokensCount(uint8 _maxIncentiveTokensCount) external onlyFactoryOwner {
         if (_maxIncentiveTokensCount < whitelistedTokens.length) {
             InvalidMaxIncentiveTokensCount.selector.revertWith();
@@ -236,12 +228,12 @@ contract RewardVault is
         emit MaxIncentiveTokensCountUpdated(_maxIncentiveTokensCount);
     }
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function pause() external onlyFactoryVaultPauser {
         _pause();
     }
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function unpause() external onlyFactoryVaultManager {
         _unpause();
     }
@@ -250,27 +242,27 @@ contract RewardVault is
     /*                          GETTERS                           */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function operator(address account) external view returns (address) {
         return _operators[account];
     }
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function getWhitelistedTokensCount() external view returns (uint256) {
         return whitelistedTokens.length;
     }
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function getWhitelistedTokens() public view returns (address[] memory) {
         return whitelistedTokens;
     }
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function getTotalDelegateStaked(address account) external view returns (uint256) {
         return _delegateStake[account].delegateTotalStaked;
     }
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function getDelegateStake(address account, address delegate) external view returns (uint256) {
         return _delegateStake[account].stakedByDelegate[delegate];
     }
@@ -279,12 +271,12 @@ contract RewardVault is
     /*                          WRITES                            */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function stake(uint256 amount) external nonReentrant whenNotPaused {
         _stake(msg.sender, amount);
     }
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function delegateStake(address account, uint256 amount) external nonReentrant whenNotPaused {
         if (msg.sender == account) NotDelegate.selector.revertWith();
 
@@ -301,12 +293,12 @@ contract RewardVault is
         emit DelegateStaked(account, msg.sender, amount);
     }
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function withdraw(uint256 amount) external nonReentrant checkSelfStakedBalance(msg.sender, amount) {
         _withdraw(msg.sender, amount);
     }
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function delegateWithdraw(address account, uint256 amount) external nonReentrant {
         if (msg.sender == account) NotDelegate.selector.revertWith();
 
@@ -322,7 +314,7 @@ contract RewardVault is
         emit DelegateWithdrawn(account, msg.sender, amount);
     }
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function getReward(
         address account,
         address recipient
@@ -335,7 +327,7 @@ contract RewardVault is
         return _getReward(account, recipient);
     }
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function exit(address recipient) external nonReentrant {
         // self-staked amount
         uint256 amount = _accountInfo[msg.sender].balance - _delegateStake[msg.sender].delegateTotalStaked;
@@ -343,13 +335,13 @@ contract RewardVault is
         _getReward(msg.sender, recipient);
     }
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function setOperator(address _operator) external {
         _operators[msg.sender] = _operator;
         emit OperatorSet(msg.sender, _operator);
     }
 
-    /// @inheritdoc IRewardVault
+    /// @inheritdoc IRewardVault_V0
     function addIncentive(
         address token,
         uint256 amount,
@@ -430,8 +422,6 @@ contract RewardVault is
         // Validator's operator corresponding to the pubkey receives the incentives.
         // The pubkey -> operator relationship is maintained by the BeaconDeposit contract.
         address _operator = beaconDepositContract.getOperator(pubkey);
-        IBeraChef beraChef = IDistributor(distributor).beraChef();
-        address bgtIncentiveDistributor = getBGTIncentiveDistributor();
 
         uint256 whitelistedTokensCount = whitelistedTokens.length;
         unchecked {
@@ -442,54 +432,18 @@ contract RewardVault is
                 uint256 amountRemaining = incentive.amountRemaining;
                 amount = FixedPointMathLib.min(amount, amountRemaining);
 
-                uint256 validatorShare;
                 if (amount > 0) {
-                    validatorShare = beraChef.getValidatorIncentiveTokenShare(pubkey, amount);
-                    amount -= validatorShare;
-                }
-
-                if (validatorShare > 0) {
-                    // Transfer the validator share of the incentive to its operator address.
+                    // Transfer the incentive to the operator.
                     // slither-disable-next-line arbitrary-send-erc20
-                    bool success = token.trySafeTransfer(_operator, validatorShare);
+                    bool success = token.trySafeTransfer(_operator, amount);
                     if (success) {
-                        // Update the remaining amount only if tokens were transferred.
-                        amountRemaining -= validatorShare;
-                        emit IncentivesProcessed(pubkey, token, bgtEmitted, validatorShare);
+                        // Update the remaining amount only if tokens were transfered.
+                        incentive.amountRemaining = amountRemaining - amount;
+                        emit IncentivesProcessed(pubkey, token, bgtEmitted, amount);
                     } else {
-                        emit IncentivesProcessFailed(pubkey, token, bgtEmitted, validatorShare);
+                        emit IncentivesProcessFailed(pubkey, token, bgtEmitted, amount);
                     }
                 }
-
-                if (amount > 0) {
-                    // Transfer the remaining amount of the incentive to the bgtIncentiveDistributor contract for
-                    // distribution among BGT boosters.
-                    // give the bgtIncentiveDistributor the allowance to transfer the incentive token.
-                    bytes memory data = abi.encodeCall(IERC20.approve, (bgtIncentiveDistributor, amount));
-                    (bool success,) = token.call{ gas: SAFE_GAS_LIMIT }(data);
-                    if (success) {
-                        // reuse the already defined data variable to avoid stack too deep error.
-                        data = abi.encodeCall(IBGTIncentiveDistributor.receiveIncentive, (pubkey, token, amount));
-                        (success,) = bgtIncentiveDistributor.call{ gas: SAFE_GAS_LIMIT }(data);
-                        if (success) {
-                            amountRemaining -= amount;
-                            emit BGTBoosterIncentivesProcessed(pubkey, token, bgtEmitted, amount);
-                        } else {
-                            // If the transfer fails, set the allowance back to 0.
-                            // If we don't reset the allowance, the approved tokens remain unused, and future calls to
-                            // _processIncentives would revert for tokens like USDT that require allowance to be 0
-                            // before setting a new value, blocking the entire incentive distribution process.
-                            data = abi.encodeCall(IERC20.approve, (bgtIncentiveDistributor, 0));
-                            (success,) = token.call{ gas: SAFE_GAS_LIMIT }(data);
-                            emit BGTBoosterIncentivesProcessFailed(pubkey, token, bgtEmitted, amount);
-                        }
-                    }
-                    // if the approve fails, log the failure in sending the incentive to the bgtIncentiveDistributor.
-                    else {
-                        emit BGTBoosterIncentivesProcessFailed(pubkey, token, bgtEmitted, amount);
-                    }
-                }
-                incentive.amountRemaining = amountRemaining;
             }
         }
     }

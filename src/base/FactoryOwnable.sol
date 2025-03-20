@@ -115,6 +115,12 @@ abstract contract FactoryOwnable is Initializable {
         }
     }
 
+    /// @dev Returns the address of the BGTIncentiveDistributor contract.
+    function getBGTIncentiveDistributor() internal view returns (address) {
+        FactoryOwnableStorage storage $ = _getFactoryOwnableStorage();
+        return IRewardVaultFactory($._factory).bgtIncentiveDistributor();
+    }
+
     /// @dev Sets the address of the factory contract.
     function _setFactory(address factoryAddr) internal {
         FactoryOwnableStorage storage $ = _getFactoryOwnableStorage();
