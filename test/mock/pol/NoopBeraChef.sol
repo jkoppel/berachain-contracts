@@ -36,6 +36,25 @@ contract NoopBeraChef is IBeraChef {
     }
 
     /// @inheritdoc IBeraChef
+    function getValQueuedCommissionOnIncentiveTokens(bytes calldata)
+        external
+        pure
+        returns (QueuedCommissionRateChange memory)
+    {
+        return QueuedCommissionRateChange({ blockNumberLast: 0, commissionRate: 0 });
+    }
+
+    /// @inheritdoc IBeraChef
+    function getValCommissionOnIncentiveTokens(bytes calldata) external pure returns (uint96) {
+        return 0;
+    }
+
+    /// @inheritdoc IBeraChef
+    function getValidatorIncentiveTokenShare(bytes calldata, uint256) external pure returns (uint256) {
+        return 0;
+    }
+
+    /// @inheritdoc IBeraChef
     function setMaxNumWeightsPerRewardAllocation(uint8) external pure { }
 
     /// @inheritdoc IBeraChef
@@ -55,4 +74,12 @@ contract NoopBeraChef is IBeraChef {
 
     /// @inheritdoc IBeraChef
     function activateReadyQueuedRewardAllocation(bytes calldata) external pure { }
+
+    /// @inheritdoc IBeraChef
+    function setCommissionChangeDelay(uint64) external pure { }
+    /// @inheritdoc IBeraChef
+    function queueValCommission(bytes calldata, uint96) external pure { }
+
+    /// @inheritdoc IBeraChef
+    function activateQueuedValCommission(bytes calldata) external pure { }
 }

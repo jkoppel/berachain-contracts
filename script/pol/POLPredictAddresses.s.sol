@@ -11,6 +11,7 @@ import { BlockRewardController } from "src/pol/rewards/BlockRewardController.sol
 import { Distributor } from "src/pol/rewards/Distributor.sol";
 import { BGTStaker } from "src/pol/BGTStaker.sol";
 import { FeeCollector } from "src/pol/FeeCollector.sol";
+import { BGTIncentiveDistributor } from "src/pol/rewards/BGTIncentiveDistributor.sol";
 import {
     WBERA_SALT,
     BGT_SALT,
@@ -19,7 +20,8 @@ import {
     DISTRIBUTOR_SALT,
     REWARDS_FACTORY_SALT,
     BGT_STAKER_SALT,
-    FEE_COLLECTOR_SALT
+    FEE_COLLECTOR_SALT,
+    BGT_INCENTIVE_DISTRIBUTOR_SALT
 } from "./POLSalts.sol";
 
 contract POLPredictAddressesScript is BasePredictScript {
@@ -36,5 +38,8 @@ contract POLPredictAddressesScript is BasePredictScript {
         _predictAddress("RewardVault", type(RewardVault).creationCode, 0);
         _predictProxyAddress("BGTStaker", type(BGTStaker).creationCode, 0, BGT_STAKER_SALT);
         _predictProxyAddress("FeeCollector", type(FeeCollector).creationCode, 0, FEE_COLLECTOR_SALT);
+        _predictProxyAddress(
+            "BGTIncentiveDistributor", type(BGTIncentiveDistributor).creationCode, 0, BGT_INCENTIVE_DISTRIBUTOR_SALT
+        );
     }
 }

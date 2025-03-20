@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity ^0.8.26;
 
-import { IPOLErrors } from "../interfaces/IPOLErrors.sol";
+import { IPOLErrors } from "../../pol/interfaces/IPOLErrors.sol";
 
-interface IRewardVaultFactory is IPOLErrors {
+interface IRewardVaultFactory_V0 is IPOLErrors {
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                          EVENTS                             */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
@@ -14,26 +14,6 @@ interface IRewardVaultFactory is IPOLErrors {
      * @param vault The address of the vault.
      */
     event VaultCreated(address indexed stakingToken, address indexed vault);
-
-    /**
-     * @notice Emitted when the BGTIncentiveDistributor contract is set.
-     * @param newBGTIncentiveDistributor The address of the new BGTIncentiveDistributor contract.
-     * @param oldBGTIncentiveDistributor The address of the old BGTIncentiveDistributor contract.
-     */
-    event BGTIncentiveDistributorSet(
-        address indexed newBGTIncentiveDistributor, address indexed oldBGTIncentiveDistributor
-    );
-
-    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
-    /*                          ADMIN                             */
-    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-
-    /**
-     * @notice Sets the BGTIncentiveDistributor contract.
-     * @dev Only callable by the admin.
-     * @param _bgtIncentiveDistributor The address of the new BGTIncentiveDistributor contract.
-     */
-    function setBGTIncentiveDistributor(address _bgtIncentiveDistributor) external;
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                         VAULT CREATION                     */
@@ -75,12 +55,6 @@ interface IRewardVaultFactory is IPOLErrors {
      * @return The number of vaults.
      */
     function allVaultsLength() external view returns (uint256);
-
-    /**
-     * @notice Gets the address of the BGTIncentiveDistributor contract.
-     * @return The address of the BGTIncentiveDistributor contract.
-     */
-    function bgtIncentiveDistributor() external view returns (address);
 
     /**
      * @notice Predicts the address of the reward vault for the given staking token.

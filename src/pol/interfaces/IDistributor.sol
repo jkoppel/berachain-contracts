@@ -2,6 +2,7 @@
 pragma solidity ^0.8.26;
 
 import { IPOLErrors } from "./IPOLErrors.sol";
+import { IBeraChef } from "./IBeraChef.sol";
 
 /// @notice Interface of the Distributor contract.
 interface IDistributor is IPOLErrors {
@@ -31,4 +32,7 @@ interface IDistributor is IPOLErrors {
         bytes32[] calldata pubkeyProof
     )
         external;
+
+    /// @notice Returns the address of the BeraChef contract.
+    function beraChef() external view returns (IBeraChef);
 }

@@ -3,7 +3,7 @@ pragma solidity 0.8.26;
 
 import { IERC1967 } from "@openzeppelin/contracts/interfaces/IERC1967.sol";
 import { ERC1967Utils } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Utils.sol";
-
+import { OwnableUpgradeable } from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import { IBeraChef, IPOLErrors } from "src/pol/interfaces/IBeraChef.sol";
 import { BeraChef } from "src/pol/rewards/BeraChef.sol";
 import { RewardVault } from "src/pol/rewards/RewardVault.sol";
@@ -549,5 +549,112 @@ contract BeraChefTest is POLTest {
         vm.expectEmit(true, true, true, true);
         emit IBeraChef.ActivateRewardAllocation(valData.pubkey, startBlock, weights);
         beraChef.activateReadyQueuedRewardAllocation(valData.pubkey);
+    }
+
+    function test_QueueValCommission() public {
+        testFuzz_QueueValCommission(2e3);
+    }
+
+    function testFuzz_QueueValCommission(uint256 commission) public {
+        commission = bound(commission, 1, 1e4); // capped at 100%
+        vm.prank(operator);
+        vm.expectEmit();
+        emit IBeraChef.QueuedValCommission(valData.pubkey, uint96(commission));
+        beraChef.queueValCommission(valData.pubkey, uint96(commission));
+        IBeraChef.QueuedCommissionRateChange memory queuedCommission =
+            beraChef.getValQueuedCommissionOnIncentiveTokens(valData.pubkey);
+        assertEq(queuedCommission.blockNumberLast, block.number);
+        assertEq(queuedCommission.commissionRate, uint96(commission));
+    }
+
+    function test_QueueValCommission_FailIfAlreadyQueued() public {
+        testFuzz_QueueValCommission(2e3);
+        vm.prank(operator);
+        vm.expectRevert(IPOLErrors.CommissionChangeAlreadyQueued.selector);
+        beraChef.queueValCommission(valData.pubkey, uint96(1e4));
+    }
+
+    function test_QueueValCommission_FailIfCommissionMoreThanHundredPercent() public {
+        vm.prank(operator);
+        vm.expectRevert(IPOLErrors.InvalidCommissionValue.selector);
+        beraChef.queueValCommission(valData.pubkey, uint96(1e4 + 1));
+    }
+
+    function test_QueueValCommission_FailIfCallerNotOperator() public {
+        vm.expectRevert(IPOLErrors.NotOperator.selector);
+        beraChef.queueValCommission(valData.pubkey, uint96(2e3));
+    }
+
+    function test_ActivateQueuedValCommission() public {
+        // set commission for the first time
+        testFuzz_QueueValCommission(1);
+        // old commission will be equal to default 5% because it was never set before.
+        assertEq(beraChef.getValCommissionOnIncentiveTokens(valData.pubkey), 0.05e4);
+
+        vm.roll(vm.getBlockNumber() + (2 * 8191));
+        vm.expectEmit();
+        emit IBeraChef.ValCommissionSet(valData.pubkey, 0.05e4, 1);
+        beraChef.activateQueuedValCommission(valData.pubkey);
+        // new commission will be equal to the queued commission.
+        assertEq(beraChef.getValCommissionOnIncentiveTokens(valData.pubkey), 1);
+        // queued commission should be deleted
+        IBeraChef.QueuedCommissionRateChange memory queuedCommission =
+            beraChef.getValQueuedCommissionOnIncentiveTokens(valData.pubkey);
+        assertEq(queuedCommission.blockNumberLast, 0);
+        assertEq(queuedCommission.commissionRate, 0);
+
+        testFuzz_QueueValCommission(2e3);
+        vm.roll(vm.getBlockNumber() + (2 * 8191));
+        vm.expectEmit();
+        // old commission will be equal to default 5%.
+        emit IBeraChef.ValCommissionSet(valData.pubkey, 1, 0.2e4);
+        beraChef.activateQueuedValCommission(valData.pubkey);
+        assertEq(beraChef.getValCommissionOnIncentiveTokens(valData.pubkey), 2e3);
+        // queued commission should be deleted
+        queuedCommission = beraChef.getValQueuedCommissionOnIncentiveTokens(valData.pubkey);
+        assertEq(queuedCommission.blockNumberLast, 0);
+        assertEq(queuedCommission.commissionRate, 0);
+    }
+
+    function test_ActivateQueuedValCommission_FailIfCommissionChangeNotQueued() public {
+        vm.expectRevert(IPOLErrors.CommissionNotQueuedOrDelayNotPassed.selector);
+        beraChef.activateQueuedValCommission(valData.pubkey);
+    }
+
+    function test_ActivateQueuedValCommission_FailIfCommissionChangeDelayNotPassed() public {
+        testFuzz_QueueValCommission(2e3);
+        vm.roll(block.number + 2 * 8191 - 1);
+        vm.expectRevert(IPOLErrors.CommissionNotQueuedOrDelayNotPassed.selector);
+        beraChef.activateQueuedValCommission(valData.pubkey);
+    }
+
+    function test_SetCommissionChangeDelay() public {
+        testFuzz_SetCommissionChangeDelay(8191);
+    }
+
+    function testFuzz_SetCommissionChangeDelay(uint256 delay) public {
+        delay = bound(delay, 1, 8191 * 2);
+        vm.prank(governance);
+        vm.expectEmit();
+        emit IBeraChef.CommissionChangeDelaySet(uint64(delay));
+        beraChef.setCommissionChangeDelay(uint64(delay));
+        assertEq(beraChef.commissionChangeDelay(), uint64(delay));
+    }
+
+    function test_SetCommissionChangeDelay_FailIfCommissionChangeDelayIsMoreThanMax() public {
+        vm.prank(governance);
+        vm.expectRevert(IPOLErrors.InvalidCommissionChangeDelay.selector);
+        beraChef.setCommissionChangeDelay(8191 * 2 + 1);
+    }
+
+    function test_SetCommissionChangeDelay_FailIfCommissionChangeDelayIsZero() public {
+        vm.prank(governance);
+        vm.expectRevert(IPOLErrors.InvalidCommissionChangeDelay.selector);
+        beraChef.setCommissionChangeDelay(0);
+    }
+
+    function test_SetCommissionChangeDelay_FailIfNotOwner() public {
+        vm.expectRevert(abi.encodeWithSelector(OwnableUpgradeable.OwnableUnauthorizedAccount.selector, address(this)));
+        beraChef.setCommissionChangeDelay(8191);
     }
 }

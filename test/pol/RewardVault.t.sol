@@ -16,6 +16,10 @@ import { DistributorTest } from "./Distributor.t.sol";
 import { StakingTest } from "./Staking.t.sol";
 import { MockDAI, MockUSDT, MockAsset } from "@mock/honey/MockAssets.sol";
 import { PausableERC20 } from "@mock/token/PausableERC20.sol";
+import { MockERC20 } from "@mock/token/MockERC20.sol";
+import { ApprovalPauseERC20 } from "@mock/token/ApprovalPauseERC20.sol";
+import { MaxGasConsumeERC20 } from "@mock/token/MaxGasConsumeERC20.sol";
+import { IBGTIncentiveDistributor } from "src/pol/interfaces/IBGTIncentiveDistributor.sol";
 
 contract RewardVaultTest is DistributorTest, StakingTest {
     using SafeERC20 for IERC20;
@@ -29,6 +33,7 @@ contract RewardVaultTest is DistributorTest, StakingTest {
     MockDAI internal dai = new MockDAI();
     MockUSDT internal usdt = new MockUSDT();
     PausableERC20 internal pausableERC20 = new PausableERC20();
+    ApprovalPauseERC20 internal approvalPauseERC20 = new ApprovalPauseERC20();
 
     bytes32 internal defaultFactoryAdminRole;
     bytes32 internal vaultManagerRole;
@@ -855,8 +860,107 @@ contract RewardVaultTest is DistributorTest, StakingTest {
         (,, uint256 amountRemainingHoney,) = vault.incentives(address(honey));
         assertEq(amountRemainingUSDC, 100 * 1e18 - tokenToIncentivize);
         assertEq(amountRemainingHoney, 100 * 1e18 - tokenToIncentivize);
-        assertEq(dai.balanceOf(operator), tokenToIncentivize);
-        assertEq(honey.balanceOf(operator), tokenToIncentivize);
+        // given default validator commission on incentive token is 5%, 95% of incentive tokens are transferred to
+        // bgtIncentiveDistributor.
+        assertEq(dai.balanceOf(bgtIncentiveDistributor), tokenToIncentivize * 95 / 100);
+        assertEq(honey.balanceOf(bgtIncentiveDistributor), tokenToIncentivize * 95 / 100);
+
+        // 5% of incentive tokens are transferred to the operator.
+        assertEq(dai.balanceOf(address(operator)), tokenToIncentivize * 5 / 100);
+        assertEq(honey.balanceOf(address(operator)), tokenToIncentivize * 5 / 100);
+    }
+
+    function testFuzz_ProcessIncentivesWithNonZeroCommission(uint256 bgtEmitted, uint256 commission) public {
+        commission = bound(commission, 1, 1e4); // capped at 100%
+        bgtEmitted = bound(bgtEmitted, 0, 1000 * 1e18);
+
+        // adds 100 dai, 100 honey incentive with rate 200 * 1e18.
+        addIncentives(100 * 1e18, 200 * 1e18);
+
+        // Set the commission on the validator
+        setValCommission(commission);
+
+        performNotify(bgtEmitted);
+        uint256 tokenToIncentivize = (bgtEmitted * 200);
+        tokenToIncentivize = tokenToIncentivize > 100 * 1e18 ? 100 * 1e18 : tokenToIncentivize;
+        uint256 validatorShare = (tokenToIncentivize * commission) / 1e4;
+        uint256 bgtBoosterShare = tokenToIncentivize - validatorShare;
+        (,, uint256 amountRemainingUSDC,) = vault.incentives(address(dai));
+        (,, uint256 amountRemainingHoney,) = vault.incentives(address(honey));
+        assertEq(amountRemainingUSDC, 100 * 1e18 - tokenToIncentivize);
+        assertEq(amountRemainingHoney, 100 * 1e18 - tokenToIncentivize);
+
+        // BGTIncentiveDistributor should get the bgtBoosterShare of the incentive tokens
+        assertEq(dai.balanceOf(bgtIncentiveDistributor), bgtBoosterShare);
+        assertEq(honey.balanceOf(bgtIncentiveDistributor), bgtBoosterShare);
+
+        // Operator should get the validatorShare of the incentive tokens
+        assertEq(dai.balanceOf(address(operator)), validatorShare);
+        assertEq(honey.balanceOf(address(operator)), validatorShare);
+    }
+
+    function test_ProcessIncentives_WithNonZeroCommission() public {
+        addIncentives(100 * 1e18, 200 * 1e18);
+
+        // Set the commission on the validator to 20%
+        setValCommission(2e3);
+
+        // validator emit 1 BGT to the vault and will get all the incentives
+        vm.startPrank(address(distributor));
+        IERC20(bgt).safeIncreaseAllowance(address(vault), 1 ether);
+        vm.expectEmit();
+        emit IRewardVault.BGTBoosterIncentivesProcessed(valData.pubkey, address(dai), 1e18, 80 * 1e18);
+        emit IRewardVault.BGTBoosterIncentivesProcessed(valData.pubkey, address(honey), 1e18, 80 * 1e18);
+        emit IRewardVault.IncentivesProcessed(valData.pubkey, address(dai), 1e18, 20 * 1e18);
+        emit IRewardVault.IncentivesProcessed(valData.pubkey, address(honey), 1e18, 20 * 1e18);
+        vault.notifyRewardAmount(valData.pubkey, 1e18);
+
+        // check the incentive data
+        (,, uint256 amountRemainingUSDC,) = vault.incentives(address(dai));
+        (,, uint256 amountRemainingHoney,) = vault.incentives(address(honey));
+        assertEq(amountRemainingUSDC, 0);
+        assertEq(amountRemainingHoney, 0);
+
+        // check the operator's balance
+        assertEq(dai.balanceOf(address(operator)), 20 * 1e18);
+        assertEq(honey.balanceOf(address(operator)), 20 * 1e18);
+
+        // check the bgtIncentiveDistributor's balance
+        assertEq(dai.balanceOf(bgtIncentiveDistributor), 80 * 1e18);
+        assertEq(honey.balanceOf(bgtIncentiveDistributor), 80 * 1e18);
+
+        // make sure the book keeping is correct inside bgtIncentiveDistributor
+        assertEq(
+            IBGTIncentiveDistributor(bgtIncentiveDistributor).incentiveTokensPerValidator(valData.pubkey, address(dai)),
+            80 * 1e18
+        );
+        assertEq(
+            IBGTIncentiveDistributor(bgtIncentiveDistributor).incentiveTokensPerValidator(
+                valData.pubkey, address(honey)
+            ),
+            80 * 1e18
+        );
+    }
+
+    function test_ProcessIncentives_WithMultipleNotify() public {
+        // add 200 dai, 100 honey incentive with rate 100 * 1e18.
+        addIncentives(200 * 1e18, 100 * 1e18);
+        performNotify(1e18);
+        performNotify(1e18);
+        // After 2nd notify, bgtIncentiveDistributor should have 95% of 200 of dai and honey.
+        assertEq(dai.balanceOf(bgtIncentiveDistributor), 190 * 1e18);
+        assertEq(honey.balanceOf(bgtIncentiveDistributor), 190 * 1e18);
+        // make sure the book keeping is correct inside bgtIncentiveDistributor
+        assertEq(
+            IBGTIncentiveDistributor(bgtIncentiveDistributor).incentiveTokensPerValidator(valData.pubkey, address(dai)),
+            190 * 1e18
+        );
+        assertEq(
+            IBGTIncentiveDistributor(bgtIncentiveDistributor).incentiveTokensPerValidator(
+                valData.pubkey, address(honey)
+            ),
+            190 * 1e18
+        );
     }
 
     function test_ProcessIncentives() public {
@@ -864,17 +968,30 @@ contract RewardVaultTest is DistributorTest, StakingTest {
         // validator emit 1 BGT to the vault and will get all the incentives
         vm.startPrank(address(distributor));
         IERC20(bgt).safeIncreaseAllowance(address(vault), 1 ether);
+        // Given default val commission is 5%, 95% of tokens moves to bgtIncentiveDistributor and 5% moves to operator.
+        uint256 validatorShare = 100 * 1e18 * 5 / 100;
+        uint256 bgtIncentiveDistributorShare = 100 * 1e18 - validatorShare;
         vm.expectEmit();
-        emit IRewardVault.IncentivesProcessed(valData.pubkey, address(dai), 1e18, 100 * 1e18);
-        emit IRewardVault.IncentivesProcessed(valData.pubkey, address(honey), 1e18, 100 * 1e18);
+        emit IRewardVault.BGTBoosterIncentivesProcessed(
+            valData.pubkey, address(dai), 1e18, bgtIncentiveDistributorShare
+        );
+        emit IRewardVault.BGTBoosterIncentivesProcessed(
+            valData.pubkey, address(honey), 1e18, bgtIncentiveDistributorShare
+        );
+        emit IRewardVault.IncentivesProcessed(valData.pubkey, address(dai), 1e18, validatorShare);
+        emit IRewardVault.IncentivesProcessed(valData.pubkey, address(honey), 1e18, validatorShare);
         vault.notifyRewardAmount(valData.pubkey, 1e18);
         (,, uint256 amountRemainingUSDC,) = vault.incentives(address(dai));
         (,, uint256 amountRemainingHoney,) = vault.incentives(address(honey));
-        // validator will get min(200(incentiveRate) * 1, 100(amountRemaining)) = 100 tokens of dai and honey
+        // total incentive tokens = min(200(incentiveRate) * 1, 100(amountRemaining)) = 100 tokens of dai and honey
         assertEq(amountRemainingUSDC, 0);
         assertEq(amountRemainingHoney, 0);
-        assertEq(dai.balanceOf(operator), 100 * 1e18);
-        assertEq(honey.balanceOf(operator), 100 * 1e18);
+        // bgtIncentiveDistributor should get 95% of the incentive tokens
+        assertEq(dai.balanceOf(bgtIncentiveDistributor), bgtIncentiveDistributorShare);
+        assertEq(honey.balanceOf(bgtIncentiveDistributor), bgtIncentiveDistributorShare);
+        // 5% of incentive tokens are transferred to the operator.
+        assertEq(dai.balanceOf(address(operator)), validatorShare);
+        assertEq(honey.balanceOf(address(operator)), validatorShare);
         vm.stopPrank();
         // Since amountRemaining is 0, incentiveRate can be updated here.
         // This will set the incentiveRate to 110 * 1e18
@@ -885,9 +1002,58 @@ contract RewardVaultTest is DistributorTest, StakingTest {
         assertEq(amountRemaining, 100 * 1e18);
     }
 
+    function test_ProcessIncentives_WithNonZeroCommissionAndMaliciousIncentive() public {
+        addMaliciusIncentive(pausableERC20, 100 * 1e18, 100 * 1e18);
+        // Set the commission on the validator to 20%
+        setValCommission(2e3);
+
+        // Pause the contract in order to make it revert on transfer
+        pausableERC20.pause();
+
+        vm.startPrank(address(distributor));
+        IERC20(bgt).safeIncreaseAllowance(address(vault), 1e18);
+
+        vm.expectEmit();
+        emit IRewardVault.BGTBoosterIncentivesProcessFailed(valData.pubkey, address(pausableERC20), 1e18, 80 * 1e18);
+        emit IRewardVault.IncentivesProcessFailed(valData.pubkey, address(dai), 1e18, 20 * 1e18);
+        vault.notifyRewardAmount(valData.pubkey, 1e18);
+
+        (,, uint256 amountRemainingPausableERC20,) = vault.incentives(address(pausableERC20));
+
+        assertEq(amountRemainingPausableERC20, 100 * 1e18); // Amount remaining should not change
+        assertEq(pausableERC20.balanceOf(bgtIncentiveDistributor), 0);
+        assertEq(pausableERC20.balanceOf(address(operator)), 0);
+        // if transfer fails, allowance should be 0.
+        assertEq(pausableERC20.allowance(address(vault), address(bgtIncentiveDistributor)), 0);
+    }
+
+    function test_ProcessIncentives_WithApprovalPauseERC20() public {
+        addMaliciusIncentive(approvalPauseERC20, 100 * 1e18, 100 * 1e18);
+        // Set the commission on the validator to 20%
+        setValCommission(2e3);
+        // Pause the contract in order to make it revert on approval
+        approvalPauseERC20.pause();
+
+        vm.startPrank(address(distributor));
+        IERC20(bgt).safeIncreaseAllowance(address(vault), 1e18);
+        vm.expectEmit();
+        emit IRewardVault.BGTBoosterIncentivesProcessFailed(
+            valData.pubkey, address(approvalPauseERC20), 1e18, 80 * 1e18
+        );
+        emit IRewardVault.IncentivesProcessed(valData.pubkey, address(approvalPauseERC20), 1e18, 20 * 1e18);
+        vault.notifyRewardAmount(valData.pubkey, 1e18);
+
+        (,, uint256 amountRemainingApprovalPauseERC20,) = vault.incentives(address(approvalPauseERC20));
+        // only validator share is processed i.e 20% of amount.
+        // As BGT booster share fails cuz approval fails.
+        assertEq(amountRemainingApprovalPauseERC20, 80 * 1e18);
+        assertEq(approvalPauseERC20.balanceOf(bgtIncentiveDistributor), 0);
+        assertEq(approvalPauseERC20.balanceOf(address(operator)), 20 * 1e18);
+    }
+
     function test_ProcessIncentives_NotFailWithMaliciusIncentive() public {
         _addIncentiveToken(address(dai), daiIncentiveManager, 100 * 1e18, 200 * 1e18);
-        addMaliciusIncentive(100 * 1e18, 200 * 1e18);
+        addMaliciusIncentive(pausableERC20, 100 * 1e18, 200 * 1e18);
 
         // Pause the contract in order to make it revert on transfer
         pausableERC20.pause();
@@ -895,10 +1061,23 @@ contract RewardVaultTest is DistributorTest, StakingTest {
         vm.startPrank(address(distributor));
         IERC20(bgt).safeIncreaseAllowance(address(vault), 1e17);
 
+        // Given 5% default commission to val, 95% of tokens moves to bgtIncentiveDistributor and 5% moves to operator.
+        uint256 validatorShare = 20 * 1e18 * 5 / 100;
+        uint256 bgtIncentiveDistributorShare = 20 * 1e18 - validatorShare;
+
         vm.expectEmit();
-        emit IRewardVault.IncentivesProcessed(valData.pubkey, address(dai), 1e17, 20 * 1e18);
-        emit IRewardVault.IncentivesProcessed(valData.pubkey, address(honey), 1e17, 20 * 1e18);
-        emit IRewardVault.IncentivesProcessFailed(valData.pubkey, address(pausableERC20), 1e17, 20 * 1e18);
+        emit IRewardVault.BGTBoosterIncentivesProcessed(
+            valData.pubkey, address(dai), 1e17, bgtIncentiveDistributorShare
+        );
+        emit IRewardVault.BGTBoosterIncentivesProcessed(
+            valData.pubkey, address(honey), 1e17, bgtIncentiveDistributorShare
+        );
+        emit IRewardVault.BGTBoosterIncentivesProcessFailed(
+            valData.pubkey, address(pausableERC20), 1e17, bgtIncentiveDistributorShare
+        );
+        emit IRewardVault.IncentivesProcessed(valData.pubkey, address(dai), 1e17, validatorShare);
+        emit IRewardVault.IncentivesProcessed(valData.pubkey, address(honey), 1e17, validatorShare);
+        emit IRewardVault.IncentivesProcessFailed(valData.pubkey, address(pausableERC20), 1e17, validatorShare);
         vault.notifyRewardAmount(valData.pubkey, 1e17);
 
         (,, uint256 amountRemainingDAI,) = vault.incentives(address(dai));
@@ -906,8 +1085,11 @@ contract RewardVaultTest is DistributorTest, StakingTest {
 
         assertEq(amountRemainingDAI, 80 * 1e18);
         assertEq(amountRemainingPausableERC20, 100 * 1e18); // Amount remaining should not change
-        assertEq(dai.balanceOf(operator), 20 * 1e18);
-        assertEq(pausableERC20.balanceOf(operator), 0); // No tokens should be transferred
+        assertEq(dai.balanceOf(bgtIncentiveDistributor), bgtIncentiveDistributorShare);
+        assertEq(dai.balanceOf(operator), validatorShare);
+        // No tokens should be transferred for malicious incentive token
+        assertEq(pausableERC20.balanceOf(bgtIncentiveDistributor), 0);
+        assertEq(pausableERC20.balanceOf(address(operator)), 0);
     }
 
     function test_Withdraw_FailsIfInsufficientSelfStake() public {
@@ -957,19 +1139,18 @@ contract RewardVaultTest is DistributorTest, StakingTest {
         vm.stopPrank();
     }
 
-    function addMaliciusIncentive(uint256 amount, uint256 _incentiveRate) internal {
-        testFuzz_WhitelistIncentiveToken(address(pausableERC20), address(this));
+    function addMaliciusIncentive(MockERC20 token, uint256 amount, uint256 _incentiveRate) internal {
+        testFuzz_WhitelistIncentiveToken(address(token), address(this));
         // mint dai and approve vault to use the tokens on behalf of the user
-        pausableERC20.mint(address(this), type(uint256).max);
-        pausableERC20.approve(address(vault), type(uint256).max);
+        token.mint(address(this), type(uint256).max);
+        token.approve(address(vault), type(uint256).max);
 
         vm.expectEmit();
-        emit IRewardVault.IncentiveAdded(address(pausableERC20), address(this), amount, _incentiveRate);
-        vault.addIncentive(address(pausableERC20), amount, _incentiveRate);
+        emit IRewardVault.IncentiveAdded(address(token), address(this), amount, _incentiveRate);
+        vault.addIncentive(address(token), amount, _incentiveRate);
 
         // check incentive data
-        (uint256 minIncentiveRate, uint256 incentiveRate, uint256 amountRemaining,) =
-            vault.incentives(address(pausableERC20));
+        (uint256 minIncentiveRate, uint256 incentiveRate, uint256 amountRemaining,) = vault.incentives(address(token));
         assertEq(minIncentiveRate, 100 * 1e18);
         assertEq(incentiveRate, _incentiveRate);
         assertEq(amountRemaining, amount);
@@ -1007,5 +1188,31 @@ contract RewardVaultTest is DistributorTest, StakingTest {
         vm.prank(vaultManager);
         vm.expectRevert(abi.encodeWithSelector(FactoryOwnable.OwnableUnauthorizedAccount.selector, vaultManager));
         vault.pause();
+    }
+
+    function setValCommission(uint256 commission) internal {
+        vm.prank(operator);
+        beraChef.queueValCommission(valData.pubkey, uint96(commission));
+        vm.roll(block.number + 2 * 8191);
+        beraChef.activateQueuedValCommission(valData.pubkey);
+    }
+
+    function test_ProcessIncentives_FailsIfApprovalCrossesSafeGasLimit() public {
+        MaxGasConsumeERC20 maxGasConsumeERC20 = new MaxGasConsumeERC20();
+        addMaliciusIncentive(maxGasConsumeERC20, 100 * 1e18, 200 * 1e18);
+
+        vm.startPrank(address(distributor));
+        IERC20(bgt).safeIncreaseAllowance(address(vault), 1e17);
+
+        // Given 5% default commission to val, 95% of tokens moves to bgtIncentiveDistributor and 5% moves to operator.
+        uint256 validatorShare = 20 * 1e18 * 5 / 100;
+        uint256 bgtIncentiveDistributorShare = 20 * 1e18 - validatorShare;
+
+        vm.expectEmit();
+        emit IRewardVault.BGTBoosterIncentivesProcessFailed(
+            valData.pubkey, address(maxGasConsumeERC20), 1e17, bgtIncentiveDistributorShare
+        );
+        emit IRewardVault.IncentivesProcessed(valData.pubkey, address(maxGasConsumeERC20), 1e17, validatorShare);
+        vault.notifyRewardAmount(valData.pubkey, 1e17);
     }
 }
