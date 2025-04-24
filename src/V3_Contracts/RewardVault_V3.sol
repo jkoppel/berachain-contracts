@@ -7,14 +7,14 @@ import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/P
 import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import { FixedPointMathLib } from "solady/src/utils/FixedPointMathLib.sol";
 
-import { Utils } from "../../libraries/Utils.sol";
-import { IBeaconDeposit } from "../interfaces/IBeaconDeposit.sol";
-import { IRewardVault } from "../interfaces/IRewardVault.sol";
-import { FactoryOwnable } from "../../base/FactoryOwnable.sol";
-import { StakingRewards } from "../../base/StakingRewards.sol";
-import { IBeraChef } from "../interfaces/IBeraChef.sol";
-import { IDistributor } from "../interfaces/IDistributor.sol";
-import { IBGTIncentiveDistributor } from "../interfaces/IBGTIncentiveDistributor.sol";
+import { Utils } from "src/libraries/Utils.sol";
+import { IBeaconDeposit } from "src/pol/interfaces/IBeaconDeposit.sol";
+import { IRewardVault } from "src/pol/interfaces/IRewardVault.sol";
+import { FactoryOwnable } from "src/base/FactoryOwnable.sol";
+import { StakingRewards } from "src/base/StakingRewards.sol";
+import { IBeraChef } from "src/pol/interfaces/IBeraChef.sol";
+import { IDistributor } from "src/pol/interfaces/IDistributor.sol";
+import { IBGTIncentiveDistributor } from "src/pol/interfaces/IBGTIncentiveDistributor.sol";
 /// @title Rewards Vault
 /// @author Berachain Team
 /// @notice This contract is the vault for the Berachain rewards, it handles the staking and rewards accounting of BGT.
@@ -23,7 +23,7 @@ import { IBGTIncentiveDistributor } from "../interfaces/IBGTIncentiveDistributor
 /// We are using this model instead of 4626 because we want to incentivize staying in the vault for x period of time to
 /// to be considered a 'miner' and not a 'trader'.
 
-contract RewardVault is
+contract RewardVault_V3 is
     PausableUpgradeable,
     ReentrancyGuardUpgradeable,
     FactoryOwnable,
@@ -109,12 +109,12 @@ contract RewardVault is
         __Pausable_init();
         __ReentrancyGuard_init();
         __StakingRewards_init(_stakingToken, _bgt, 3 days);
-        maxIncentiveTokensCount = 3;
+        maxIncentiveTokensCount = 2;
         // slither-disable-next-line missing-zero-check
         distributor = _distributor;
         beaconDepositContract = IBeaconDeposit(_beaconDepositContract);
         emit DistributorSet(_distributor);
-        emit MaxIncentiveTokensCountUpdated(maxIncentiveTokensCount);
+        emit MaxIncentiveTokensCountUpdated(2);
     }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/

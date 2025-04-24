@@ -31,6 +31,16 @@ contract ValidateUpgrade is Script {
         Upgrades.validateUpgrade("RewardVault.sol", options);
         console2.log("RewardVault V2 can be upgraded successfully.");
 
+        // check RewardVault incentive token management upgrade
+        options.referenceContract = "RewardVault_V2.sol:RewardVault_V2";
+        Upgrades.validateUpgrade("RewardVault.sol", options);
+        console2.log("RewardVault V3 can be upgraded successfully.");
+
+        // check RewardVault 3 incentive tokens upgrade
+        options.referenceContract = "RewardVault_V3.sol:RewardVault_V3";
+        Upgrades.validateUpgrade("RewardVault.sol", options);
+        console2.log("RewardVault V4 can be upgraded successfully.");
+
         // Check RewardVaultFactory safe upgrade
         options.referenceContract = "RewardVaultFactory_V0.sol:RewardVaultFactory_V0";
         Upgrades.validateUpgrade("RewardVaultFactory.sol", options);
