@@ -39,12 +39,11 @@ contract CollateralVault is ERC4626, PausableUpgradeable, IHoneyErrors {
     }
 
     function initialize(address asset_, address _factory) external initializer {
-        __Pausable_init();
-
         __CollateralVault_init(asset_, _factory);
     }
 
     function __CollateralVault_init(address asset_, address _factory) internal onlyInitializing {
+        __Pausable_init();
         // Check for zero addresses.
         // No need to check for zero asset address,
         // _asset.name(), _asset.symbol() will revert with `EvmError` if asset is zero address.
