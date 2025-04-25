@@ -24,7 +24,7 @@ import { IBGTIncentiveDistributor } from "src/pol/interfaces/IBGTIncentiveDistri
 /// We are using this model instead of 4626 because we want to incentivize staying in the vault for x period of time to
 /// to be considered a 'miner' and not a 'trader'.
 
-contract RewardVault is
+contract RewardVault_V2 is
     PausableUpgradeable,
     ReentrancyGuardUpgradeable,
     FactoryOwnable,
