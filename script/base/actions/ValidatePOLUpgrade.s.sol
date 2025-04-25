@@ -7,7 +7,7 @@ import { Upgrades, Options } from "openzeppelin-foundry-upgrades/Upgrades.sol";
 /// @notice This script is used to validate the upgrade of any upgradeable contract.
 /// @dev This will fail if any storage collisions are detected.
 /// @dev Need to run forge clean && forge compile before running this script.
-contract ValidateUpgrade is Script {
+contract ValidatePOLUpgrade is Script {
     function run() public {
         vm.startBroadcast();
         // To validate the upgrade, we need to provide the upgraded contract name and the options
@@ -35,7 +35,6 @@ contract ValidateUpgrade is Script {
         options.referenceContract = "RewardVaultFactory_V0.sol:RewardVaultFactory_V0";
         Upgrades.validateUpgrade("RewardVaultFactory.sol", options);
         console2.log("RewardVaultFactory can be upgraded successfully.");
-
         vm.stopBroadcast();
     }
 }

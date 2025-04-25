@@ -4,17 +4,14 @@ pragma solidity 0.8.26;
 import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 import { ERC20 } from "solady/src/tokens/ERC20.sol";
 import { ERC4626 } from "solady/src/tokens/ERC4626.sol";
-import { SafeTransferLib } from "solady/src/utils/SafeTransferLib.sol";
 
 import { Utils } from "../libraries/Utils.sol";
-import { IHoneyErrors } from "./IHoneyErrors.sol";
+import { IHoneyErrors } from "src/honey/IHoneyErrors.sol";
 
 /// @notice This is the ERC4626 vault for the collateral assets to mint Honey.
 /// @author Berachain Team
-contract CollateralVault is ERC4626, PausableUpgradeable, IHoneyErrors {
+contract CollateralVault_V0 is ERC4626, PausableUpgradeable, IHoneyErrors {
     using Utils for bytes4;
-
-    event CustodyInfoSet(bool indexed isCustodyVault, address indexed custodyAddress);
 
     ERC20 private _vaultAsset;
     string private _name;
@@ -22,28 +19,18 @@ contract CollateralVault is ERC4626, PausableUpgradeable, IHoneyErrors {
     /// @notice The address of the honey factory that created this vault.
     address public factory;
 
-    /// @notice The custody info for the vault.
-    CustodyInfo public custodyInfo;
-
-    /// @notice The custody info struct.
-    /// @param isCustodyVault Whether the vault is a custody vault.
-    /// @param custodyAddress The address of the custody. 0 in case of no custody.
-    struct CustodyInfo {
-        bool isCustodyVault;
-        address custodyAddress;
-    }
-
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
     }
 
     function initialize(address asset_, address _factory) external initializer {
+        __Pausable_init();
+
         __CollateralVault_init(asset_, _factory);
     }
 
     function __CollateralVault_init(address asset_, address _factory) internal onlyInitializing {
-        __Pausable_init();
         // Check for zero addresses.
         // No need to check for zero asset address,
         // _asset.name(), _asset.symbol() will revert with `EvmError` if asset is zero address.
@@ -103,40 +90,6 @@ contract CollateralVault is ERC4626, PausableUpgradeable, IHoneyErrors {
      */
     function mint(uint256 shares, address receiver) public override onlyFactory whenNotPaused returns (uint256) {
         return super.mint(shares, receiver);
-    }
-
-    /**
-     * @notice Set the custody info for the vault.
-     * @dev Only the factory can call this function.
-     * @dev To change the custody vault, the factory must first remove the existing custody vault.
-     * @param _isCustodyVault Whether the vault is a custody vault.
-     * @param _custodyAddress The address of the custody.
-     */
-    function setCustodyInfo(bool _isCustodyVault, address _custodyAddress) external onlyFactory {
-        if (_isCustodyVault && _custodyAddress == address(0)) ZeroAddress.selector.revertWith();
-        CustodyInfo memory _custodyInfo = custodyInfo;
-
-        // set custody info for new custody vault
-        if (_isCustodyVault && _custodyInfo.custodyAddress == address(0)) {
-            SafeTransferLib.safeTransfer(asset(), _custodyAddress, ERC20(asset()).balanceOf(address(this)));
-            custodyInfo = CustodyInfo(_isCustodyVault, _custodyAddress);
-            emit CustodyInfoSet(_isCustodyVault, _custodyAddress);
-            return;
-        }
-
-        // allow to remove custody feature for existing custody vault
-        if (!_isCustodyVault && _custodyInfo.custodyAddress == _custodyAddress) {
-            SafeTransferLib.safeTransferFrom(
-                asset(), _custodyAddress, address(this), ERC20(asset()).balanceOf(_custodyAddress)
-            );
-            custodyInfo = CustodyInfo(_isCustodyVault, address(0));
-            emit CustodyInfoSet(_isCustodyVault, address(0));
-            return;
-        }
-        // revert if any other combination of inputs
-        else {
-            InvalidCustodyInfoInput.selector.revertWith();
-        }
     }
 
     /**
@@ -305,22 +258,6 @@ contract CollateralVault is ERC4626, PausableUpgradeable, IHoneyErrors {
     function _checkFactory() internal view {
         if (msg.sender != factory) {
             NotFactory.selector.revertWith();
-        }
-    }
-
-    /// @dev This function is called after the deposit is made.
-    /// @dev If the vault is a custody vault, it will transfer the assets to the custody.
-    function _afterDeposit(uint256 assets, uint256) internal override {
-        if (custodyInfo.isCustodyVault) {
-            SafeTransferLib.safeTransfer(asset(), custodyInfo.custodyAddress, assets);
-        }
-    }
-
-    /// @dev This function is called before the withdraw is made.
-    /// @dev If the vault is a custody vault, it will pull the assets from the custody.
-    function _beforeWithdraw(uint256 assets, uint256) internal override {
-        if (custodyInfo.isCustodyVault) {
-            SafeTransferLib.safeTransferFrom(asset(), custodyInfo.custodyAddress, address(this), assets);
         }
     }
 }
