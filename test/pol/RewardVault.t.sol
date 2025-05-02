@@ -192,12 +192,6 @@ contract RewardVaultTest is DistributorTest, StakingTest {
         vault.recoverERC20(address(honey), 1 ether);
     }
 
-    function test_RecoverERC20_FailIfStakingToken() public {
-        vm.prank(governance);
-        vm.expectRevert(IPOLErrors.CannotRecoverStakingToken.selector);
-        vault.recoverERC20(address(honey), 1 ether);
-    }
-
     function test_RecoverERC20_FailsIfIncentiveToken() public {
         testFuzz_WhitelistIncentiveToken(address(dai), daiIncentiveManager);
         vm.prank(governance);
@@ -213,6 +207,27 @@ contract RewardVaultTest is DistributorTest, StakingTest {
         emit IRewardVault.Recovered(address(dai), 1 ether);
         vault.recoverERC20(address(dai), 1 ether);
         assertEq(dai.balanceOf(governance), 1 ether);
+    }
+
+    function test_RecoverERC20StakingToken() public {
+        MockERC20 stakeToken = MockERC20(address(vault.stakeToken()));
+        stakeToken.mint(address(this), 1 ether);
+        stakeToken.transfer(address(vault), 1 ether);
+        vm.prank(governance);
+        vm.expectEmit();
+        emit IRewardVault.Recovered(address(stakeToken), 1 ether);
+        vault.recoverERC20(address(stakeToken), 1 ether);
+        assertEq(stakeToken.balanceOf(governance), 1 ether);
+    }
+
+    function test_RecoverERC20StakingToken_FailIfNotEnoughBalance() public {
+        MockERC20 stakeToken = MockERC20(address(vault.stakeToken()));
+        stakeToken.mint(address(this), 1 ether);
+        stakeToken.approve(address(vault), 1 ether);
+        vault.stake(1 ether);
+        vm.prank(governance);
+        vm.expectRevert(IPOLErrors.NotEnoughBalance.selector);
+        vault.recoverERC20(address(stakeToken), 1 ether);
     }
 
     function test_SetRewardDuration_FailIfNotOwner() public {
@@ -1220,6 +1235,46 @@ contract RewardVaultTest is DistributorTest, StakingTest {
         vault.accountIncentives(address(dai), 100e18);
 
         (,, amountRemaining,) = vault.incentives(address(dai));
+        assertEq(amountRemaining, 600e18);
+    }
+
+    function test_AccountIncentivesStakeToken_FailsIfNotEnoughBalance() public {
+        // testing the case the incentive token is the same as the stake token
+
+        address stakeToken = address(vault.stakeToken());
+        address stakeTokenIncentiveManager = makeAddr("stakeTokenIncentiveManager");
+
+        performStake(user, 1000 ether);
+        _addIncentiveToken(stakeToken, stakeTokenIncentiveManager, 500 * 1e18, 100 * 1e18);
+
+        (,, uint256 amountRemaining,) = vault.incentives(stakeToken);
+        assertEq(amountRemaining, 500e18);
+
+        vm.startPrank(stakeTokenIncentiveManager);
+        vm.expectRevert(abi.encodeWithSelector(IPOLErrors.NotEnoughBalance.selector));
+        vault.accountIncentives(stakeToken, 1000e18);
+    }
+
+    function test_AccountIncentivesStakeToken() public {
+        address stakeToken = address(vault.stakeToken());
+        address stakeTokenIncentiveManager = makeAddr("stakeTokenIncentiveManager");
+
+        performStake(user, 1000 ether);
+        _addIncentiveToken(stakeToken, stakeTokenIncentiveManager, 500 * 1e18, 100 * 1e18);
+
+        (,, uint256 amountRemaining,) = vault.incentives(stakeToken);
+        assertEq(amountRemaining, 500e18);
+
+        // donate 100e18 to the vault
+        address donor = makeAddr("donor");
+        deal(stakeToken, donor, 100e18);
+        vm.prank(donor);
+        IERC20(stakeToken).safeTransfer(address(vault), 100e18);
+
+        vm.prank(stakeTokenIncentiveManager);
+        vault.accountIncentives(stakeToken, 100e18);
+
+        (,, amountRemaining,) = vault.incentives(stakeToken);
         assertEq(amountRemaining, 600e18);
     }
 }
