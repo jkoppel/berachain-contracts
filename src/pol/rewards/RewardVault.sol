@@ -15,6 +15,7 @@ import { StakingRewards } from "../../base/StakingRewards.sol";
 import { IBeraChef } from "../interfaces/IBeraChef.sol";
 import { IDistributor } from "../interfaces/IDistributor.sol";
 import { IBGTIncentiveDistributor } from "../interfaces/IBGTIncentiveDistributor.sol";
+
 /// @title Rewards Vault
 /// @author Berachain Team
 /// @notice This contract is the vault for the Berachain rewards, it handles the staking and rewards accounting of BGT.
@@ -22,7 +23,6 @@ import { IBGTIncentiveDistributor } from "../interfaces/IBGTIncentiveDistributor
 /// https://github.com/Synthetixio/synthetix/blob/develop/contracts/StakingRewards.sol
 /// We are using this model instead of 4626 because we want to incentivize staying in the vault for x period of time to
 /// to be considered a 'miner' and not a 'trader'.
-
 contract RewardVault is
     PausableUpgradeable,
     ReentrancyGuardUpgradeable,
@@ -162,8 +162,13 @@ contract RewardVault is
 
     /// @inheritdoc IRewardVault
     function recoverERC20(address tokenAddress, uint256 tokenAmount) external onlyFactoryOwner {
-        if (tokenAddress == address(stakeToken)) CannotRecoverStakingToken.selector.revertWith();
         if (incentives[tokenAddress].minIncentiveRate != 0) CannotRecoverIncentiveToken.selector.revertWith();
+        if (tokenAddress == address(stakeToken)) {
+            uint256 maxRecoveryAmount = IERC20(stakeToken).balanceOf(address(this)) - totalSupply;
+            if (tokenAmount > maxRecoveryAmount) {
+                NotEnoughBalance.selector.revertWith();
+            }
+        }
         IERC20(tokenAddress).safeTransfer(msg.sender, tokenAmount);
         emit Recovered(tokenAddress, tokenAmount);
     }
@@ -405,6 +410,10 @@ contract RewardVault is
         if (amount < minIncentiveRate) AmountLessThanMinIncentiveRate.selector.revertWith();
 
         uint256 incentiveBalance = IERC20(token).balanceOf(address(this));
+        if (token == address(stakeToken)) {
+            incentiveBalance -= totalSupply;
+        }
+
         if (amount > incentiveBalance - amountRemainingBefore) NotEnoughBalance.selector.revertWith();
 
         incentive.amountRemaining += amount;

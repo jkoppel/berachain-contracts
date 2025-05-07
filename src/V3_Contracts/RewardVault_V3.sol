@@ -15,6 +15,7 @@ import { StakingRewards } from "src/base/StakingRewards.sol";
 import { IBeraChef } from "src/pol/interfaces/IBeraChef.sol";
 import { IDistributor } from "src/pol/interfaces/IDistributor.sol";
 import { IBGTIncentiveDistributor } from "src/pol/interfaces/IBGTIncentiveDistributor.sol";
+
 /// @title Rewards Vault
 /// @author Berachain Team
 /// @notice This contract is the vault for the Berachain rewards, it handles the staking and rewards accounting of BGT.
@@ -22,7 +23,6 @@ import { IBGTIncentiveDistributor } from "src/pol/interfaces/IBGTIncentiveDistri
 /// https://github.com/Synthetixio/synthetix/blob/develop/contracts/StakingRewards.sol
 /// We are using this model instead of 4626 because we want to incentivize staying in the vault for x period of time to
 /// to be considered a 'miner' and not a 'trader'.
-
 contract RewardVault_V3 is
     PausableUpgradeable,
     ReentrancyGuardUpgradeable,

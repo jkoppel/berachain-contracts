@@ -41,6 +41,11 @@ contract ValidatePOLUpgrade is Script {
         Upgrades.validateUpgrade("RewardVault.sol", options);
         console2.log("RewardVault V4 can be upgraded successfully.");
 
+        // check RewardVault accounting fix upgrade
+        options.referenceContract = "RewardVault_V4.sol:RewardVault_V4";
+        Upgrades.validateUpgrade("RewardVault.sol", options);
+        console2.log("RewardVault V5 can be upgraded successfully.");
+
         // Check RewardVaultFactory safe upgrade
         options.referenceContract = "RewardVaultFactory_V0.sol:RewardVaultFactory_V0";
         Upgrades.validateUpgrade("RewardVaultFactory.sol", options);
