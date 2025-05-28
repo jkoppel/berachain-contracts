@@ -1,0 +1,137 @@
+{
+  "title": "15.5: Admin & Safeguards",
+  "id": "ihHHfXNorhAd8V6VOa1DB/M883HcbuZ9NojLAZ/XPPs=",
+  "originalId": 2485,
+  "position": 73,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Today’s tour zooms in on the vault’s **privileged controls**, **circuit-breakers**, and **token-recovery mechanics**. Each stop shows how **governance**, **pauser** and **manager roles** steer the `contract` while protecting user funds.",
+      "title": "",
+      "id": "29656"
+    },
+    {
+      "type": "highlight",
+      "description": "The local modifier block layers multiple checks and leans on the `revertWith` helper so no dynamic strings are allocated.  Note how each branch ends with an error selector (`NotDistributor`, `NotOperator`, …) that bubbles up cheaply.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 124,
+          "end": 145
+        }
+      ],
+      "title": "",
+      "id": "29657"
+    },
+    {
+      "type": "highlight",
+      "description": "`setDistributor()` is guarded by `onlyFactoryOwner`, then rejects the zero address on line 152. Governance can therefore retarget reward flow, but never to an invalid address.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 150,
+          "end": 155
+        }
+      ],
+      "title": "",
+      "id": "29658"
+    },
+    {
+      "type": "highlight",
+      "description": "`setRewardsDuration()` is a thin wrapper: after the access-check it simply forwards to `_setRewardsDuration` in `StakingRewards`, keeping all timing logic in the shared base.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 176,
+          "end": 179
+        }
+      ],
+      "title": "",
+      "id": "29659"
+    },
+    {
+      "type": "highlight",
+      "description": "`recoverERC20()` lets the factory owner sweep accidental tokens. The first `if` blocks active incentive tokens, the second computes the stake-token surplus so user deposits stay intact.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 164,
+          "end": 172
+        }
+      ],
+      "title": "",
+      "id": "29660"
+    },
+    {
+      "type": "highlight",
+      "description": "`removeIncentiveToken()` requires the `vault-manager` role and a `whitelisted token`; it erases the incentive struct then prunes the array via a helper.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 211,
+          "end": 214
+        }
+      ],
+      "title": "",
+      "id": "29661"
+    },
+    {
+      "type": "highlight",
+      "description": "`setMaxIncentiveTokensCount()` raises or lowers the cap. Line 237 forbids shrinking below the current live count so no mapping data is orphaned.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 235,
+          "end": 241
+        }
+      ],
+      "title": "",
+      "id": "29662"
+    },
+    {
+      "type": "highlight",
+      "description": "Circuit-breakers: `pause()` is limited to the *vault-pauser* role, `unpause()` to the *vault-manager*. Both delegate to `PausableUpgradeable`, immediately disabling every `whenNotPaused` entry-point.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 244,
+          "end": 251
+        }
+      ],
+      "title": "",
+      "id": "29663"
+    },
+    {
+      "type": "highlight",
+      "description": "The `SAFE_GAS_LIMIT` constant (500 k) caps gas forwarded to external token calls, a classic grief-resistance pattern.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 64,
+          "end": 68
+        }
+      ],
+      "title": "",
+      "id": "29664"
+    },
+    {
+      "type": "highlight",
+      "description": "Here the limit is applied twice—first on `approve`, then on the follow-up call—so a malicious **ERC-20** can’t trap the vault in an out-of-gas loop.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 495,
+          "end": 501
+        }
+      ],
+      "title": "",
+      "id": "29665"
+    },
+    {
+      "type": "textOnly",
+      "description": "The vault implements multiple security mechanisms including layered modifiers, role-split circuit-breakers, recovery bounds, and capped external calls to manage operational control while maintaining security constraints.",
+      "title": "",
+      "id": "29666"
+    }
+  ]
+}

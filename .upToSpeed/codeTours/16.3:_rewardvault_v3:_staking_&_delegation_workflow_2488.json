@@ -1,0 +1,137 @@
+{
+  "title": "16.3: RewardVault_V3: Staking & Delegation Workflow",
+  "id": "fGps9LSZsNK59Ig7gznoZyXytEdsrxhOuRQRIau3eMo=",
+  "originalId": 2488,
+  "position": 76,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "This tour follows a `BGT` position through its entire life-cycle in the `RewardVault`: **self-stake**, **delegation**, **withdrawal**, and finally an **all-in-one exit**. Each stop highlights the storage touched and the guardrails that keep **self-stake**, **delegated stake**, and reward accounting consistent.",
+      "title": "",
+      "id": "29745"
+    },
+    {
+      "type": "highlight",
+      "description": "Every write-path is filtered by two modifiers.  `onlyOperatorOrUser` (129-134) lets an authorised operator manage someone else’s rewards, while `checkSelfStakedBalance` (136-139) is attached to withdrawals to ensure callers never touch tokens that have been delegated to them.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 124,
+          "end": 139
+        }
+      ],
+      "title": "",
+      "id": "29746"
+    },
+    {
+      "type": "highlight",
+      "description": "`_checkSelfStakedBalance` (430-435) computes\n    `selfStake` = `account.balance` − `delegateTotalStaked`\nand reverts if the requested withdrawal would dip below zero.  This invariant is the backbone that separates self-owned stake from delegate deposits.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 428,
+          "end": 435
+        }
+      ],
+      "title": "",
+      "id": "29747"
+    },
+    {
+      "type": "highlight",
+      "description": "A plain stake (288-290) just forwards to `_stake` with `msg.sender` as both payer and beneficiary – no extra bookkeeping is needed.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 287,
+          "end": 290
+        }
+      ],
+      "title": "",
+      "id": "29748"
+    },
+    {
+      "type": "highlight",
+      "description": "`stake` in the inherited `StakingRewards` contract performs the heavy lifting: reward-rate bootstrap (164-165), per-user reward update (168-169), totalSupply / balance mutations (170-178) and finally the token transfer (179-180).  **Reward logic** is therefore shared by every kind of stake.",
+      "file": "src/base/StakingRewards.sol",
+      "highlight": [
+        {
+          "start": 157,
+          "end": 181
+        }
+      ],
+      "title": "",
+      "id": "29749"
+    },
+    {
+      "type": "highlight",
+      "description": "`delegateStake` prevents self-delegation with an initial check, then leverages the existing staking logic through `_stake`. It then safely updates the delegation tracking in the `DelegateStake` struct, using unchecked blocks for gas optimization where overflow is impossible. The emitted event enables off-chain tracking of delegation actions.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 292,
+          "end": 307
+        }
+      ],
+      "title": "",
+      "id": "29750"
+    },
+    {
+      "type": "highlight",
+      "description": "A regular withdraw (310-312) is protected by `checkSelfStakedBalance` so the caller can only touch their self-stake.  It ultimately pipes into `StakingRewards._withdraw` for balance and reward updates.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 309,
+          "end": 312
+        }
+      ],
+      "title": "",
+      "id": "29751"
+    },
+    {
+      "type": "highlight",
+      "description": "`delegateWithdraw` allows a delegate to withdraw their staked tokens from someone else's account. The function ensures proper validation of the delegate's stake before updating the relevant accounting. Notice how it uses `unchecked` for gas optimization since the math is guaranteed to be safe. The function concludes by calling into the parent contract's withdrawal logic and emitting an event to track the action.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 315,
+          "end": 328
+        }
+      ],
+      "title": "",
+      "id": "29752"
+    },
+    {
+      "type": "highlight",
+      "description": "`exit` (344-349) is a convenience wrapper: it first computes the caller’s `self-stake` (346), withdraws that exact amount, and immediately claims any earned rewards to the requested recipient.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 343,
+          "end": 349
+        }
+      ],
+      "title": "",
+      "id": "29753"
+    },
+    {
+      "type": "highlight",
+      "description": "Interface-level events `DelegateStaked` and `DelegateWithdrawn` (12-22) complement the `Staked`/`Withdrawn` events inherited from `StakingRewards`, giving indexers a complete picture of every balance mutation.",
+      "file": "src/pol/interfaces/IRewardVault.sol",
+      "highlight": [
+        {
+          "start": 12,
+          "end": 22
+        }
+      ],
+      "title": "",
+      "id": "29754"
+    },
+    {
+      "type": "textOnly",
+      "description": "Together these functions maintain the simple identity:\n    `totalSupply == selfStake + delegateTotalStaked`\nfor every account, while `StakingRewards` guarantees that reward accrual always matches the live balances.  This design cleanly separates access control, delegation accounting, and reward mathematics.",
+      "title": "",
+      "id": "29755"
+    }
+  ]
+}

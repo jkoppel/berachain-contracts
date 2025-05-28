@@ -1,0 +1,124 @@
+{
+  "title": "9.6: Incentive Funding & Accounting API",
+  "id": "Exjue2bs7J9aq7fyZyuFtGxmwSjkLdQgnyfD2T13So0=",
+  "originalId": 2453,
+  "position": 41,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Incentive tokens move through three stages:\n1. A `manager` funds an `incentive` (or records pre-funded tokens).\n2. The `vault` tracks how much is left and at what rate it should be emitted.\n3. `Tokens` are protected from accidental recovery while the `incentive` is active.\n\nFollow the code path that enforces each rule.",
+      "title": "",
+      "id": "29268"
+    },
+    {
+      "type": "highlight",
+      "description": "`addIncentive`’s signature carries two important modifiers: `nonReentrant` and `onlyWhitelistedToken`. These, plus the **external visibility**, define a tightly-controlled entry point for bringing new incentive funds into the vault.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 358,
+          "end": 366
+        }
+      ],
+      "title": "",
+      "id": "29269"
+    },
+    {
+      "type": "highlight",
+      "description": "Early validations guard every funding attempt:\n- Line 367 keeps the rate below `MAX_INCENTIVE_RATE`\n- Lines 372-374 allow only the `designated manager` to call\n- Lines 375-378 insist the amount is at least the `minimum rate`, preventing spam\n- Lines 379-381 make sure the proposed rate is not below the `minimum`. Together they couple authority with a credible budget.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 367,
+          "end": 381
+        }
+      ],
+      "title": "",
+      "id": "29270"
+    },
+    {
+      "type": "highlight",
+      "description": "After passing the checks:\n- 382 pulls the `ERC20` into the contract.\n- 383 bumps `amountRemaining`.\n- 386-392 update `incentiveRate`:\n  - If no balance was left, any compliant rate can be set (386-388).\n  - Otherwise the rate may only increase (390-392).\nIf a caller tries to decrease the rate while funds remain, the function `reverts` (393-395).",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 382,
+          "end": 396
+        }
+      ],
+      "title": "",
+      "id": "29271"
+    },
+    {
+      "type": "highlight",
+      "description": "`accountIncentives` looks similar but has a different goal. It registers tokens that were already transferred directly to the vault – no `transferFrom` occurs here. The same **manager-only guard** (407-409) and **min-rate rule** (410-411) apply, but lines 417-420 merely add to `amountRemaining`. Use this when funds arrive out-of-band.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 401,
+          "end": 422
+        }
+      ],
+      "title": "",
+      "id": "29272"
+    },
+    {
+      "type": "highlight",
+      "description": "Incentive is the single source of truth for each token. Both `addIncentive` (383) and `accountIncentives` (419) raise `amountRemaining`, while only `addIncentive` may adjust `incentiveRate` – and even then under the rules we just saw.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 49,
+          "end": 59
+        }
+      ],
+      "title": "",
+      "id": "29273"
+    },
+    {
+      "type": "highlight",
+      "description": "`recoverERC20` lets the factory owner rescue accidental deposits, but **line 165** blocks any token that is currently recognised as an incentive.  **Active incentive balances** are therefore protected from being swept out.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 164,
+          "end": 173
+        }
+      ],
+      "title": "",
+      "id": "29274"
+    },
+    {
+      "type": "highlight",
+      "description": "The interface advertises the same `addIncentive` and `accountIncentives` calls.  External tooling can rely on these signatures to interact with any vault implementation.",
+      "file": "src/pol/interfaces/IRewardVault.sol",
+      "highlight": [
+        {
+          "start": 215,
+          "end": 231
+        }
+      ],
+      "title": "",
+      "id": "29275"
+    },
+    {
+      "type": "highlight",
+      "description": "`setMaxIncentiveTokensCount` caps the total number of active incentive tokens.  It prevents state bloat and keeps accounting predictable.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 236,
+          "end": 242
+        }
+      ],
+      "title": "",
+      "id": "29276"
+    },
+    {
+      "type": "textOnly",
+      "description": "Lifecycle recap:\n- `whitelistIncentiveToken` nominates a token and its manager.\n- `addIncentive` transfers new funds in and (optionally) raises the emission rate.\n- `accountIncentives` records direct transfers without changing the rate.\n- `_processIncentives` spends tokens over time, debiting amountRemaining.\n- `recoverERC20` cannot touch an active incentive, and the max-token cap limits complexity.\n\nTogether these pieces keep incentive funding, accounting, and safety tightly aligned.",
+      "title": "",
+      "id": "29277"
+    }
+  ]
+}

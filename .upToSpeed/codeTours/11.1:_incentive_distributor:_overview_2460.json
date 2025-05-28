@@ -1,0 +1,156 @@
+{
+  "title": "11.1: Incentive Distributor: Overview",
+  "id": "SLljuoQyfuKbqqAK46R3l12q+mwHc+1bPvI2wK0FIcg=",
+  "originalId": 2460,
+  "position": 48,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "The `Incentive-Distributor` component is split in two:\n- `Distributor` streams freshly-minted `BGT` every block.\n- `BGTIncentiveDistributor` later releases vault incentives to users through `Merkle proofs`.\nThis walk-through flags the critical entry-points and the interface files that glue everything together.",
+      "title": "",
+      "id": "29385"
+    },
+    {
+      "type": "highlight",
+      "description": "The banner (17-22) explains that Distributor handles the block-level reward flow, and the declaration (23-29) shows the mix-ins it inherits from.",
+      "file": "src/pol/rewards/Distributor.sol",
+      "highlight": [
+        {
+          "start": 17,
+          "end": 30
+        }
+      ],
+      "title": "",
+      "id": "29386"
+    },
+    {
+      "type": "highlight",
+      "description": "Three storage pointers anchor the logic: `beraChef` (44-46) supplies weight schedules, `blockRewardController` (47-50) mints BGT, and `bgt` (51-52) is the token being streamed.",
+      "file": "src/pol/rewards/Distributor.sol",
+      "highlight": [
+        {
+          "start": 44,
+          "end": 53
+        }
+      ],
+      "title": "",
+      "id": "29387"
+    },
+    {
+      "type": "highlight",
+      "description": "`distributeFor` (99-121) is the permission-less entry-point.  Anyone with valid beacon-chain proofs can trigger a distribution for the chosen validator.",
+      "file": "src/pol/rewards/Distributor.sol",
+      "highlight": [
+        {
+          "start": 99,
+          "end": 121
+        }
+      ],
+      "title": "",
+      "id": "29388"
+    },
+    {
+      "type": "highlight",
+      "description": "`_distributeFor` (124-156) splits the newly-minted reward across the validator’s weight array before handing it to each receiver. The maths behind this loop will be explored in a later deep-dive.",
+      "file": "src/pol/rewards/Distributor.sol",
+      "highlight": [
+        {
+          "start": 124,
+          "end": 157
+        }
+      ],
+      "title": "",
+      "id": "29389"
+    },
+    {
+      "type": "textOnly",
+      "description": "Switching to the Merkle-based side of the component.",
+      "title": "",
+      "id": "29390"
+    },
+    {
+      "type": "highlight",
+      "description": "`BGTIncentiveDistributor`’s banner (15-21) states that it handles Merkle-redeemed incentives, not instantaneous block rewards. The declaration (21-27) shows it implements the matching interface alongside **OZ helpers**.",
+      "file": "src/pol/rewards/BGTIncentiveDistributor.sol",
+      "highlight": [
+        {
+          "start": 15,
+          "end": 27
+        }
+      ],
+      "title": "",
+      "id": "29391"
+    },
+    {
+      "type": "highlight",
+      "description": "Key state lives at 41-50: `rewardClaimDelay` gates when claims start, `rewards` and `claimed` map Merkle data, and `incentiveTokensPerValidator` tracks the token balances held per `validator`.",
+      "file": "src/pol/rewards/BGTIncentiveDistributor.sol",
+      "highlight": [
+        {
+          "start": 41,
+          "end": 50
+        }
+      ],
+      "title": "",
+      "id": "29392"
+    },
+    {
+      "type": "highlight",
+      "description": "Reward vaults move tokens in via `receiveIncentive` (130-135); the function simply pulls the `ERC-20` and books it against the validator’s `pubkey`.",
+      "file": "src/pol/rewards/BGTIncentiveDistributor.sol",
+      "highlight": [
+        {
+          "start": 130,
+          "end": 135
+        }
+      ],
+      "title": "",
+      "id": "29393"
+    },
+    {
+      "type": "highlight",
+      "description": "User withdrawals begin at `claim` (141-154).  It accepts a batch of `Claim` structs and hands each one to a private verifier.",
+      "file": "src/pol/rewards/BGTIncentiveDistributor.sol",
+      "highlight": [
+        {
+          "start": 141,
+          "end": 154
+        }
+      ],
+      "title": "",
+      "id": "29394"
+    },
+    {
+      "type": "highlight",
+      "description": "The `IDistributor` interface contributes the `Distributed` event and the public `distributeFor` signature used by the block-reward side.",
+      "file": "src/pol/interfaces/IDistributor.sol",
+      "highlight": [
+        {
+          "start": 7,
+          "end": 35
+        }
+      ],
+      "title": "",
+      "id": "29395"
+    },
+    {
+      "type": "highlight",
+      "description": "`IBGTIncentiveDistributor` defines the `Distribution`, `Reward` and `Claim` structs referenced throughout the Merkle pay-out code.",
+      "file": "src/pol/interfaces/IBGTIncentiveDistributor.sol",
+      "highlight": [
+        {
+          "start": 14,
+          "end": 35
+        }
+      ],
+      "title": "",
+      "id": "29396"
+    },
+    {
+      "type": "textOnly",
+      "description": "You now know where each contract lives, what responsibilities they carry, and which `entry-points` future tours will zoom into.",
+      "title": "",
+      "id": "29397"
+    }
+  ]
+}

@@ -1,0 +1,241 @@
+{
+  "title": "9.1: RewardVault System: Overview",
+  "id": "fjHGbWTJudMzplJL0QR3pipRrQCPsHt98D5iGnob/qw=",
+  "originalId": 2448,
+  "position": 36,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "The implementation contracts are located in `src/pol/rewards/` and their interfaces in `src/pol/interfaces/`. The four relevant files are:\n- `RewardVault.sol`\n- `RewardVaultFactory.sol`\n- `IRewardVault.sol`\n- `IRewardVaultFactory.sol`",
+      "title": "",
+      "id": "29236"
+    },
+    {
+      "type": "highlight",
+      "description": "`RewardVault` extends the Synthetix-style `StakingRewards` template with **pausability, factory ownership, delegation bookkeeping and multi-token incentive logic**.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 19,
+          "end": 32
+        }
+      ],
+      "title": "",
+      "id": "29237"
+    },
+    {
+      "type": "highlight",
+      "description": "`initialize` – one-time call from the factory: wires `BeaconDeposit`, `BGT`, `distributor` and the staking `ERC-20`.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 98,
+          "end": 106
+        }
+      ],
+      "title": "",
+      "id": "29238"
+    },
+    {
+      "type": "highlight",
+      "description": "**stake** – user deposits their own `tokens`.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 287,
+          "end": 291
+        }
+      ],
+      "title": "",
+      "id": "29239"
+    },
+    {
+      "type": "highlight",
+      "description": "`delegateStake` – a third party deposits for someone else and the vault records the delegate’s contribution.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 293,
+          "end": 297
+        }
+      ],
+      "title": "",
+      "id": "29240"
+    },
+    {
+      "type": "highlight",
+      "description": "**withdraw** – owner removes self-staked tokens.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 309,
+          "end": 312
+        }
+      ],
+      "title": "",
+      "id": "29241"
+    },
+    {
+      "type": "highlight",
+      "description": "`delegateWithdraw` – the delegate pulls out the portion it previously added.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 315,
+          "end": 318
+        }
+      ],
+      "title": "",
+      "id": "29242"
+    },
+    {
+      "type": "highlight",
+      "description": "`notifyRewardAmount` – distributor reports fresh BGT and triggers incentive distribution.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 157,
+          "end": 161
+        }
+      ],
+      "title": "",
+      "id": "29243"
+    },
+    {
+      "type": "highlight",
+      "description": "`addIncentive` – authorised manager tops-up an extra **ERC-20** reward stream, optionally updating its rate.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 358,
+          "end": 366
+        }
+      ],
+      "title": "",
+      "id": "29244"
+    },
+    {
+      "type": "highlight",
+      "description": "`_processIncentives` – internal helper that splits those incentive tokens between the validator operator and the booster distributor.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 452,
+          "end": 456
+        }
+      ],
+      "title": "",
+      "id": "29245"
+    },
+    {
+      "type": "highlight",
+      "description": "`Interface view functions` – external callers query `distributor`, `operators` and `incentive configuration`.",
+      "file": "src/pol/interfaces/IRewardVault.sol",
+      "highlight": [
+        {
+          "start": 90,
+          "end": 118
+        }
+      ],
+      "title": "",
+      "id": "29246"
+    },
+    {
+      "type": "highlight",
+      "description": "Admin & distributor entry-points mirror the implementation: `initialize`, `setDistributor`, `notifyRewardAmount`, `pause`, \u00133\u001a",
+      "file": "src/pol/interfaces/IRewardVault.sol",
+      "highlight": [
+        {
+          "start": 122,
+          "end": 140
+        }
+      ],
+      "title": "",
+      "id": "29247"
+    },
+    {
+      "type": "highlight",
+      "description": "Mutative staking & incentive methods – `stake`, `delegateStake`, `withdraw`, `addIncentive` and friends – exactly the surface we just walked through.",
+      "file": "src/pol/interfaces/IRewardVault.sol",
+      "highlight": [
+        {
+          "start": 173,
+          "end": 231
+        }
+      ],
+      "title": "",
+      "id": "29248"
+    },
+    {
+      "type": "highlight",
+      "description": "`RewardVaultFactory` keeps global references (`beacon`, `BGT`, `distributor`…) and assigns roles. Every vault is an `ERC-1967 beacon proxy`, all sharing the same implementation but with isolated state.",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 12,
+          "end": 33
+        }
+      ],
+      "title": "",
+      "id": "29249"
+    },
+    {
+      "type": "highlight",
+      "description": "`createRewardVault` – deploys a deterministic clone (salt = `keccak256(stakingToken)`) and rejects duplicates / non-contracts.",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 98,
+          "end": 103
+        }
+      ],
+      "title": "",
+      "id": "29250"
+    },
+    {
+      "type": "highlight",
+      "description": "The factory immediately calls `initialize` on the freshly deployed proxy, wiring it to protocol contracts.",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 120,
+          "end": 123
+        }
+      ],
+      "title": "",
+      "id": "29251"
+    },
+    {
+      "type": "highlight",
+      "description": "Interface exposes the same `createRewardVault` entry-point.",
+      "file": "src/pol/interfaces/IRewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 42,
+          "end": 48
+        }
+      ],
+      "title": "",
+      "id": "29252"
+    },
+    {
+      "type": "highlight",
+      "description": "`predictRewardVaultAddress` – lets dApps compute the vault address before it exists; critical for approvals and UX.",
+      "file": "src/pol/interfaces/IRewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 86,
+          "end": 90
+        }
+      ],
+      "title": "",
+      "id": "29253"
+    },
+    {
+      "type": "textOnly",
+      "description": "A single `factory` governs all `vaults`; each `vault` handles staking, delegation, BGT rewards and optional incentive tokens for one staking `ERC-20`.",
+      "title": "",
+      "id": "29254"
+    }
+  ]
+}

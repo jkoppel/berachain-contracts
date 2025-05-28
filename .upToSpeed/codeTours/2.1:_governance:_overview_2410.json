@@ -1,0 +1,111 @@
+{
+  "title": "2.1: Governance: Overview",
+  "id": "y4dbVaP7s6OXmkm8hLb0h4D1rCN4oX0ODtmLFtZn2PE=",
+  "originalId": 2410,
+  "position": 2,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Three contracts make up the governance layer and are deployed together.\n- `GovDeployer` – deploys the other two at predetermined addresses.\n- `BerachainGovernance` – handles proposals and voting.\n- `TimeLock` – queues every successful proposal and ultimately owns privileged actions.\n\nWe will simply locate the inheritance and **constructor** / **initialise** statements so you can see the artefacts and their wiring.",
+      "title": "",
+      "id": "28749"
+    },
+    {
+      "type": "highlight",
+      "description": "`GovDeployer` imports the two contracts it will create (lines 8-10) and inherits `Create2Deployer` (line 15), signalling that deployments will be **deterministic**.",
+      "file": "src/gov/GovDeployer.sol",
+      "highlight": [
+        {
+          "start": 8,
+          "end": 16
+        }
+      ],
+      "title": "",
+      "id": "28750"
+    },
+    {
+      "type": "highlight",
+      "description": "Inside the `constructor` the two governance pieces are created (lines 45 and 49) and the new `TimeLock` is initialised (line 55) so the `Governor` becomes an authorised proposer/executor.",
+      "file": "src/gov/GovDeployer.sol",
+      "highlight": [
+        {
+          "start": 31,
+          "end": 56
+        }
+      ],
+      "title": "",
+      "id": "28751"
+    },
+    {
+      "type": "highlight",
+      "description": "The helper used above shows the two-step `CREATE2` pattern: deploy implementation, then a proxy, both under the same salt so their addresses are known ahead of time.",
+      "file": "src/gov/GovDeployer.sol",
+      "highlight": [
+        {
+          "start": 82,
+          "end": 85
+        }
+      ],
+      "title": "",
+      "id": "28752"
+    },
+    {
+      "type": "highlight",
+      "description": "`BerachainGovernance` inherits the `OpenZeppelin Governor` modules plus `UUPSUpgradeable` (lines 27-34).  That establishes it as an upgradable voting contract.",
+      "file": "src/gov/BerachainGovernance.sol",
+      "highlight": [
+        {
+          "start": 25,
+          "end": 35
+        }
+      ],
+      "title": "",
+      "id": "28753"
+    },
+    {
+      "type": "highlight",
+      "description": "The `initialise` function wires the `Governor` to the voting token and to the `TimeLock` passed in by the deployer; note the explicit `__GovernorTimelockControl_init` at line 71.",
+      "file": "src/gov/BerachainGovernance.sol",
+      "highlight": [
+        {
+          "start": 48,
+          "end": 72
+        }
+      ],
+      "title": "",
+      "id": "28754"
+    },
+    {
+      "type": "highlight",
+      "description": "`TimeLock` itself extends `TimelockControllerUpgradeable` and `UUPSUpgradeable` (line 7), giving it delay mechanics and the possibility of future upgrades.",
+      "file": "src/gov/TimeLock.sol",
+      "highlight": [
+        {
+          "start": 4,
+          "end": 8
+        }
+      ],
+      "title": "",
+      "id": "28755"
+    },
+    {
+      "type": "highlight",
+      "description": "Its constructor disables further initialisation (line 10); real configuration is performed through `initialise`, called by `GovDeployer` earlier.  Upgrades require the **timelock’s admin role** (line 17).",
+      "file": "src/gov/TimeLock.sol",
+      "highlight": [
+        {
+          "start": 8,
+          "end": 18
+        }
+      ],
+      "title": "",
+      "id": "28756"
+    },
+    {
+      "type": "textOnly",
+      "description": "That completes the high-level map: `GovDeployer` deterministically spawns `BerachainGovernance` and `TimeLock`; the `Governor` is configured to queue every action through the `TimeLock`; and the `TimeLock`, holding ownership, enforces the execution delay before anything can change.",
+      "title": "",
+      "id": "28757"
+    }
+  ]
+}

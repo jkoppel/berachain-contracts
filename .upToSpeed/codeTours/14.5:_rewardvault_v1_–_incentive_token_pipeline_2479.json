@@ -1,0 +1,137 @@
+{
+  "title": "14.5: RewardVault V1 – Incentive Token Pipeline",
+  "id": "cFoKg6FeMWQVZoqxraZ47OJ4vlC26FmjHpfAVi1qdlw=",
+  "originalId": 2479,
+  "position": 67,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Follow one extra-token incentive as it moves from the `manager’s wallet`, into `RewardVault` bookkeeping, and finally out to the validator’s operator and the `BGT-booster contract`.",
+      "title": "",
+      "id": "29645"
+    },
+    {
+      "type": "highlight",
+      "description": "RewardVault tracks each token with an `Incentive` struct (55-58).  `minIncentiveRate` is both a spam-filter and a lower-bound for future emissions, while `amountRemaining` is the balance from which payments are drawn.  Two hard caps at lines 61-67 (`MAX_INCENTIVE_RATE` and `SAFE_GAS_LIMIT`) protect against mis-configuration and griefing transfers.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 49,
+          "end": 68
+        }
+      ],
+      "title": "",
+      "id": "29646"
+    },
+    {
+      "type": "highlight",
+      "description": "`whitelistIncentiveToken` (lines 190-207) lets the factory owner register a new **ERC-20**. It validates input, pushes the token into `whitelistedTokens`, seeds `incentiveRate` with the same minimum, records a dedicated manager, and broadcasts `IncentiveTokenWhitelisted` so indexers know the vault now accepts that asset.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 181,
+          "end": 208
+        }
+      ],
+      "title": "",
+      "id": "29647"
+    },
+    {
+      "type": "highlight",
+      "description": "`addIncentive` is the only path for funding.  It enforces `caller == stored manager` (372-374), `amount ≥ minIncentiveRate` (375-378), and that the requested rate stays within `0 ↔ MAX_INCENTIVE_RATE` and never drops below the minimum unless the balance is exhausted (379-394).  The vault pulls tokens in (382) and tops-up `amountRemaining` (383).",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 358,
+          "end": 397
+        }
+      ],
+      "title": "",
+      "id": "29648"
+    },
+    {
+      "type": "highlight",
+      "description": "Each time Distributor calls `notifyRewardAmount` the vault immediately runs `_processIncentives`. It resolves the validator’s operator via `BeaconDeposit` (459), obtains `beraChef` for share math (460), and loops over `whitelistedTokens` (463-466). For each token it derives the payable amount = `BGT` emitted × `incentiveRate` ÷ `PRECISION` (468-471) but clips to `amountRemaining` so it never overdrafts.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 455,
+          "end": 470
+        }
+      ],
+      "title": "",
+      "id": "29649"
+    },
+    {
+      "type": "highlight",
+      "description": "Validator share first: `beraChef` decides the split (474-476).  `trySafeTransfer` (481) sends that slice directly to the operator under `SAFE_GAS_LIMIT`; on success amountRemaining is reduced (484) and **IncentivesProcessed** is emitted (485).  Any transfer failure is logged with **IncentivesProcessFailed** (486-488) and the vault simply moves on, avoiding a full revert.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 471,
+          "end": 489
+        }
+      ],
+      "title": "",
+      "id": "29650"
+    },
+    {
+      "type": "highlight",
+      "description": "Booster share next: the vault approves the `BGTIncentiveDistributor` for the leftover amount (494-497) and asks it to pull the tokens (499-502). Both calls run under the same `SAFE_GAS_LIMIT`. A happy path fires `BGTBoosterIncentivesProcessed` (503); any hic-cup revokes allowance (505-511) and emits `BGTBoosterIncentivesProcessFailed` (511-517) without blocking the rest of the loop.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 490,
+          "end": 517
+        }
+      ],
+      "title": "",
+      "id": "29651"
+    },
+    {
+      "type": "highlight",
+      "description": "All transfers surface through four events.  `IncentivesProcessed` and `IncentivesProcessFailed` trace the operator leg, while the two `BGTBooster*` events cover the booster path.  External tools only need to watch these topics to rebuild the entire flow.",
+      "file": "src/pol/interfaces/IRewardVault.sol",
+      "highlight": [
+        {
+          "start": 58,
+          "end": 87
+        }
+      ],
+      "title": "",
+      "id": "29652"
+    },
+    {
+      "type": "highlight",
+      "description": "Factory managers can retire a token via `removeIncentiveToken` (211-215); it deletes the struct and then cleans the array.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 210,
+          "end": 216
+        }
+      ],
+      "title": "",
+      "id": "29653"
+    },
+    {
+      "type": "highlight",
+      "description": "`_deleteWhitelistedTokenFromList` (529-532) swaps the target with the last entry and pops, keeping storage and gas usage tight.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 524,
+          "end": 533
+        }
+      ],
+      "title": "",
+      "id": "29654"
+    },
+    {
+      "type": "textOnly",
+      "description": "Putting it together: managers fund the vault, `RewardVault` debits `amountRemaining` at every `BGT` emission, pays the operator first and forwards leftovers to `BGT` boosters, while the `event stream` documents both legs and `cleanup` keeps the `whitelist` healthy.",
+      "title": "",
+      "id": "29655"
+    }
+  ]
+}

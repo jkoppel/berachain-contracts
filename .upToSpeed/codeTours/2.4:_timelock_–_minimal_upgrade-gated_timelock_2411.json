@@ -1,0 +1,72 @@
+{
+  "title": "2.4: TimeLock – Minimal Upgrade-gated Timelock",
+  "id": "RDVui1hCWugqrwqAbSoijpPfaEZSKLnPoGxM+0XA2EI=",
+  "originalId": 2411,
+  "position": 5,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "`TimeLock` wraps the standard `OpenZeppelin` timelock in a thin **UUPS-upgradeable** shell, leaving every policy decision to the separate `Governor` contract.",
+      "title": "",
+      "id": "28776"
+    },
+    {
+      "type": "highlight",
+      "description": "Inheritance is the whole story here: `UUPSUpgradeable` supplies proxy logic, while `TimelockControllerUpgradeable` supplies the fully-featured timelock.",
+      "file": "src/gov/TimeLock.sol",
+      "highlight": [
+        {
+          "start": 4,
+          "end": 7
+        }
+      ],
+      "title": "",
+      "id": "28777"
+    },
+    {
+      "type": "highlight",
+      "description": "The implementation contract disables its own `initializer` so that only the **proxy** can be initialised – a standard safety pattern for **UUPS** designs.",
+      "file": "src/gov/TimeLock.sol",
+      "highlight": [
+        {
+          "start": 8,
+          "end": 11
+        }
+      ],
+      "title": "",
+      "id": "28778"
+    },
+    {
+      "type": "highlight",
+      "description": "`_authorizeUpgrade` is the only override. It restricts future upgrades to holders of `DEFAULT_ADMIN_ROLE`.",
+      "file": "src/gov/TimeLock.sol",
+      "highlight": [
+        {
+          "start": 17,
+          "end": 18
+        }
+      ],
+      "title": "",
+      "id": "28779"
+    },
+    {
+      "type": "highlight",
+      "description": "`GovDeployer` holds that admin role just long enough to wire roles: the governor becomes both `PROPOSER` and `EXECUTOR`, an optional guardian gets `CANCELLER_ROLE`, then the deployer renounces `DEFAULT_ADMIN_ROLE` so upgrades must flow through governance.",
+      "file": "src/gov/GovDeployer.sol",
+      "highlight": [
+        {
+          "start": 52,
+          "end": 59
+        }
+      ],
+      "title": "",
+      "id": "28780"
+    },
+    {
+      "type": "textOnly",
+      "description": "The result: `Timelock` remains **intentionally minimal** – it enforces the delay and guards the upgrade path, while all business logic lives in the `Governor`.",
+      "title": "",
+      "id": "28781"
+    }
+  ]
+}

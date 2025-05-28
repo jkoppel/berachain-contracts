@@ -1,0 +1,137 @@
+{
+  "title": "5.5: HoneyFactory Storage, Pegging & Caps",
+  "id": "XQjiJ6obCU6A9fWOVPkT2NIRPd/paDegCUHeRS/PMN4=",
+  "originalId": 2430,
+  "position": 18,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "We will traverse `HoneyFactory.sol` in four passes: constants ➜ storage layout ➜ basket-mode switch ➜ weight & cap math.  All code you see comes from the live contract.",
+      "title": "",
+      "id": "28980"
+    },
+    {
+      "type": "highlight",
+      "description": "Economic baselines\n- `ONE_HUNDRED_PERCENT_RATE` at 1 e18 is the \"no-fee\" reference.\n- `NINETY_EIGHT_PERCENT_RATE` limits managers to at most a 2 % haircut.\n- `DEFAULT_PEG_OFFSET` (±0.2 %) and `DEFAULT_MINT_REDEEM_RATE` (0.05 % fee) pre-seed every new vault.\n- `DEFAULT_MIN_SHARES_TO_RECAPITALIZE` fixes the tiniest recap action at 1 whole share.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 19,
+          "end": 33
+        }
+      ],
+      "title": "",
+      "id": "28981"
+    },
+    {
+      "type": "highlight",
+      "description": "Two hard ceilings protect governance mistakes\n- `MAX_PEG_OFFSET` keeps peg tolerance within ±2 cents.\n- `MAX_PRICE_FEED_DELAY_TOLERANCE` prevents using oracle data older than 120 s.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 35,
+          "end": 41
+        }
+      ],
+      "title": "",
+      "id": "28982"
+    },
+    {
+      "type": "highlight",
+      "description": "Rates & peg-related storage\n- `polFeeCollectorFeeRate` shares each fee with protocol-owned liquidity.\n- `mintRates` / `redeemRates` are per-asset `60.18`-fixed-point multipliers.\n- `lowerPegOffsets` / `upperPegOffsets` customise peg windows per asset.\n- `liquidationRates` adds a premium when bad collateral is auctioned.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 42,
+          "end": 61
+        }
+      ],
+      "title": "",
+      "id": "28983"
+    },
+    {
+      "type": "highlight",
+      "description": "Global behaviour switches\n- `forcedBasketMode` and `liquidationEnabled` flip major protocol modes.\n- `priceOracle` and `priceFeedMaxDelay` feed every `isPegged()` check.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 62,
+          "end": 73
+        }
+      ],
+      "title": "",
+      "id": "28984"
+    },
+    {
+      "type": "highlight",
+      "description": "Cap configuration\n- `referenceCollateral` anchors all relative caps.\n- `relativeCap[asset]` & `globalCap` bound individual and portfolio weights.\n- `recapitalizeBalanceThreshold[…]` and `minSharesToRecapitalize` gate the self-healing pathway.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 74,
+          "end": 83
+        }
+      ],
+      "title": "",
+      "id": "28985"
+    },
+    {
+      "type": "highlight",
+      "description": "`isBasketModeEnabled()` decides whether a tx acts on *one* asset or the whole basket\n1️⃣ line `531`: governance override.\n2️⃣ lines `535-543`: for **mint**, any good-and-pegged asset disables basket mode.\n3️⃣ lines `543-552`: for **redeem**, the first still-backing de-pegged asset forces basket mode.\n4️⃣ line `557`: **default** — **mint** opts into basket mode when nothing blocks it; **redeem** opts out.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 526,
+          "end": 558
+        }
+      ],
+      "title": "",
+      "id": "28986"
+    },
+    {
+      "type": "highlight",
+      "description": "`_getWeights()` converts vault shares into `1e18`-scaled weights, optionally skipping bad or paused vaults.\nThe two-loop pattern (`sum ⇒ normalise`) is pure accounting — it never mutates state, only reads.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 664,
+          "end": 693
+        }
+      ],
+      "title": "",
+      "id": "28987"
+    },
+    {
+      "type": "highlight",
+      "description": "`_isCappedRelative()` enforces a per-asset ceiling relative to the reference collateral\n- 697: reference bypass.\n- 700-704: pull balances minus fees.\n- 705-707: edge case when both balances are zero.\n- 708-710: compare computed weight to `relativeCap[asset]`.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 695,
+          "end": 711
+        }
+      ],
+      "title": "",
+      "id": "28988"
+    },
+    {
+      "type": "highlight",
+      "description": "`_isCappedGlobal()` keeps the whole portfolio under globalCap\n- 717-723 skip assets whose weight can only shrink during mint.\n- 724-727 mirror that logic during redeem.\n- 728-730 is the decisive test — any offending weight aborts the transaction.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 712,
+          "end": 732
+        }
+      ],
+      "title": "",
+      "id": "28989"
+    },
+    {
+      "type": "textOnly",
+      "description": "**Constants** define the **rails**, **storage** holds live configuration, **basket mode** picks the execution path, and the **weight-based cap helpers** enforce every limit on-chain. With this map, any mint, redeem or liquidation becomes easy to reason about.",
+      "title": "",
+      "id": "28990"
+    }
+  ]
+}

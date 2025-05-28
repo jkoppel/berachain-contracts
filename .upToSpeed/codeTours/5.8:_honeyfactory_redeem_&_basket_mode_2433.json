@@ -1,0 +1,137 @@
+{
+  "title": "5.8: HoneyFactory Redeem & Basket Mode",
+  "id": "Nhb4Pi8sGmzk3UeacqV5Hkv3HVe2ucQdIm8W7t85Cgg=",
+  "originalId": 2433,
+  "position": 21,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "We will walk the factory’s **weight-based basket mode** path first, then mirror it with redeem, focusing on how `share↔︎Honey math` is applied, and why the `global cap check` behaves differently on entry and exit.",
+      "title": "",
+      "id": "29047"
+    },
+    {
+      "type": "highlight",
+      "description": "`mint()` decides whether basket mode is on (329-339) and, if it is, scales a single approved amount across all vaults proportionally (345-363). The reference asset’s weight (351-357) turns one user-supplied amount into a full basket, keeping collateral ratios intact.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 326,
+          "end": 363
+        }
+      ],
+      "title": "",
+      "id": "29048"
+    },
+    {
+      "type": "highlight",
+      "description": "`_getWeights` converts each vault’s shares (already `18-dec`) into relative weights, skips bad/paused vaults, and normalises so the array sums to `1e18`.  These weights drive both mint and redeem while basket mode is active.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 664,
+          "end": 693
+        }
+      ],
+      "title": "",
+      "id": "29049"
+    },
+    {
+      "type": "highlight",
+      "description": "`isBasketModeEnabled` is asymmetric:  \n- on **mint** (`538-542`) **basket mode** requires *all* collaterals to be de-pegged or bad;  \n- on **redeem** (`543-552`) just one de-pegged asset with shares is enough.  \nThis brings **basket mode** in earlier for redemptions, protecting good collateral.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 530,
+          "end": 558
+        }
+      ],
+      "title": "",
+      "id": "29050"
+    },
+    {
+      "type": "highlight",
+      "description": "`redeem()` wrapper – single-asset path. After verifying basket status (380-383) it calls `_redeem` on the chosen asset (387-389), then enforces relative and global caps (393-406) to ensure the pool stays within configured limits.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 368,
+          "end": 407
+        }
+      ],
+      "title": "",
+      "id": "29051"
+    },
+    {
+      "type": "highlight",
+      "description": "When **basket mode** is active, the same weight array splits the `Honey` amount (`414-415`) and `_redeem` is invoked for **every** vault, mirroring the proportional deposit performed during **basket-mode mint**.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 411,
+          "end": 417
+        }
+      ],
+      "title": "",
+      "id": "29052"
+    },
+    {
+      "type": "highlight",
+      "description": "`_redeem` burns the caller’s Honey, converts it to vault shares, distributes protocol fees, redeems shares for assets, and re-checks vault invariants.  The entire state-changing sequence lives inside 618-626.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 608,
+          "end": 630
+        }
+      ],
+      "title": "",
+      "id": "29053"
+    },
+    {
+      "type": "highlight",
+      "description": "`_getSharesRedeemedFromHoney` applies the asset-specific redeemRate (655-657), then splits the fee between `PoL fee collector` and `feeReceiver` (658-661).  This is the exact mirror of `_getHoneyMintedFromShares` used during mint.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 647,
+          "end": 662
+        }
+      ],
+      "title": "",
+      "id": "29054"
+    },
+    {
+      "type": "highlight",
+      "description": "`_isCappedGlobal` differs by direction:\n- mint ignores other assets (719-721) and blocks the incoming collateral if **its own** weight would break the cap\n- redeem ignores the asset being withdrawn (725-727) and checks that removing it does not push **another** asset above the cap",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 713,
+          "end": 733
+        }
+      ],
+      "title": "",
+      "id": "29055"
+    },
+    {
+      "type": "highlight",
+      "description": "`isPegged` consults the oracle, verifies staleness, then enforces dynamic lower/upper offsets (`571-577`).  A price outside this band flips basket mode through the earlier helper and immediately steers mint/redeem into the weight-balanced branch.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 569,
+          "end": 578
+        }
+      ],
+      "title": "",
+      "id": "29056"
+    },
+    {
+      "type": "textOnly",
+      "description": "You can now trace a `Honey burn` from user to `vault withdrawal`, see how `basket mode` keeps **collateral composition** stable, and understand how `peg breaches` or `cap limits` redirect the flow through the appropriate branch.",
+      "title": "",
+      "id": "29057"
+    }
+  ]
+}

@@ -1,0 +1,137 @@
+{
+  "title": "3.3: BeaconRootsHelper: Timestamp Buffer & Proof Verification",
+  "id": "2VxaJiWape4a6HEpHFgjQvD789c8HFgegsugBQi/WOc=",
+  "originalId": 2414,
+  "position": 8,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "This guided tour shows what `BeaconRootsHelper` stores, how a `timestamp` is handled, and how its `SSZ proof helpers` work, so that you can safely plug `beacon-chain data` into higher-level reward logic.",
+      "title": "",
+      "id": "28851"
+    },
+    {
+      "type": "highlight",
+      "description": "Lines 27-33 define the compile-time constants that every helper routine relies on.\n\n- Line 27 sets `HISTORY_BUFFER_LENGTH` to `8191` – identical to the ring-buffer size inside the `EIP-4788 BeaconRoots` contract.\n- Line 29 expresses `VALIDATOR_REGISTRY_LIMIT` as `1 << 40` (≈1 trillion), mirroring the Beacon-spec limit while making its power-of-two nature obvious.\n- Line 32 establishes `VALIDATOR_PUBKEY_OFFSET` (= `8`), the SSZ generalized-index distance from a validator container root to its pubkey field.",
+      "file": "src/pol/BeaconRootsHelper.sol",
+      "highlight": [
+        {
+          "start": 26,
+          "end": 33
+        }
+      ],
+      "title": "",
+      "id": "28852"
+    },
+    {
+      "type": "highlight",
+      "description": "The helper keeps its own mirror of the **EIP-4788** history.  Each cell of the fixed-size `uint64[8191]` array (lines 51-55) stores **the timestamp already processed** for that index, allowing a single comparison to detect duplicates.\nLines 58-64 cache the generalized indices for (a) the first validator’s pubkey leaf and (b) the proposer-index leaf, so proofs do not need to compute them on-the-fly.  A 50-word gap (line 65) protects storage layout for upgrades.",
+      "file": "src/pol/BeaconRootsHelper.sol",
+      "highlight": [
+        {
+          "start": 51,
+          "end": 67
+        }
+      ],
+      "title": "",
+      "id": "28853"
+    },
+    {
+      "type": "highlight",
+      "description": "These tiny setters simply overwrite the cached **G-indices** and emit an event. The base contract is abstract; inheriting contracts attach role gates so only governance can change them when future forks shift field positions.",
+      "file": "src/pol/BeaconRootsHelper.sol",
+      "highlight": [
+        {
+          "start": 72,
+          "end": 82
+        }
+      ],
+      "title": "",
+      "id": "28854"
+    },
+    {
+      "type": "highlight",
+      "description": "`isTimestampActionable` is the cheap read-only gatekeeper.\n1. Line 93 asks the `BeaconRoots precompile` whether the timestamp exists.\n2. If it does, the code computes `timestamp % 8191` and returns **true only when the stored value in that slot is different**, meaning the timestamp has not yet been processed.",
+      "file": "src/pol/BeaconRootsHelper.sol",
+      "highlight": [
+        {
+          "start": 91,
+          "end": 98
+        }
+      ],
+      "title": "",
+      "id": "28855"
+    },
+    {
+      "type": "highlight",
+      "description": "`_processTimestampInBuffer` performs the irreversible step.\n- Line 111 fetches (and validates) the parent beacon block root; absence reverts.\n- Lines 114-116 locate the ring-buffer slot and revert with **TimestampAlreadyProcessed** if the slot already equals the timestamp; otherwise they write the timestamp.\n- Lines 118-119 emit **TimestampProcessed**, and the function returns the root it fetched.",
+      "file": "src/pol/BeaconRootsHelper.sol",
+      "highlight": [
+        {
+          "start": 104,
+          "end": 120
+        }
+      ],
+      "title": "",
+      "id": "28856"
+    },
+    {
+      "type": "highlight",
+      "description": "`_verifyProposerIndexInBeaconBlock` proves a proposer index leaf exists in a beacon block.\n- Line 134 hashes the `uint64` into its `SSZ` leaf.\n- Line 136 feeds the leaf, proof, block root, and cached proposerIndexGIndex into `SSZ.verifyProof`.\n- Failure triggers **InvalidProof** (lines 137-138).",
+      "file": "src/pol/BeaconRootsHelper.sol",
+      "highlight": [
+        {
+          "start": 126,
+          "end": 138
+        }
+      ],
+      "title": "",
+      "id": "28857"
+    },
+    {
+      "type": "highlight",
+      "description": "Inside `SSZ`: `uint64HashTreeRoot` (43-48) endian-swaps the integer then shifts it into the low bytes of a 32-byte `SSZ` leaf.  `verifyProof` (54-63 excerpted) walks the proof with the `SHA-256` precompile, consuming the generalized index bit-by-bit; it reverts if the branch is too short, too long, or mismatching.",
+      "file": "src/libraries/SSZ.sol",
+      "highlight": [
+        {
+          "start": 43,
+          "end": 63
+        }
+      ],
+      "title": "",
+      "id": "28858"
+    },
+    {
+      "type": "highlight",
+      "description": "_verifyValidatorPubkeyInBeaconBlock follows the same pattern with two extra guards.\n\n- Lines 156-158 enforce `validatorIndex < 2^40`.\n- Line 160 hashes the 48-byte BLS pubkey; line 161 derives the target leaf index as `zeroValidatorPubkeyGIndex + 8 * validatorIndex` (each validator container spans eight SSZ children before its pubkey).\n- Proof failure again reverts with `InvalidProof`.",
+      "file": "src/pol/BeaconRootsHelper.sol",
+      "highlight": [
+        {
+          "start": 148,
+          "end": 165
+        }
+      ],
+      "title": "",
+      "id": "28859"
+    },
+    {
+      "type": "highlight",
+      "description": "`BeaconRootsHelper` is declared abstract; reward-oriented contracts such as `Distributor` import and inherit it (see lines 15 & 25) to reuse timestamp gating and proof helpers without duplication.  `BeraChef` and `BlockRewardController` follow the same pattern.",
+      "file": "src/pol/rewards/Distributor.sol",
+      "highlight": [
+        {
+          "start": 13,
+          "end": 26
+        }
+      ],
+      "title": "",
+      "id": "28860"
+    },
+    {
+      "type": "textOnly",
+      "description": "Taken together, `BeaconRootsHelper` maintains a local mirror to guarantee each beacon-root timestamp is processed once, while providing fork-configurable SSZ proof helpers for proposer and validator data. **Reward logic** built on top can therefore trust beacon information without carrying the complexity itself.",
+      "title": "",
+      "id": "28861"
+    }
+  ]
+}

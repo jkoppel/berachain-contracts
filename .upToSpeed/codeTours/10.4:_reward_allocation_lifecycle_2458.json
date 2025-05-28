@@ -1,0 +1,163 @@
+{
+  "title": "10.4: Reward Allocation Lifecycle",
+  "id": "LMhaJ49fFrEuLo+Z2Wz4cGdxVG3C4PU0uiP0nS3hyPs=",
+  "originalId": 2458,
+  "position": 46,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "We will trace how a **reward allocation** moves from being queued by an **operator**, through activation by the **distributor**, to the point where **consumers** read it.  At every step we will focus on the guards that keep the process safe.",
+      "title": "",
+      "id": "29372"
+    },
+    {
+      "type": "highlight",
+      "description": "Two role modifiers underline the whole journey.  `onlyDistributor` (113-117) limits activation calls to the `Distributor` contract, while `onlyOperator` (119-124) checks the `BeaconDeposit` contract so that only the validator’s operator can queue or edit allocations.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 112,
+          "end": 124
+        }
+      ],
+      "title": "",
+      "id": "29373"
+    },
+    {
+      "type": "highlight",
+      "description": "`queueNewRewardAllocation` begins by passing the `onlyOperator` gate, then enforces a timing rule: `startBlock` must lie strictly after `block.number` plus `rewardAllocationBlockDelay` (241-243). This prevents an operator from redirecting rewards immediately.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 231,
+          "end": 243
+        }
+      ],
+      "title": "",
+      "id": "29374"
+    },
+    {
+      "type": "highlight",
+      "description": "**Next comes storage-level protection.** If an allocation is already queued for this validator (248-250) the call reverts. With that out of the way the function dives into `_validateWeights` (253) for deep validation.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 245,
+          "end": 253
+        }
+      ],
+      "title": "",
+      "id": "29375"
+    },
+    {
+      "type": "highlight",
+      "description": "`_validateWeights` opens with two quick checks: the array length may not exceed `maxNumWeightsPerRewardAllocation` (392-394) and a helper is called to detect duplicate receivers (395-396).",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 391,
+          "end": 396
+        }
+      ],
+      "title": "",
+      "id": "29376"
+    },
+    {
+      "type": "highlight",
+      "description": "Inside the loop each **Weight** must satisfy three invariants: `percentageNumerator` is non-zero and not above `maxWeightPerVault` (402-404); the receiver is whitelisted (406-409); and the value is added to the running `totalWeight`.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 400,
+          "end": 410
+        }
+      ],
+      "title": "",
+      "id": "29377"
+    },
+    {
+      "type": "highlight",
+      "description": "After the loop the accumulated `totalWeight` must equal `ONE_HUNDRED_PERCENT` (415-417).  Any mismatch aborts the transaction.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 415,
+          "end": 417
+        }
+      ],
+      "title": "",
+      "id": "29378"
+    },
+    {
+      "type": "highlight",
+      "description": "`_checkForDuplicateReceivers` enforces uniqueness efficiently. Using the validator’s pubkey as a namespace (`422-423`), it hashes each receiver address (`432-436`) and flags it with `tload`/`tstore` (`438-440`). A previously seen address flips the duplicate flag and triggers a revert.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 420,
+          "end": 440
+        }
+      ],
+      "title": "",
+      "id": "29379"
+    },
+    {
+      "type": "highlight",
+      "description": "Only after passing validation does the function write to storage: `startBlock` is saved (256) and each `Weight` pushed (258-262).  `QueueRewardAllocation` (264) broadcasts the queued data to off-chain observers.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 255,
+          "end": 264
+        }
+      ],
+      "title": "",
+      "id": "29380"
+    },
+    {
+      "type": "highlight",
+      "description": "Readiness is easy to check. `isQueuedRewardAllocationReady` returns true once `startBlock` is non-zero and has been reached (**345-347**).",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 344,
+          "end": 347
+        }
+      ],
+      "title": "",
+      "id": "29381"
+    },
+    {
+      "type": "highlight",
+      "description": "`activateReadyQueuedRewardAllocation`, protected by `onlyDistributor` (296), copies the queued struct into `activeRewardAllocations` (299-301), emits `ActivateRewardAllocation`, and deletes the queue entry (302-303) so it cannot be reused.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 295,
+          "end": 304
+        }
+      ],
+      "title": "",
+      "id": "29382"
+    },
+    {
+      "type": "highlight",
+      "description": "Consumers read allocations via `getActiveRewardAllocation`. If the active weights are still valid (317-318) they are returned; if not, or if none exist, the function falls back to `defaultRewardAllocation` (321-325).",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 313,
+          "end": 326
+        }
+      ],
+      "title": "",
+      "id": "29383"
+    },
+    {
+      "type": "textOnly",
+      "description": "The journey shows layered defences: **operator-only queuing**, **distributor-only activation**, **strict timing**, **per-entry and aggregate weight checks**, **whitelisted receivers**, **duplicate detection**, and an **automatic fallback to safe defaults** when assumptions later break.",
+      "title": "",
+      "id": "29384"
+    }
+  ]
+}

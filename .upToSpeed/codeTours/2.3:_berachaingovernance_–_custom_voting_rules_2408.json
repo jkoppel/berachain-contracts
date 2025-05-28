@@ -1,0 +1,137 @@
+{
+  "title": "2.3: BerachainGovernance – Custom Voting Rules",
+  "id": "ugmyU6c3IHMsOWuSuDbhEWqU7zmraYaG9Qhy66zOY8U=",
+  "originalId": 2408,
+  "position": 4,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Follow this walkthrough to see how the governor is assembled, which bespoke rules it adds, and how a proposal travels from creation to execution.",
+      "title": "",
+      "id": "28765"
+    },
+    {
+      "type": "highlight",
+      "description": "The first four initialiser calls wire in:\n- proxy-upgrade safety (57),\n- a human-readable name (59),\n- core voting parameters (61),\n- and the FOR / AGAINST counter scaffold (63).",
+      "file": "src/gov/BerachainGovernance.sol",
+      "highlight": [
+        {
+          "start": 56,
+          "end": 63
+        }
+      ],
+      "title": "",
+      "id": "28766"
+    },
+    {
+      "type": "highlight",
+      "description": "The remaining four calls add:\n- storage segregation for future extensions (65),\n- the voting-power token hook (67),\n- quorum as a fraction of total supply (69),\n- and finally plug the `Timelock` in as the executor (71).",
+      "file": "src/gov/BerachainGovernance.sol",
+      "highlight": [
+        {
+          "start": 64,
+          "end": 71
+        }
+      ],
+      "title": "",
+      "id": "28767"
+    },
+    {
+      "type": "highlight",
+      "description": "**Custom change #1** — upgrades cannot bypass governance. The `onlyGovernance` modifier on `_authorizeUpgrade` (78-79) forces every implementation change to pass the full proposal flow.",
+      "file": "src/gov/BerachainGovernance.sol",
+      "highlight": [
+        {
+          "start": 74,
+          "end": 79
+        }
+      ],
+      "title": "",
+      "id": "28768"
+    },
+    {
+      "type": "highlight",
+      "description": "Custom change #2 — a strict majority requirement.  `_voteSucceeded` (91-95) demands FOR ≥ 51 % of (FOR + AGAINST), replacing `OZ`’s softer default.",
+      "file": "src/gov/BerachainGovernance.sol",
+      "highlight": [
+        {
+          "start": 84,
+          "end": 95
+        }
+      ],
+      "title": "",
+      "id": "28769"
+    },
+    {
+      "type": "highlight",
+      "description": "**Custom change #3** — **gas-saving guard against pointless votes.** If a voter’s weight is zero (`121-123`) the call reverts, skipping needless storage writes before delegating back to `OZ` logic.",
+      "file": "src/gov/BerachainGovernance.sol",
+      "highlight": [
+        {
+          "start": 110,
+          "end": 126
+        }
+      ],
+      "title": "",
+      "id": "28770"
+    },
+    {
+      "type": "highlight",
+      "description": "That `revert` uses a compact assembly helper (16-22) which returns only the four-byte selector, keeping the gas overhead minimal.",
+      "file": "src/libraries/Utils.sol",
+      "highlight": [
+        {
+          "start": 16,
+          "end": 23
+        }
+      ],
+      "title": "",
+      "id": "28771"
+    },
+    {
+      "type": "highlight",
+      "description": "`getTimelockOperationId` (100-108) shows how a proposal is condensed into a Timelock batch hash: combine `targets`, `values`, `calldatas` and `descriptionHash`, XOR in a contract-specific salt, then call `Timelock.hashOperationBatch`.",
+      "file": "src/gov/BerachainGovernance.sol",
+      "highlight": [
+        {
+          "start": 100,
+          "end": 108
+        }
+      ],
+      "title": "",
+      "id": "28772"
+    },
+    {
+      "type": "highlight",
+      "description": "The large **\"required overrides\"** block merely satisfies Solidity’s multiple-inheritance rules.  `state()` (134-140) is representative — it forwards straight to the parent without altering behaviour.",
+      "file": "src/gov/BerachainGovernance.sol",
+      "highlight": [
+        {
+          "start": 134,
+          "end": 140
+        }
+      ],
+      "title": "",
+      "id": "28773"
+    },
+    {
+      "type": "highlight",
+      "description": "`_queueOperations` (177-191) and its siblings (`_executeOperations`, `_cancel`, `_executor`) follow the same pattern: one-line delegates, zero extra logic.",
+      "file": "src/gov/BerachainGovernance.sol",
+      "highlight": [
+        {
+          "start": 177,
+          "end": 191
+        }
+      ],
+      "title": "",
+      "id": "28774"
+    },
+    {
+      "type": "textOnly",
+      "description": "Lifecycle recap: `initialise` → `propose` → `vote` (must hit 51 % FOR & quorum) → `queue Timelock` (`operationId` from slide 7) → `execute`. Even contract upgrades ride this path, ensuring every critical action is approved on-chain.",
+      "title": "",
+      "id": "28775"
+    }
+  ]
+}

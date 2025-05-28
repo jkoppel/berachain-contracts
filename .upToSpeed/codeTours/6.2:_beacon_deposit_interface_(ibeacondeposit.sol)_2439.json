@@ -1,0 +1,137 @@
+{
+  "title": "6.2: Beacon Deposit Interface (IBeaconDeposit.sol)",
+  "id": "sq9dU8/4YFBWyKa5oSEqLDRx+k9c1YbDNE3OwO7dtw8=",
+  "originalId": 2439,
+  "position": 27,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "This tour zooms in on `IBeaconDeposit` – the `ABI` higher layers call to create or manage validators. Every excerpt comes straight from the source files under `src/pol/`.",
+      "title": "",
+      "id": "29144"
+    },
+    {
+      "type": "highlight",
+      "description": "Deposit is the single event the Beacon chain watches. Each indexed field lines-up with consensus requirements:\n\n- `pubkey` (48-byte BLS key) uniquely identifies the validator.\n- `credentials` (32 bytes) are copied verbatim into the Beacon state for withdrawals.\n- `amount` (uint64, Gwei) reflects the exact stake accepted by `_deposit()`.\n- `signature` (96 bytes) is meaningful only on the first deposit but is still emitted on later top-ups so the log format stays constant.\n- `index` (running counter) lets relayers order leaves in the deposit tree.",
+      "file": "src/pol/interfaces/IBeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 13,
+          "end": 21
+        }
+      ],
+      "title": "",
+      "id": "29145"
+    },
+    {
+      "type": "highlight",
+      "description": "Operator rotation follows a clear three-step lifecycle:\n1. `OperatorChangeQueued` records the new address, the current one, and a timestamp – establishing the 24 h waiting period.\n2. `OperatorChangeCancelled` erases a pending request; only the current operator can fire it.\n3. When the delay elapses, `OperatorUpdated` finalises the swap (also emitted on the **very first** operator assignment).",
+      "file": "src/pol/interfaces/IBeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 30,
+          "end": 46
+        }
+      ],
+      "title": "",
+      "id": "29146"
+    },
+    {
+      "type": "highlight",
+      "description": "`getOperator` is the only read helper. Line 54 highlights its contract: if the `pubkey` has never been registered the function returns `address(0)`. Callers must treat that value as **\"not yet set\"**.",
+      "file": "src/pol/interfaces/IBeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 52,
+          "end": 58
+        }
+      ],
+      "title": "",
+      "id": "29147"
+    },
+    {
+      "type": "highlight",
+      "description": "The deposit `ABI` takes four `calldata` arguments plus `msg.value`:\n1. `pubkey` – 48 bytes.\n2. `credentials` – 32 bytes.\n3. `signature` – required *only* on the first deposit.\n4. `operator` – must be non-zero on the first call and **zero** on subsequent top-ups.",
+      "file": "src/pol/interfaces/IBeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 64,
+          "end": 81
+        }
+      ],
+      "title": "",
+      "id": "29148"
+    },
+    {
+      "type": "highlight",
+      "description": "Implementation lines 105-118 enforce the rules explained above: if the key is new, operator must be non-zero; if it is already registered, any non-zero operator triggers `OperatorAlreadySet`.",
+      "file": "src/pol/BeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 105,
+          "end": 118
+        }
+      ],
+      "title": "",
+      "id": "29149"
+    },
+    {
+      "type": "highlight",
+      "description": "Three mutators manage operator changes:\n- `requestOperatorChange` – callable only by the **current** operator.\n- `cancelOperatorChange` – same caller restriction, wipes the queue.\n- `acceptOperatorChange` – callable only by the **queued** operator once the delay has passed.",
+      "file": "src/pol/interfaces/IBeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 84,
+          "end": 104
+        }
+      ],
+      "title": "",
+      "id": "29150"
+    },
+    {
+      "type": "highlight",
+      "description": "The waiting period is baked into the contract as a constant: `ONE_DAY` = 86 400 seconds.",
+      "file": "src/pol/BeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 36,
+          "end": 39
+        }
+      ],
+      "title": "",
+      "id": "29151"
+    },
+    {
+      "type": "highlight",
+      "description": "`acceptOperatorChange` enforces the delay at runtime: if `queuedTimestamp` + `ONE_DAY` is still in the future the call reverts with `NotEnoughTime`.",
+      "file": "src/pol/BeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 164,
+          "end": 176
+        }
+      ],
+      "title": "",
+      "id": "29152"
+    },
+    {
+      "type": "highlight",
+      "description": "Semantic revert reasons are centralised in `IPOLErrors`; lines 130-162 list every Beacon-deposit specific error used throughout the implementation.",
+      "file": "src/pol/interfaces/IPOLErrors.sol",
+      "highlight": [
+        {
+          "start": 130,
+          "end": 162
+        }
+      ],
+      "title": "",
+      "id": "29153"
+    },
+    {
+      "type": "textOnly",
+      "description": "You now have every `event` to watch, `view` to query, `write call` to execute, and `error` to catch – the full ABI surface of `BeaconDeposit`.",
+      "title": "",
+      "id": "29154"
+    }
+  ]
+}

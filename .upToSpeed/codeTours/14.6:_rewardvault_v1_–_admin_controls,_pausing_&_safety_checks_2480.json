@@ -1,0 +1,150 @@
+{
+  "title": "14.6: RewardVault V1 – Admin Controls, Pausing & Safety Checks",
+  "id": "rivsrxolOteqPXSBhqmD8IQjSz68BNOpmMzR+o1iYFI=",
+  "originalId": 2480,
+  "position": 68,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "We focus on `RewardVault`'s owner-only **\"knobs\"** and the runtime checks that keep them safe. After this walkthrough you should be able to trace:\n\n- how access control is delegated to the factory\n- which guards protect every admin setter\n- how the pause circuit-breaker is enforced\n- how token rescue and reward distribution stay solvent\n- why the `constructor` disables `initialisers` and how that supports upgrades",
+      "title": "",
+      "id": "29633"
+    },
+    {
+      "type": "highlight",
+      "description": "`RewardVault` inherits `FactoryOwnable`. Lines 44-59 expose three modifiers built on factory roles—`onlyFactoryOwner`, `onlyFactoryVaultManager` and `onlyFactoryVaultPauser`. They funnel all privileged calls through the factory’s `AccessControl`, so governance can rotate keys without touching the vault.",
+      "file": "src/base/FactoryOwnable.sol",
+      "highlight": [
+        {
+          "start": 40,
+          "end": 59
+        }
+      ],
+      "title": "",
+      "id": "29634"
+    },
+    {
+      "type": "highlight",
+      "description": "`setDistributor` lets governance redirect where reward tokens are pulled from.  `onlyFactoryOwner` gates the call (`151`), a zero-address check blocks foot-guns (`152`) and an event records the change (`154`).",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 148,
+          "end": 155
+        }
+      ],
+      "title": "",
+      "id": "29635"
+    },
+    {
+      "type": "highlight",
+      "description": "`setRewardsDuration` tunes the emission period.  Again only the factory owner may call (177) and the logic delegates to an internal helper that re-checks invariants, concentrating complexity in one place.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 176,
+          "end": 179
+        }
+      ],
+      "title": "",
+      "id": "29636"
+    },
+    {
+      "type": "highlight",
+      "description": "`setMaxIncentiveTokensCount` caps how many extra incentive tokens can be tracked.  The new cap cannot be smaller than the current whitelist (237-239); any attempt would otherwise strand stored state.  A dedicated event (241) makes the change auditable.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 235,
+          "end": 241
+        }
+      ],
+      "title": "",
+      "id": "29637"
+    },
+    {
+      "type": "highlight",
+      "description": "**pause/unpause** form a **circuit-breaker** with separated duties: the `pauser` role can halt the `vault` (245-247) while only a `manager` can resume it (250-252). This split limits blast-radius if one key is compromised.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 244,
+          "end": 252
+        }
+      ],
+      "title": "",
+      "id": "29638"
+    },
+    {
+      "type": "highlight",
+      "description": "Stake paths are wrapped in `whenNotPaused`. Once the vault is paused, both `direct stake` (288-290) and the `delegateStake` entry (293-294) revert, ensuring the circuit-breaker really freezes inflows.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 287,
+          "end": 294
+        }
+      ],
+      "title": "",
+      "id": "29639"
+    },
+    {
+      "type": "highlight",
+      "description": "`recoverERC20` lets the owner sweep stray tokens but with two strong constraints: **incentive tokens** are blocked outright (165) and, for the **staking token**, the vault can only move the surplus above users’ aggregate deposits (166-170).",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 164,
+          "end": 172
+        }
+      ],
+      "title": "",
+      "id": "29640"
+    },
+    {
+      "type": "highlight",
+      "description": "`_safeTransferRewardToken` always sources BGT from the external distributor via `safeTransferFrom`, never from users’ pooled stake, isolating user funds from admin mistakes.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 438,
+          "end": 441
+        }
+      ],
+      "title": "",
+      "id": "29641"
+    },
+    {
+      "type": "highlight",
+      "description": "`_checkRewardSolvency` guards every reward update: `undistributedRewards` must fit within the distributor’s current allowance (448-449), so the vault can’t promise more than it can actually pull.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 444,
+          "end": 450
+        }
+      ],
+      "title": "",
+      "id": "29642"
+    },
+    {
+      "type": "highlight",
+      "description": "The `constructor` disables all initialisers (95-96). The real setup happens later in `initialize`, which wires `FactoryOwnable`, `Pausable`, `Reentrancy`, and the `staking engine` (108-112). This pattern supports **transparent-proxy upgrades** while keeping the implementation bricked until the factory calls `initialize`.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 93,
+          "end": 110
+        }
+      ],
+      "title": "",
+      "id": "29643"
+    },
+    {
+      "type": "textOnly",
+      "description": "Every admin knob is protected twice: first by the **factory’s** `role-based modifiers`, then by **local guard clauses** that enforce business invariants. Combined with the **pause circuit-breaker**, **reward-solvency checks**, and an **upgrade-friendly constructor**, the vault is defensively coded against both accidental misuse and malicious governance.",
+      "title": "",
+      "id": "29644"
+    }
+  ]
+}

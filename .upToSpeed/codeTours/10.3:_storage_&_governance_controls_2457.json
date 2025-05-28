@@ -1,0 +1,150 @@
+{
+  "title": "10.3: Storage & Governance Controls",
+  "id": "QoIGhN1GEnerdXCmP/JIQk1/GOeKSRYyHhpDXF1gYqU=",
+  "originalId": 2457,
+  "position": 45,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "This tour maps `BeraChef’s` persistent state and governance-only knobs. We step through its compile-time constants, storage slots, and admin functions, so you can see how governance settings shape reward-allocation and commission logic.",
+      "title": "",
+      "id": "29333"
+    },
+    {
+      "type": "highlight",
+      "description": "These four constants define the numeric envelope for every reward and commission check:\n- `ONE_HUNDRED_PERCENT`: baseline (10 000) for summing percentages.\n- `DEFAULT_COMMISSION_RATE`: 5 % fallback if an operator never sets one.\n- `MAX_COMMISSION_CHANGE_DELAY`: cap on how long commission updates can be deferred.\n- `MAX_REWARD_ALLOCATION_BLOCK_DELAY`: upper bound on queue-to-activate delay.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 22,
+          "end": 34
+        }
+      ],
+      "title": "",
+      "id": "29334"
+    },
+    {
+      "type": "highlight",
+      "description": "Core addresses and buffer for reward allocations:\n- `distributor`: only this contract can flip queued allocations to active.\n- `factory`: source of valid RewardVaults for whitelisting.\n- `beaconDepositContract`: maps validator pubkey 12 operator address.\n- `rewardAllocationBlockDelay`: governance-set buffer before queued allocations start.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 39,
+          "end": 47
+        }
+      ],
+      "title": "",
+      "id": "29335"
+    },
+    {
+      "type": "highlight",
+      "description": "Caps and mappings for reward allocations:\n- `maxNumWeightsPerRewardAllocation`: prevents overly long weight lists.\n- `activeRewardAllocations`: per-validator weights used at distribution time.\n- `queuedRewardAllocations`: staged weights awaiting activation.\n- `isWhitelistedVault`: quick vault-approval check inside validation loops.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 49,
+          "end": 59
+        }
+      ],
+      "title": "",
+      "id": "29336"
+    },
+    {
+      "type": "highlight",
+      "description": "Defaults and commission state:\n- `defaultRewardAllocation`: fallback weights if none set or invalid.\n- `commissionChangeDelay`: min blocks before a new commission takes effect.\n- `valQueuedCommission`: per-validator staged commission updates.\n- `valCommission`: active commission rates and activation blocks.\n- `maxWeightPerVault`: ceiling for any single weight, enforcing spread.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 61,
+          "end": 75
+        }
+      ],
+      "title": "",
+      "id": "29337"
+    },
+    {
+      "type": "highlight",
+      "description": "`setMaxNumWeightsPerRewardAllocation`: governance limits allocation length.\nChecks:\n- `non-zero`\n- cannot undercut the existing default's weight count\nReverts if the new cap would invalidate default weights.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 130,
+          "end": 143
+        }
+      ],
+      "title": "",
+      "id": "29338"
+    },
+    {
+      "type": "highlight",
+      "description": "`setMaxWeightPerVault`: caps how large any vault's slice can be.\nChecks:\n- 0 < `value` ≤ `ONE_HUNDRED_PERCENT`\n- the change must not invalidate `defaultRewardAllocation` weights (via `_checkIfStillValid`).",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 145,
+          "end": 162
+        }
+      ],
+      "title": "",
+      "id": "29339"
+    },
+    {
+      "type": "highlight",
+      "description": "`setRewardAllocationBlockDelay`: adjusts the queue-to-active buffer.\nEnforces the new delay ≤ `MAX_REWARD_ALLOCATION_BLOCK_DELAY` to prevent excessive future queuing.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 164,
+          "end": 171
+        }
+      ],
+      "title": "",
+      "id": "29340"
+    },
+    {
+      "type": "highlight",
+      "description": "`setVaultWhitelistedStatus`: add or remove vaults.\n- verifies the vault comes from factory (lines 183–187)\n- if removing, ensures `defaultRewardAllocation` still passes validation (lines 191–195)",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 174,
+          "end": 197
+        }
+      ],
+      "title": "",
+      "id": "29341"
+    },
+    {
+      "type": "highlight",
+      "description": "`setDefaultRewardAllocation`: installs the baseline weights used by all validators without valid custom allocations.\nCalls `_validateWeights`, which enforces:\n- weight count ≤ `maxNumWeightsPerRewardAllocation`\n- each weight ≤ `maxWeightPerVault`\n- sum of weights = `ONE_HUNDRED_PERCENT`\n- every receiver is whitelisted.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 208,
+          "end": 216
+        }
+      ],
+      "title": "",
+      "id": "29342"
+    },
+    {
+      "type": "highlight",
+      "description": "`setCommissionChangeDelay`: adjusts how long operators must wait before new commission rates activate.\nEnforces `0 < value ≤ MAX_COMMISSION_CHANGE_DELAY`.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 219,
+          "end": 225
+        }
+      ],
+      "title": "",
+      "id": "29343"
+    },
+    {
+      "type": "textOnly",
+      "description": "By controlling these constants and storage slots, governance shapes every invocation of `_validateWeights` and `_checkIfStillValid`, ensuring that queued changes meet budget, timing, and whitelist invariants before distribution or activation.",
+      "title": "",
+      "id": "29344"
+    }
+  ]
+}

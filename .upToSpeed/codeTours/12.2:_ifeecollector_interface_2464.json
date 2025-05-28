@@ -1,0 +1,163 @@
+{
+  "title": "12.2: IFeeCollector interface",
+  "id": "lkuxvcI0AnoXrWCISQ0YovVSkJOHBuGMxx7XognHHwA=",
+  "originalId": 2464,
+  "position": 52,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "This walkthrough focuses only on what an external integrator can see or call on the `FeeCollector` contract – the **events**, **view helpers**, and **public methods**.",
+      "title": "",
+      "id": "29445"
+    },
+    {
+      "type": "highlight",
+      "description": "These two events announce price-changes:\n– `QueuedPayoutAmount` fires when governance schedules a *future* price; the log shows the new value and the still-active one.\n– `PayoutAmountSet` fires after the next successful claim, confirming the switch.  Indexers should update their cached `payoutAmount` when they see it.",
+      "file": "src/pol/interfaces/IFeeCollector.sol",
+      "highlight": [
+        {
+          "start": 11,
+          "end": 16
+        }
+      ],
+      "title": "",
+      "id": "29446"
+    },
+    {
+      "type": "highlight",
+      "description": "The next pair records auction outcomes:\n– The short `FeesClaimed` signals that someone paid the auction price and named a `recipient`.\n– `PayoutDonated` is a voluntary top-up of `payoutToken`; off-chain systems can add the amount straight to staking-rewards statistics.",
+      "file": "src/pol/interfaces/IFeeCollector.sol",
+      "highlight": [
+        {
+          "start": 18,
+          "end": 26
+        }
+      ],
+      "title": "",
+      "id": "29447"
+    },
+    {
+      "type": "highlight",
+      "description": "The overloaded `FeesClaimed` is emitted once per asset, exposing `feeToken` and `amount` actually transferred.  Summing these gives total revenue per token.",
+      "file": "src/pol/interfaces/IFeeCollector.sol",
+      "highlight": [
+        {
+          "start": 28,
+          "end": 33
+        }
+      ],
+      "title": "",
+      "id": "29448"
+    },
+    {
+      "type": "highlight",
+      "description": "`queuePayoutAmountChange` logs `QueuedPayoutAmount` and stores the number in `queuedPayoutAmount`. Nothing else happens until the *next* `claimFees`, so integrators must look for `PayoutAmountSet` before treating the value as live.",
+      "file": "src/pol/FeeCollector.sol",
+      "highlight": [
+        {
+          "start": 84,
+          "end": 88
+        }
+      ],
+      "title": "",
+      "id": "29449"
+    },
+    {
+      "type": "highlight",
+      "description": "View helpers an indexer pulls regularly:\n– `payoutToken()` tells which **ERC-20** must be paid.\n– `queuedPayoutAmount()` shows the future price (0 when none is queued).\n– `payoutAmount()` is the current price to win an auction.\n– `rewardReceiver()` is where all paid tokens and donations end up.",
+      "file": "src/pol/interfaces/IFeeCollector.sol",
+      "highlight": [
+        {
+          "start": 48,
+          "end": 61
+        }
+      ],
+      "title": "",
+      "id": "29450"
+    },
+    {
+      "type": "highlight",
+      "description": "`claimFees` is the auction entry point: the caller transfers exactly `payoutAmount` of `payoutToken`, names the `feeTokens` they want, and receives each token’s entire balance.  The note explicitly warns that there is **no slippage protection** – callers should pre-compute expected amounts off-chain.",
+      "file": "src/pol/interfaces/IFeeCollector.sol",
+      "highlight": [
+        {
+          "start": 67,
+          "end": 73
+        }
+      ],
+      "title": "",
+      "id": "29451"
+    },
+    {
+      "type": "highlight",
+      "description": "Implementation details that matter to integrators:\n1. lines 96-99 move the payment straight to `rewardReceiver` and trigger `notifyRewardAmount`.\n2. lines 100-105 pay out each requested token in full and emit the detailed `FeesClaimed`.\n3. line 112 activates a queued price only *after* a successful claim, preserving the one-cycle delay.",
+      "file": "src/pol/FeeCollector.sol",
+      "highlight": [
+        {
+          "start": 94,
+          "end": 113
+        }
+      ],
+      "title": "",
+      "id": "29452"
+    },
+    {
+      "type": "highlight",
+      "description": "`donate` lets anyone send extra `payoutToken` directly to staking rewards. The amount must be at least `payoutAmount`, ensuring the call also notifies the receiver.",
+      "file": "src/pol/interfaces/IFeeCollector.sol",
+      "highlight": [
+        {
+          "start": 75,
+          "end": 79
+        }
+      ],
+      "title": "",
+      "id": "29453"
+    },
+    {
+      "type": "highlight",
+      "description": "Inside `donate` the tokens flow straight to `rewardReceiver`, `notifyRewardAmount` is called, and `PayoutDonated` is emitted – all in one transaction.",
+      "file": "src/pol/FeeCollector.sol",
+      "highlight": [
+        {
+          "start": 116,
+          "end": 125
+        }
+      ],
+      "title": "",
+      "id": "29454"
+    },
+    {
+      "type": "highlight",
+      "description": "Operational control is role-based: `PAUSER_ROLE` can halt the contract, while the broader `MANAGER_ROLE` controls who holds pauser rights.",
+      "file": "src/pol/FeeCollector.sol",
+      "highlight": [
+        {
+          "start": 26,
+          "end": 30
+        }
+      ],
+      "title": "",
+      "id": "29455"
+    },
+    {
+      "type": "highlight",
+      "description": "When paused, `claimFees` and `donate` are blocked by `whenNotPaused`. Only a **MANAGER_ROLE** address can resume normal operations.",
+      "file": "src/pol/FeeCollector.sol",
+      "highlight": [
+        {
+          "start": 128,
+          "end": 135
+        }
+      ],
+      "title": "",
+      "id": "29456"
+    },
+    {
+      "type": "textOnly",
+      "description": "Everything shown so far is part of the public surface.  The next tour dives into the implementation to illustrate exactly how each rule is enforced.",
+      "title": "",
+      "id": "29457"
+    }
+  ]
+}

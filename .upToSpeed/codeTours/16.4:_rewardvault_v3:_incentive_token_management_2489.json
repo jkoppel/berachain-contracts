@@ -1,0 +1,163 @@
+{
+  "title": "16.4: RewardVault_V3: Incentive Token Management",
+  "id": "iA3F5AMdF7lfhKip9oGbjm7uaE+1EPhQGDY+CvkQ/wM=",
+  "originalId": 2489,
+  "position": 77,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "The incentive-token lifecycle lives entirely inside `RewardVault`.  We begin by looking at the data model, then walk through onboarding, updating, topping-up and finally removal.  By the end you will know every storage write, validation and event that keeps the process safe.",
+      "title": "",
+      "id": "29732"
+    },
+    {
+      "type": "highlight",
+      "description": "Every whitelisted token maps to an `Incentive` struct. Notice how the four fields mirror the operations we will study:\n\n- `minIncentiveRate` sets the lower bound for future calls.\n\n- `incentiveRate` is the **active** emission rate.\n\n- `amountRemaining` tracks undistributed balance.\n\n- `manager` is the only address allowed to mutate those numbers.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 49,
+          "end": 58
+        }
+      ],
+      "title": "",
+      "id": "29733"
+    },
+    {
+      "type": "highlight",
+      "description": "A vault-wide constraint: `maxIncentiveTokensCount` caps how many different tokens can be live at once. Its default is 3 and every onboarding call checks against it.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 70,
+          "end": 76
+        }
+      ],
+      "title": "",
+      "id": "29734"
+    },
+    {
+      "type": "highlight",
+      "description": "The `incentives` mapping stores each token’s struct, while `whitelistedTokens` is an array optimised for iteration during reward distribution. Any add or remove operation must touch **both** locations.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 87,
+          "end": 92
+        }
+      ],
+      "title": "",
+      "id": "29735"
+    },
+    {
+      "type": "highlight",
+      "description": "`whitelistIncentiveToken()` – onboarding gate\n- Lines 190-193 guard `minIncentiveRate` (non-zero, ≤ `MAX`).\n- Lines 195-196 ensure `token` and `manager` are non-zero.\n- Lines 197-200 reject duplicates and enforce the global cap.\n- Lines 201-206 push the `token`, set both rate variables to the floor and record the `manager`.\n- Line 207 emits `IncentiveTokenWhitelisted` so indexers know immediately.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 181,
+          "end": 208
+        }
+      ],
+      "title": "",
+      "id": "29736"
+    },
+    {
+      "type": "highlight",
+      "description": "`removeIncentiveToken()` – governance cleanup\nStep-by-step: delete the **struct** (line 212), shrink the array (213-214) and broadcast `IncentiveTokenRemoved` (215-216).  No partial state survives the call.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 210,
+          "end": 216
+        }
+      ],
+      "title": "",
+      "id": "29737"
+    },
+    {
+      "type": "highlight",
+      "description": "`_deleteWhitelistedTokenFromList()` uses the classic swap-and-pop pattern (lines 529-532) for `O(1)` deletion without keeping order. Gas stays constant regardless of list length.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 524,
+          "end": 533
+        }
+      ],
+      "title": "",
+      "id": "29738"
+    },
+    {
+      "type": "highlight",
+      "description": "`updateIncentiveManager()` – small surface, big impact\nWith `onlyFactoryOwner` and `onlyWhitelistedToken` guards, it simply swaps the stored manager (231) and emits `IncentiveManagerChanged` (232) with both addresses so auditors can trace authority changes.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 219,
+          "end": 233
+        }
+      ],
+      "title": "",
+      "id": "29739"
+    },
+    {
+      "type": "highlight",
+      "description": "**`setMaxIncentiveTokensCount()`** can **only** grow or stay compatible.  Line 237 reverts if the requested value is below `whitelistedTokens.length`, guaranteeing existing tokens never violate the cap.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 236,
+          "end": 242
+        }
+      ],
+      "title": "",
+      "id": "29740"
+    },
+    {
+      "type": "highlight",
+      "description": "`addIncentive()` — validation and access control\n- Line 367 caps `incentiveRate` to `MAX`.\n- Lines 369-371 load current struct.\n- Line 373 enforces manager-only access.\n- Lines 375-378 make sure the `deposit` is at least the `minIncentiveRate` **and** the proposed rate respects that floor.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 357,
+          "end": 378
+        }
+      ],
+      "title": "",
+      "id": "29741"
+    },
+    {
+      "type": "highlight",
+      "description": "`addIncentive()` — **state mutation**\n- Line 382 pulls tokens into the vault.\n- Line 383 increments `amountRemaining`.\n- Lines 385-397 decide whether `incentiveRate` is updated:\n  – If previous `amountRemaining` was zero, any rate is allowed (386-388).\n  – Otherwise only a rate increase is accepted (390-394).",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 382,
+          "end": 399
+        }
+      ],
+      "title": "",
+      "id": "29742"
+    },
+    {
+      "type": "highlight",
+      "description": "`accountIncentives()` — retro-accounting path\nThis lets a manager record tokens that were sent directly via **ERC-20** transfer.\nLines 408-411 repeat the `manager` & `min-amount` checks.\nLines 412-417 compute *excess* balance to avoid double counting.\nLine 419 bumps `amountRemaining` and line 421 emits the same `IncentiveAdded` event, keeping off-chain analytics uniform.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 401,
+          "end": 422
+        }
+      ],
+      "title": "",
+      "id": "29743"
+    },
+    {
+      "type": "textOnly",
+      "description": "**Lifecycle recap:**\n1. `whitelistIncentiveToken` → struct initialised, token appended, event emitted.\n2. `addIncentive` / `accountIncentives` → amountRemaining grows; incentiveRate may increase (or reset to any value when remaining == 0).\n3. `updateIncentiveManager` can hand over control without touching economic fields.\n4. `removeIncentiveToken` wipes the struct and shrinks the list.\nEvents trace these transitions in order: `IncentiveTokenWhitelisted` → (`IncentiveAdded`)* → `IncentiveManagerChanged`? → `IncentiveTokenRemoved`, mirroring the exact fields they mutate.",
+      "title": "",
+      "id": "29744"
+    }
+  ]
+}

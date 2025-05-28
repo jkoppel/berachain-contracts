@@ -1,0 +1,85 @@
+{
+  "title": "14.1: Legacy Contracts V1 – Overview",
+  "id": "4offbE7l9okYcQEdIMGXsR3zDbjJOpV0xZh5mwBjN2Y=",
+  "originalId": 2475,
+  "position": 63,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Every legacy component resides in `src/V1_Contracts/`. That folder holds exactly four Solidity sources for the first-generation reward system:\n- `BeraChef_V1.sol` – decides how each validator's rewards are split.\n- `RewardVault_V1.sol` – vault that accepts stake and pays out rewards & incentives.\n- interfaces/`IBeraChef_V1.sol` – **ABI** for BeraChef.\n- interfaces/`IRewardVault_V1.sol` – **ABI** for the vault.\nThe next few stops show a single, memorable excerpt from each so you know where to dive deeper.",
+      "title": "",
+      "id": "29557"
+    },
+    {
+      "type": "highlight",
+      "description": "Lines 13-18 spell out **BeraChef’s mandate**—`governance-owned contract` for `validator reward allocation`—while line 19 plants the declaration `other modules import`. This pairing quickly orients you to the file’s purpose.",
+      "file": "src/V1_Contracts/BeraChef_V1.sol",
+      "highlight": [
+        {
+          "start": 13,
+          "end": 20
+        }
+      ],
+      "title": "",
+      "id": "29558"
+    },
+    {
+      "type": "highlight",
+      "description": "Scrolling to the **STORAGE** banner (35-44) reveals a dense mix of addresses, mappings and structs—proof that coordinating many validators, commissions and vaults needs significant on-chain state.",
+      "file": "src/V1_Contracts/BeraChef_V1.sol",
+      "highlight": [
+        {
+          "start": 35,
+          "end": 44
+        }
+      ],
+      "title": "",
+      "id": "29559"
+    },
+    {
+      "type": "highlight",
+      "description": "`RewardVault_V1` opens with a concise history note (19-25: **Synthetix** fork tuned for long-term staking) followed by its declaration (26-32) that layers `pausing`, `re-entrancy guards` and `staking logic`—clues to the vault’s operational responsibilities.",
+      "file": "src/V1_Contracts/RewardVault_V1.sol",
+      "highlight": [
+        {
+          "start": 19,
+          "end": 32
+        }
+      ],
+      "title": "",
+      "id": "29560"
+    },
+    {
+      "type": "highlight",
+      "description": "Each implementation ships a slim, typed ABI.  The first lines of `IBeraChef_V1.sol` show how external callers compile against the coordinator without depending on its full code.",
+      "file": "src/V1_Contracts/interfaces/IBeraChef_V1.sol",
+      "highlight": [
+        {
+          "start": 1,
+          "end": 8
+        }
+      ],
+      "title": "",
+      "id": "29561"
+    },
+    {
+      "type": "highlight",
+      "description": "`IRewardVault_V1.sol` does the same for the vault, exposing functions like `stake`, `notifyRewardAmount`, and `getReward` in a stable interface.",
+      "file": "src/V1_Contracts/interfaces/IRewardVault_V1.sol",
+      "highlight": [
+        {
+          "start": 1,
+          "end": 8
+        }
+      ],
+      "title": "",
+      "id": "29562"
+    },
+    {
+      "type": "textOnly",
+      "description": "You now have the lay of the land for the `V1` bundle. Five focused tours follow—pick whichever you need next:\n1. State-machine anatomy of `BeraChef` reward allocations.\n2. How `RewardVault` accounts for stake, delegates and incentives.\n3. The life-cycle of validator commission rates.\n4. Incentive token flows from distributors to operators & boosters.\n5. Interface hygiene—keeping external callers safe while logic evolves.",
+      "title": "",
+      "id": "29563"
+    }
+  ]
+}

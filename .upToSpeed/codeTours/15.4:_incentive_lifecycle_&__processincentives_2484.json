@@ -1,0 +1,137 @@
+{
+  "title": "15.4: Incentive Lifecycle & _processIncentives",
+  "id": "GdwIgxgzb8OCzJMQBsysMhJt3Cjo+gMh++J3gaJzL2M=",
+  "originalId": 2484,
+  "position": 72,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Follow the life-cycle of incentive tokens inside `RewardVault`—from whitelisting to top-ups and finally automatic distribution each epoch.",
+      "title": "",
+      "id": "29708"
+    },
+    {
+      "type": "highlight",
+      "description": "Governance on-boards a token with `whitelistIncentiveToken()`.\n- 190-196 guard against zero addresses and nonsense rates.\n- 198-200 block duplicates and respect the global max list size.\n- 201-206 push into `whitelistedTokens` and initialise the `Incentive` struct in one shot.\n- 207 emits `IncentiveTokenWhitelisted` so indexers can track it.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 181,
+          "end": 208
+        }
+      ],
+      "title": "",
+      "id": "29709"
+    },
+    {
+      "type": "highlight",
+      "description": "Two small maintenance hooks keep the list healthy.\n- 223-232 `updateIncentiveManager()` lets governance rotate the manager key without touching balances.\n- 236-241 `setMaxIncentiveTokensCount()` raises or (safely) lowers the cap; it must never drop below current length.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 219,
+          "end": 242
+        }
+      ],
+      "title": "",
+      "id": "29710"
+    },
+    {
+      "type": "highlight",
+      "description": "Managers fund their pool through `addIncentive()`.\n- 367 hard-caps the rate; 372-379 validate sender, minimum amount and rate floor.\n- 382 pulls `ERC20` into the vault, then 383 adds to amountRemaining.\n- 386-395 rate can reset to any value once balance is empty, or only increase while funds remain—preventing \"rug\" rate drops.\n- 398 `IncentiveAdded` logs the new balance and effective rate.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 358,
+          "end": 399
+        }
+      ],
+      "title": "",
+      "id": "29711"
+    },
+    {
+      "type": "highlight",
+      "description": "Each epoch, the Distributor calls `notifyRewardAmount()`. `159` updates staking math, then `160` hands control to `_processIncentives` to mirror BGT emissions with matching incentive tokens.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 157,
+          "end": 161
+        }
+      ],
+      "title": "",
+      "id": "29712"
+    },
+    {
+      "type": "highlight",
+      "description": "`_processIncentives()` – set-up and per-token math.\n- 459 fetches the validator's operator from `BeaconDeposit`.\n- 460-461 caches helper contracts.\n- 466-470 loops over `whitelistedTokens`, computing `amount = bgtEmitted × incentiveRate / PRECISION` and capping it by amountRemaining.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 456,
+          "end": 470
+        }
+      ],
+      "title": "",
+      "id": "29713"
+    },
+    {
+      "type": "highlight",
+      "description": "First split: validator share.\n- `474` asks BeraChef for the allocation; amount is reduced accordingly.\n- `481` uses `trySafeTransfer` so the whole loop cannot be bricked by a non-compliant token.\n- `484-487` update accounting & emit success/failure events only when the transfer really happened.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 472,
+          "end": 487
+        }
+      ],
+      "title": "",
+      "id": "29714"
+    },
+    {
+      "type": "highlight",
+      "description": "A 500 k gas ceiling (`SAFE_GAS_LIMIT`) protects the rest of the epoch from mis-behaving tokens during low-level calls.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 64,
+          "end": 67
+        }
+      ],
+      "title": "",
+      "id": "29715"
+    },
+    {
+      "type": "highlight",
+      "description": "Second split: **booster share**.\n- 495 grants a **one-off allowance** to the `IncentiveDistributor` using the **gas-bounded call**.\n- 500 hands over control; on success 502 decrements `amountRemaining` and logs.\n- 505-511 revert the **allowance** to 0 if anything fails (important for tokens like `USDT`) and emit **failure metadata**.\n- 514-516 also capture an **approve-call** failure.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 495,
+          "end": 517
+        }
+      ],
+      "title": "",
+      "id": "29716"
+    },
+    {
+      "type": "highlight",
+      "description": "Reward safety helpers referenced by `notifyRewardAmount()`:\n- 439-441 `_safeTransferRewardToken()` uses allowance rather than vault custody, limiting attack surface.\n- 447-450 `_checkRewardSolvency()` ensures undistributedRewards never exceeds the distributor's allowance, aborting if the vault would otherwise become insolvent.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 438,
+          "end": 450
+        }
+      ],
+      "title": "",
+      "id": "29717"
+    },
+    {
+      "type": "textOnly",
+      "description": "Happy-path data-flow:\n`Distributor` → `notifyRewardAmount(pubkey, BGT)` → `_notifyRewardAmount` (stakes accounting) → `_processIncentives` → validator share sent to operator, booster share approved & collected by `IBGTIncentiveDistributor` → `Incentive.amountRemaining` updated.  All steps emit events for downstream accounting.",
+      "title": "",
+      "id": "29718"
+    }
+  ]
+}

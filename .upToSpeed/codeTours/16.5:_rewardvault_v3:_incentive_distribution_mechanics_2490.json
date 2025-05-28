@@ -1,0 +1,169 @@
+{
+  "title": "16.5: RewardVault_V3: Incentive Distribution Mechanics",
+  "id": "eWLr9E4odL8sdZreeI8v53kHW9zWpEnXcwa+ZuxDMf4=",
+  "originalId": 2490,
+  "position": 78,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Whenever the distributor announces that a validator has minted a new batch of **BGT**, `RewardVault.notifyRewardAmount()` forwards the call to `_processIncentives()`. The following tour traces every instruction executed during that payout.",
+      "title": "",
+      "id": "29827"
+    },
+    {
+      "type": "highlight",
+      "description": "All low-level token interactions inside the routine are protected by `SAFE_GAS_LIMIT`. Every external call that follows is executed under this 500 000-gas ceiling.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 61,
+          "end": 68
+        }
+      ],
+      "title": "",
+      "id": "29828"
+    },
+    {
+      "type": "textOnly",
+      "description": "`_processIncentives()` is the heart of the payout logic; the next slides walk through it in evaluation order.",
+      "title": "",
+      "id": "29829"
+    },
+    {
+      "type": "highlight",
+      "description": "Step 1 – context.  The vault asks `BeaconDeposit` which `address` controls the validator and caches helper contracts it will need later.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 456,
+          "end": 462
+        }
+      ],
+      "title": "",
+      "id": "29830"
+    },
+    {
+      "type": "highlight",
+      "description": "Step 2 – accounting. For each whitelisted token, the vault calculates and allocates rewards for this BGT batch. A safety guard ensures the vault can never distribute more tokens than it has available in its reserves.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 463,
+          "end": 470
+        }
+      ],
+      "title": "",
+      "id": "29831"
+    },
+    {
+      "type": "highlight",
+      "description": "Step 3 – split the pie.  BeraChef calculates the operator commission; `validatorShare` is removed from the booster pool immediately.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 472,
+          "end": 477
+        }
+      ],
+      "title": "",
+      "id": "29832"
+    },
+    {
+      "type": "highlight",
+      "description": "Step 4 – send the validator share.  `trySafeTransfer()` attempts the **ERC-20** transfer under the gas cap.  Success fires `IncentivesProcessed`; failure fires `IncentivesProcessFailed` and the loop continues.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 478,
+          "end": 488
+        }
+      ],
+      "title": "",
+      "id": "29833"
+    },
+    {
+      "type": "highlight",
+      "description": "The helper that makes the above possible: an `assembly routine` that caps gas and returns a `boolean` instead of reverting.",
+      "file": "src/libraries/Utils.sol",
+      "highlight": [
+        {
+          "start": 96,
+          "end": 110
+        }
+      ],
+      "title": "",
+      "id": "29834"
+    },
+    {
+      "type": "highlight",
+      "description": "Step 5 – forward the booster share.  The vault first approves the incentive token, then calls `IBGTIncentiveDistributor.receiveIncentive()`, both under the same `SAFE_GAS_LIMIT`.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 491,
+          "end": 502
+        }
+      ],
+      "title": "",
+      "id": "29835"
+    },
+    {
+      "type": "highlight",
+      "description": "If either `approve` or `receiveIncentive` fails the allowance is reset to 0 and `BGTBoosterIncentivesProcessFailed` is emitted, preventing tokens such as USDT from locking the flow.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 503,
+          "end": 512
+        }
+      ],
+      "title": "",
+      "id": "29836"
+    },
+    {
+      "type": "highlight",
+      "description": "Step 6 – book-keeping.  The incentive pool’s `amountRemaining` is debited so the next BGT emission starts from the correct balance.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 518,
+          "end": 520
+        }
+      ],
+      "title": "",
+      "id": "29837"
+    },
+    {
+      "type": "highlight",
+      "description": "All the state touched above lives inside the `Incentive struct`.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 49,
+          "end": 58
+        }
+      ],
+      "title": "",
+      "id": "29838"
+    },
+    {
+      "type": "highlight",
+      "description": "`addIncentive()` is the mirror image of the drain above: the designated manager transfers fresh tokens in, replenishes `amountRemaining` and, if the pool is empty, may even raise `incentiveRate`.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 358,
+          "end": 399
+        }
+      ],
+      "title": "",
+      "id": "29839"
+    },
+    {
+      "type": "textOnly",
+      "description": "End-to-end recap\n- amount = `mulDiv(bgtEmitted, incentiveRate)` → min(`amount`, `amountRemaining`)\n- validatorShare = `BeraChef` commission; remainder is boosterShare\n- validatorShare → operator via `trySafeTransfer()`\n- boosterShare → `BGTIncentiveDistributor` via `approve` + `receiveIncentive` (both capped)\n- Successful transfers emit `IncentivesProcessed` / `BGTBoosterIncentivesProcessed`; failures emit their *Failed variants\n- amountRemaining decreases here and is replenished via `addIncentive()`",
+      "title": "",
+      "id": "29840"
+    }
+  ]
+}

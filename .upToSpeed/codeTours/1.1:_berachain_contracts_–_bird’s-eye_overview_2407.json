@@ -1,0 +1,213 @@
+{
+  "title": "1.1: Berachain Contracts – Bird’s-Eye Overview",
+  "id": "h+5tQRO8N7ZubcjFd0077BpulyQ8QTlvODz28LtmRlY=",
+  "originalId": 2407,
+  "position": 1,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Welcome! In 20 brisk stops you’ll build a bird-eye mental map of the `Berachain Solidity repo`. Keep the five functional planes in mind: `Governance`, `Base/Libraries`, `Honey` (stable-coin), `Oracles`, and `PoL & Rewards`. Every mutable contract is a `UUPS proxy` ultimately owned by one `Timelock`; planes interact only through typed interfaces.",
+      "title": "",
+      "id": "29101"
+    },
+    {
+      "type": "textOnly",
+      "description": "Explorer view – inside `src/` the folders `gov/`, `base/`, `honey/`, `extras/`, and `pol/` line up exactly with those five planes. Use those directory names as your compass while we hop through key files.",
+      "title": "",
+      "id": "29102"
+    },
+    {
+      "type": "highlight",
+      "description": "**Governance core.**  The header (lines 5-14) layers every `OpenZeppelin Governor` mix-in on top of `UUPSUpgradeable`, yielding on-chain voting that can even upgrade itself once the Timelock approves.",
+      "file": "src/gov/BerachainGovernance.sol",
+      "highlight": [
+        {
+          "start": 1,
+          "end": 35
+        }
+      ],
+      "title": "",
+      "id": "29103"
+    },
+    {
+      "type": "highlight",
+      "description": "`GovDeployer` constructor: two `_deploy` calls (45 & 49) `CREATE2`-deploy `Governor` and `Timelock` so their addresses are deterministic and front-running-proof.",
+      "file": "src/gov/GovDeployer.sol",
+      "highlight": [
+        {
+          "start": 40,
+          "end": 55
+        }
+      ],
+      "title": "",
+      "id": "29104"
+    },
+    {
+      "type": "highlight",
+      "description": "Helper `_deploy` instantly wraps each implementation in an `ERC-1967` proxy at the same salt – a deterministic-proxy recipe reused by every plane-specific *Deployer*.",
+      "file": "src/gov/GovDeployer.sol",
+      "highlight": [
+        {
+          "start": 82,
+          "end": 85
+        }
+      ],
+      "title": "",
+      "id": "29105"
+    },
+    {
+      "type": "highlight",
+      "description": "`HoneyFactory` kicks off the Honey plane. Its header shows inheritance from `VaultAdmin` plus peg-management constants; this factory mints/redeems `Honey` and spawns collateral vaults.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 1,
+          "end": 25
+        }
+      ],
+      "title": "",
+      "id": "29106"
+    },
+    {
+      "type": "highlight",
+      "description": "Per-asset vault.  The constructor stores a `factory` address, and later overrides gate `deposit`/`mint` so **only** the factory can change share supply, blocking self-inflation.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 1,
+          "end": 30
+        }
+      ],
+      "title": "",
+      "id": "29107"
+    },
+    {
+      "type": "highlight",
+      "description": "**Oracle super-interface** – the `Data` struct plus freshness-checked getters give every plane a uniform, **WAD-precision USD price feed**.",
+      "file": "src/extras/IPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 1,
+          "end": 24
+        }
+      ],
+      "title": "",
+      "id": "29108"
+    },
+    {
+      "type": "highlight",
+      "description": "`RootPriceOracle` fuses spot-pool and Pyth feeds under `AccessControl`; later logic picks whichever price deviates furthest from `$1` to defend **Honey’s peg**.",
+      "file": "src/extras/RootPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 1,
+          "end": 25
+        }
+      ],
+      "title": "",
+      "id": "29109"
+    },
+    {
+      "type": "highlight",
+      "description": "`BGT`, the **PoL** plane’s token, supplies governance power and reward boosts; header constants cap boost-activation delays and the `EIP-4788` buffer length.",
+      "file": "src/pol/BGT.sol",
+      "highlight": [
+        {
+          "start": 1,
+          "end": 35
+        }
+      ],
+      "title": "",
+      "id": "29110"
+    },
+    {
+      "type": "highlight",
+      "description": "`BeaconDeposit` handles validator stakes. Constants hard-code a 10 000 gwei minimum and fixed byte lengths before emitting the canonical `Deposit` event the beacon chain consumes.",
+      "file": "src/pol/BeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 20,
+          "end": 36
+        }
+      ],
+      "title": "",
+      "id": "29111"
+    },
+    {
+      "type": "highlight",
+      "description": "`RewardVaultFactory` keeps a single `UpgradeableBeacon`; upgrading that beacon migrates **every** staking vault’s logic in one governance call.",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 20,
+          "end": 35
+        }
+      ],
+      "title": "",
+      "id": "29112"
+    },
+    {
+      "type": "highlight",
+      "description": "Inside a `RewardVault`, the `DelegateStake` struct records how much each delegate stakes for a validator – backbone of reward and incentive accounting.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 15,
+          "end": 40
+        }
+      ],
+      "title": "",
+      "id": "29113"
+    },
+    {
+      "type": "highlight",
+      "description": "`Create2Deployer` centralises deterministic deployment. Line 14 pins the repo to the canonical `0x4e59…` factory, while the assembly block (25-34) performs the low-level deploy.",
+      "file": "src/base/Create2Deployer.sol",
+      "highlight": [
+        {
+          "start": 13,
+          "end": 35
+        }
+      ],
+      "title": "",
+      "id": "29114"
+    },
+    {
+      "type": "highlight",
+      "description": "A shared catalogue of custom errors keeps revert reasons concise and byte-efficient across the PoL plane.",
+      "file": "src/pol/interfaces/IPOLErrors.sol",
+      "highlight": [
+        {
+          "start": 1,
+          "end": 30
+        }
+      ],
+      "title": "",
+      "id": "29115"
+    },
+    {
+      "type": "textOnly",
+      "description": "Security patterns recur across planes: UUPS upgrade guards, granular `AccessControl`, beacon-proxy fan-outs, 500 k gas caps on low-level calls, and invariant checks such as `GovernorZeroVoteWeight`.",
+      "title": "",
+      "id": "29116"
+    },
+    {
+      "type": "textOnly",
+      "description": "**Cross-plane example:** a Honey mint travels user → `HoneyFactory` → chosen `CollateralVault` → Honey token. Oracles verify the peg, Governance can tweak rates, and PoL collects its fee – all through the interfaces you’ve just seen.",
+      "title": "",
+      "id": "29117"
+    },
+    {
+      "type": "textOnly",
+      "description": "**Explorer view** — `test/` (> 60 Foundry tests) and `script/` (deterministic deployment scripts) keep every plane reproducible and verified. Legacy directories `src/v0_Contracts/`, `src/V1_Contracts/`, `src/V2_Contracts/` record each migration for later deep-dives.",
+      "title": "",
+      "id": "29118"
+    },
+    {
+      "type": "textOnly",
+      "description": "Next steps: start the deep-dive tours – `Governance Overview`, `GovDeployer flow`, and `BerachainGovernance rules`.  One Timelock-owned proxy tree governs five modular, upgrade-safe planes – now you have the map!",
+      "title": "",
+      "id": "29119"
+    }
+  ]
+}

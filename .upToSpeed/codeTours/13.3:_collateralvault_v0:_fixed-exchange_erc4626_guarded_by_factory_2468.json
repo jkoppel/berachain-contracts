@@ -1,0 +1,163 @@
+{
+  "title": "13.3: CollateralVault_V0: Fixed-Exchange ERC4626 Guarded by Factory",
+  "id": "n0iDMNL4d6W/Cx4z2j3S8me6rbZKr0mJyfO5kMOIfcU=",
+  "originalId": 2468,
+  "position": 56,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "We will trace Honey’s bespoke `ERC-4626` clone from storage to control-flow so you can see how it blocks every known share-inflation vector.",
+      "title": "",
+      "id": "29511"
+    },
+    {
+      "type": "highlight",
+      "description": "The vault stores only what it needs to keep accounting exact: a pointer to the underlying `ERC-20`, a cached name & symbol derived from that token, and an immutable `factory` address that is allowed to mint or burn ­shares.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 19,
+          "end": 56
+        }
+      ],
+      "title": "",
+      "id": "29512"
+    },
+    {
+      "type": "highlight",
+      "description": "`onlyFactory` is the single gate through which any state-changing 4626 method must pass.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 62,
+          "end": 66
+        }
+      ],
+      "title": "",
+      "id": "29513"
+    },
+    {
+      "type": "highlight",
+      "description": "The guard is a three-line helper that reverts with a custom `NotFactory` error whenever `msg.sender` is not the authorised `HoneyFactory`.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 305,
+          "end": 308
+        }
+      ],
+      "title": "",
+      "id": "29514"
+    },
+    {
+      "type": "highlight",
+      "description": "Deposit and mint are thin wrappers around `Solady`’s logic – they add `onlyFactory` and the `whenNotPaused` modifier so governance can freeze the vault without widening mint rights.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 84,
+          "end": 106
+        }
+      ],
+      "title": "",
+      "id": "29515"
+    },
+    {
+      "type": "highlight",
+      "description": "`Withdraw` and `redeem` apply the exact same treatment, meaning `burns` are equally restricted and `pausable`.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 151,
+          "end": 186
+        }
+      ],
+      "title": "",
+      "id": "29516"
+    },
+    {
+      "type": "highlight",
+      "description": "`totalAssets` is rewritten to derive assets from `totalSupply` via the converters below.  Tokens that an attacker donates directly are therefore ignored, locking the share-to-asset exchange rate at 1 : 1.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 212,
+          "end": 233
+        }
+      ],
+      "title": "",
+      "id": "29517"
+    },
+    {
+      "type": "highlight",
+      "description": "Two private helpers normalise decimals so the 1 : 1 promise holds even for tokens that are not **18-decimals**.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 256,
+          "end": 293
+        }
+      ],
+      "title": "",
+      "id": "29518"
+    },
+    {
+      "type": "highlight",
+      "description": "`_useVirtualShares()` is hard-wired to `false`, and `_requireNotPaused` swaps `OpenZeppelin`’s revert for a protocol-specific `VaultPaused` error.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 295,
+          "end": 303
+        }
+      ],
+      "title": "",
+      "id": "29519"
+    },
+    {
+      "type": "highlight",
+      "description": "Only the factory ever calls `deposit`; it first pulls tokens from the user, approves the vault, then executes the deposit – funnelling all share minting through one audited path.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 745,
+          "end": 748
+        }
+      ],
+      "title": "",
+      "id": "29520"
+    },
+    {
+      "type": "highlight",
+      "description": "`VaultAdmin` (inherited by `HoneyFactory`) is the contract that deploys each clone and records it, cementing the authority link between vault and factory.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 192,
+          "end": 210
+        }
+      ],
+      "title": "",
+      "id": "29521"
+    },
+    {
+      "type": "highlight",
+      "description": "The same `admin module` can pause or un-pause any `vault` through the `factory`, reinforcing the **single-entrance policy**.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 159,
+          "end": 176
+        }
+      ],
+      "title": "",
+      "id": "29522"
+    },
+    {
+      "type": "textOnly",
+      "description": "Storage pinning, the `onlyFactory` gate, pausable wrappers, a deterministic `totalAssets`, decimal-safe converters and virtual-share opt-out combine to eliminate share-inflation while keeping the **ERC-4626** interface familiar.  All authority flows back to `VaultAdmin`, tying this design into the governance model covered earlier.",
+      "title": "",
+      "id": "29523"
+    }
+  ]
+}

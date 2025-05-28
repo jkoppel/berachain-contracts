@@ -1,0 +1,182 @@
+{
+  "title": "4.3: PythPriceOracle & its Deterministic Deployer",
+  "id": "edu1OA5uzUaQcCJj6/DAPnjTJ2yCxPbA+unfPzLYEeo=",
+  "originalId": 2418,
+  "position": 12,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "We begin with the oracle’s storage, follow its upgrade-control flow, and finish at the deterministic deployment that wires governance.  Every step shows how the contract ends up serving fresh Pyth prices for each listed asset.",
+      "title": "",
+      "id": "28836"
+    },
+    {
+      "type": "highlight",
+      "description": "Three state variables set the scene:\n\n- `MANAGER_ROLE` lets governance delegate per-asset maintenance.\n\n- `pyth` holds the contract address that speaks the `IPyth` interface.\n\n- `feeds` maps every `ERC-20` asset to its unique `Pyth` feed id, allowing heterogeneous assets to share the same oracle contract.",
+      "file": "src/extras/PythPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 15,
+          "end": 23
+        }
+      ],
+      "title": "",
+      "id": "28837"
+    },
+    {
+      "type": "highlight",
+      "description": "`initialize` is the single entry-point after proxy deployment. It bootstraps OpenZeppelin’s `AccessControl` and `UUPS` modules, then grants `DEFAULT_ADMIN_ROLE` to the `governance` address so future admin tasks (including upgrades) are protected.",
+      "file": "src/extras/PythPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 31,
+          "end": 46
+        }
+      ],
+      "title": "",
+      "id": "28838"
+    },
+    {
+      "type": "highlight",
+      "description": "This is the UUPS upgradeability authorization check. By requiring the DEFAULT_ADMIN_ROLE, the contract ensures that only governance can perform upgrades, maintaining security while allowing future improvements.",
+      "file": "src/extras/PythPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 48,
+          "end": 52
+        }
+      ],
+      "title": "",
+      "id": "28839"
+    },
+    {
+      "type": "highlight",
+      "description": "`setPythSource` lets the admin redirect to a new `Pyth publisher` (for example, a migration from testnet to mainnet). A zero-address guard avoids accidental bricking, and the `OracleChanged` event tells off-chain indexers that the source flipped.",
+      "file": "src/extras/PythPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 54,
+          "end": 63
+        }
+      ],
+      "title": "",
+      "id": "28840"
+    },
+    {
+      "type": "highlight",
+      "description": "`setPriceFeed` is the per-asset knob given to `MANAGER_ROLE`. It reverts on a **zero feed id**, writes the mapping, then immediately calls `getPrice` as an optimistic self-test. If the chosen feed cannot be queried the transaction reverts, preventing bad configurations from entering storage.",
+      "file": "src/extras/PythPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 68,
+          "end": 79
+        }
+      ],
+      "title": "",
+      "id": "28841"
+    },
+    {
+      "type": "highlight",
+      "description": "`_wrapData` translates `Pyth`’s signed integer + exponent pair into an 18-decimal unsigned WAD via `PythUtils.convertToUint`, returning a uniform `Data` struct consumed by the broader protocol.",
+      "file": "src/extras/PythPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 81,
+          "end": 86
+        }
+      ],
+      "title": "",
+      "id": "28842"
+    },
+    {
+      "type": "highlight",
+      "description": "`getPrice` is the safest read.  `_pythAndFeedAreSet` ensures both the global oracle and the per-asset feed exist, then calls `pyth.getPrice(feed)` and wraps the answer.  Any missing input triggers **UnavailableData**.",
+      "file": "src/extras/PythPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 92,
+          "end": 100
+        }
+      ],
+      "title": "",
+      "id": "28843"
+    },
+    {
+      "type": "highlight",
+      "description": "Two alternatives offer more nuanced behaviour:\n\n- `getPriceUnsafe` skips `Pyth`'s \"confidence interval\" checks but keeps the same guards.\n\n- `getPriceNoOlderThan` enforces a maximum age before rejecting stale data.",
+      "file": "src/extras/PythPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 102,
+          "end": 120
+        }
+      ],
+      "title": "",
+      "id": "28844"
+    },
+    {
+      "type": "highlight",
+      "description": "priceAvailable answers a cheap yes/no without throwing. It reuses the internal `_pythAndFeedAreSet` helper (lines 132-140) and verifies that the latest `publishTime` is non-zero.",
+      "file": "src/extras/PythPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 122,
+          "end": 140
+        }
+      ],
+      "title": "",
+      "id": "28845"
+    },
+    {
+      "type": "textOnly",
+      "description": "With the runtime mechanics covered, we now jump to deployment to see how a **deterministic address** is produced and immediately initialised.",
+      "title": "",
+      "id": "28846"
+    },
+    {
+      "type": "highlight",
+      "description": "**PythPriceOracleDeployer** handles the complete deployment sequence for the price oracle system. It first deploys the implementation contract, then creates an upgradeable proxy pointing to that implementation, and finally initializes the system with governance roles. The deployed proxy address is stored in the immutable `oracle` field for reference by other contracts and scripts.",
+      "file": "src/extras/PythPriceOracleDeployer.sol",
+      "highlight": [
+        {
+          "start": 10,
+          "end": 19
+        }
+      ],
+      "title": "",
+      "id": "28847"
+    },
+    {
+      "type": "highlight",
+      "description": "`deployWithCreate2` forwards the call to the well-known `Create2Factory`, ensuring the same salt + bytecode always lands at the same address across chains or redeployments.",
+      "file": "src/base/Create2Deployer.sol",
+      "highlight": [
+        {
+          "start": 24,
+          "end": 39
+        }
+      ],
+      "title": "",
+      "id": "28848"
+    },
+    {
+      "type": "highlight",
+      "description": "`deployProxyWithCreate2` is a thin wrapper that injects `ERC1967Proxy` bytecode, giving us an upgradeable proxy whose implementation can later be changed through the `UUPS` hook we saw earlier.",
+      "file": "src/base/Create2Deployer.sol",
+      "highlight": [
+        {
+          "start": 59,
+          "end": 65
+        }
+      ],
+      "title": "",
+      "id": "28849"
+    },
+    {
+      "type": "textOnly",
+      "description": "Putting it all together: a deterministic `Create2` deployment yields a `proxy`; initialize hands control to **governance**; **managers** enrol each asset’s `feed`; at **runtime** the `proxy` consults `Pyth` for fresh prices, all while remaining **upgradeable** through a single **admin-gated function**.",
+      "title": "",
+      "id": "28850"
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "title": "5.9: HoneyFactory Liquidation & Recapitalization",
+  "id": "TbuGL0wTG0kmrlVaNEW91Wd6gdIBpu6hWjBsZuB6OCw=",
+  "originalId": 2434,
+  "position": 22,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "When a collateral token loses its peg the protocol opens two emergency flows.\n\n- `liquidate()` lets anyone swap healthy collateral for the de-pegged one at a premium, flushing the toxic asset out of the basket.\n- `recapitalize()` rewards users that refill a vault once the peg is restored, pushing balances back to target.\n\nWe will walk through the storage, maths, and guards that make those flows safe.",
+      "title": "",
+      "id": "29091"
+    },
+    {
+      "type": "highlight",
+      "description": "Every collateral keeps its own liquidation premium. A value of `0.25 e18` means the liquidator will receive 1.25 × worth of bad collateral for each unit of good they supply.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 55,
+          "end": 61
+        }
+      ],
+      "title": "",
+      "id": "29092"
+    },
+    {
+      "type": "highlight",
+      "description": "Governance (`DEFAULT_ADMIN_ROLE`) can tune the incentive through `setLiquidationRate()`. The mapping is internal so only this function can mutate it.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 246,
+          "end": 253
+        }
+      ],
+      "title": "",
+      "id": "29093"
+    },
+    {
+      "type": "highlight",
+      "description": "`liquidate()` starts with a battery of checks: both assets are registered, the incoming one is still good, liquidation is enabled, the target is flagged bad, and it is not the reference collateral (otherwise relative-cap maths would break). Any failure reverts immediately.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 430,
+          "end": 446
+        }
+      ],
+      "title": "",
+      "id": "29094"
+    },
+    {
+      "type": "highlight",
+      "description": "**Core swap maths:**\n1. Caller deposits `goodAmount` and receives `goodShares` (447-448).\n2. Current oracle prices are fetched (449-450).\n3. `badAmount = goodShares × P_good ÷ P_bad × (1 + premium)` (451).\n4. If the vault cannot cover the request, the trade is scaled down and the surplus good collateral is refunded (453-460). The vault can never go negative.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 447,
+          "end": 460
+        }
+      ],
+      "title": "",
+      "id": "29095"
+    },
+    {
+      "type": "highlight",
+      "description": "Before completion the trade passes relative and global cap guards, the bad shares are redeemed to the caller, and `_checkInvariants()` runs on both assets so accounting must still balance.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 464,
+          "end": 479
+        }
+      ],
+      "title": "",
+      "id": "29096"
+    },
+    {
+      "type": "highlight",
+      "description": "`recapitalize()` tackles the opposite scenario: a vault under-funded after peg recovery.\n- Only good collateral is allowed (`485-496`).\n- If the vault already meets its target it reverts (`486-492`).\n- `amount` is clipped so we never over-shoot and converted to shares (`498-504`).\n- The user must meet `minSharesToRecapitalize`, preventing spam deposits (`505-507`).",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 484,
+          "end": 507
+        }
+      ],
+      "title": "",
+      "id": "29097"
+    },
+    {
+      "type": "highlight",
+      "description": "After the deposit the same cap guards are enforced, then `_checkInvariants()` guarantees solvency and an event is emitted.  The vault is left healthier than before.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 509,
+          "end": 519
+        }
+      ],
+      "title": "",
+      "id": "29098"
+    },
+    {
+      "type": "highlight",
+      "description": "`_checkInvariants()` converts every share back to asset units (taking custody vaults and pending fees into account) and asserts the vault holds at least that much. Any mismatch reverts, so neither emergency flow can drain collateral.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 768,
+          "end": 784
+        }
+      ],
+      "title": "",
+      "id": "29099"
+    },
+    {
+      "type": "textOnly",
+      "description": "**Safety valves in action:**\n1. Governance marks a token bad ➜ liquidators race to remove it, pocketing the premium.\n2. Once the peg is fixed the flag is cleared ➜ `recapitalize()` rewards users that refill the vault up to its target.\n3. Each step is wrapped in cap limits and `_checkInvariants`, keeping the basket solvent at all times.\n\nBad collateral is off-loaded, healthy collateral is topped-up, and the system remains fully backed.",
+      "title": "",
+      "id": "29100"
+    }
+  ]
+}

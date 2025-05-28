@@ -1,0 +1,124 @@
+{
+  "title": "3.1: PoL Core & Helpers: Overview",
+  "id": "dKKyIT9KJsaHZ/XYLrAEgYOz9MTTzibXwB73GWiImk8=",
+  "originalId": 2415,
+  "position": 6,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Begin with the `contract` that brings the PoL-plane to life.",
+      "title": "",
+      "id": "28790"
+    },
+    {
+      "type": "highlight",
+      "description": "`POLDeployer` uses `CREATE2` to deploy each main `PoL` contract and immediately wires a proxy to its freshly created implementation—here the pattern for `BeraChef` and `BlockRewardController` is representative of the others.",
+      "file": "src/pol/POLDeployer.sol",
+      "highlight": [
+        {
+          "start": 52,
+          "end": 61
+        }
+      ],
+      "title": "",
+      "id": "28791"
+    },
+    {
+      "type": "highlight",
+      "description": "Two beacon-chain `Generalized-Index` constants are baked into the deployer so that all children receive the same reference points during their constructor-time initialization.",
+      "file": "src/pol/POLDeployer.sol",
+      "highlight": [
+        {
+          "start": 17,
+          "end": 23
+        }
+      ],
+      "title": "",
+      "id": "28792"
+    },
+    {
+      "type": "highlight",
+      "description": "`BeaconRootsHelper` is an abstract mix-in reused across the plane; it mirrors the 8 k-slot **EIP-4788** buffer and provides `SSZ` proof helpers for `proposer index` & `validator pubkeys`.",
+      "file": "src/pol/BeaconRootsHelper.sol",
+      "highlight": [
+        {
+          "start": 12,
+          "end": 33
+        }
+      ],
+      "title": "",
+      "id": "28793"
+    },
+    {
+      "type": "highlight",
+      "description": "An `EVENTS` block gives off-chain observers lightweight hooks—every time the buffer advances or a `G-index` is changed a dedicated event is emitted.",
+      "file": "src/pol/BeaconRootsHelper.sol",
+      "highlight": [
+        {
+          "start": 38,
+          "end": 46
+        }
+      ],
+      "title": "",
+      "id": "28794"
+    },
+    {
+      "type": "highlight",
+      "description": "`IPOLErrors` centralises every custom error.  The opening section covers generic access-control and allocation issues.",
+      "file": "src/pol/interfaces/IPOLErrors.sol",
+      "highlight": [
+        {
+          "start": 6,
+          "end": 24
+        }
+      ],
+      "title": "",
+      "id": "28795"
+    },
+    {
+      "type": "highlight",
+      "description": "A dedicated cluster enforces `Block-Reward controller` invariants such as rate bounds and convexity limits.",
+      "file": "src/pol/interfaces/IPOLErrors.sol",
+      "highlight": [
+        {
+          "start": 65,
+          "end": 77
+        }
+      ],
+      "title": "",
+      "id": "28796"
+    },
+    {
+      "type": "highlight",
+      "description": "Next comes staking-related protection: `contract-only tokens`, `incentive limits`, `delegate requirements`, and more.",
+      "file": "src/pol/interfaces/IPOLErrors.sol",
+      "highlight": [
+        {
+          "start": 78,
+          "end": 93
+        }
+      ],
+      "title": "",
+      "id": "28797"
+    },
+    {
+      "type": "highlight",
+      "description": "Finally, `Beacon-Roots` validation and `Deposit-flow` checks round out the catalogue, ensuring proofs and deposits adhere to spec.",
+      "file": "src/pol/interfaces/IPOLErrors.sol",
+      "highlight": [
+        {
+          "start": 121,
+          "end": 139
+        }
+      ],
+      "title": "",
+      "id": "28798"
+    },
+    {
+      "type": "textOnly",
+      "description": "Nearly every other `PoL contract` pulls at least one of these `helpers`—knowing their layout gives you a mental shortcut through the rest of the codebase.",
+      "title": "",
+      "id": "28799"
+    }
+  ]
+}

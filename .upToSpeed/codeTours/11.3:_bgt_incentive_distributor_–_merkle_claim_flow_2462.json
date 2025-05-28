@@ -1,0 +1,176 @@
+{
+  "title": "11.3: BGT Incentive Distributor – Merkle Claim Flow",
+  "id": "qsQcCmVP8e/Srn5Mix7sdwcprTRLudI8EyRN6tIRhlU=",
+  "originalId": 2462,
+  "position": 50,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Follow how **incentive tokens** arrive, how **distribution metadata** is published, and how a **booster** finally claims. Each stop shows the exact checks that protect the flow.",
+      "title": "",
+      "id": "29418"
+    },
+    {
+      "type": "highlight",
+      "description": "Storage that every claim touches:\n\n- Line 42: `rewardClaimDelay` – global cooldown before a new Merkle tree turns claimable.\n- Line 44: `rewards` – `identifier` ⇒ `Reward` (`token`, `root`, `proof`, `pubkey`, `activeAt`).\n- Line 47: `claimed` – running counter for each (`identifier`, `account`) so over-claiming is impossible.\n- Line 50: `incentiveTokensPerValidator` – escrow of tokens that each validator's `pubkey` has deposited.",
+      "file": "src/pol/rewards/BGTIncentiveDistributor.sol",
+      "highlight": [
+        {
+          "start": 41,
+          "end": 50
+        }
+      ],
+      "title": "",
+      "id": "29419"
+    },
+    {
+      "type": "highlight",
+      "description": "`initialize()` wires the roles and the default waiting period.\n- `AccessControl`, `Pausable`, `Reentrancy` & `UUPS` helpers are set up (62-65).\n- Governance must be non-zero (66) and immediately receives `DEFAULT_ADMIN_ROLE` (67).\n- rewardClaimDelay is pinned to `MAX_REWARD_CLAIM_DELAY` = **3 h** (68).",
+      "file": "src/pol/rewards/BGTIncentiveDistributor.sol",
+      "highlight": [
+        {
+          "start": 61,
+          "end": 69
+        }
+      ],
+      "title": "",
+      "id": "29420"
+    },
+    {
+      "type": "highlight",
+      "description": "`receiveIncentive()` is called by **reward vaults**.\n- Transfers the tokens in (132).\n- Adds them to `incentiveTokensPerValidator[pubkey][token]` (133).\nThis growing balance later backs successful claims.",
+      "file": "src/pol/rewards/BGTIncentiveDistributor.sol",
+      "highlight": [
+        {
+          "start": 130,
+          "end": 135
+        }
+      ],
+      "title": "",
+      "id": "29421"
+    },
+    {
+      "type": "highlight",
+      "description": "The `Distribution` struct fields:\n`identifier` - unique payout period ID\n`pubkey` - validator's POL earnings\n`token` - ERC-20 being distributed\n`merkleRoot` - commits to (account, amount)\n`proof` - validates tree authenticity",
+      "file": "src/pol/interfaces/IBGTIncentiveDistributor.sol",
+      "highlight": [
+        {
+          "start": 14,
+          "end": 20
+        }
+      ],
+      "title": "",
+      "id": "29422"
+    },
+    {
+      "type": "highlight",
+      "description": "`updateRewardsMetadata()` stores the data and schedules activation.\n- `activeAt` = `now` + `rewardClaimDelay` – no one can claim before this timestamp.\n- `merkleRoot`, `proof`, `pubkey` and `activeAt` recorded for each identifier.",
+      "file": "src/pol/rewards/BGTIncentiveDistributor.sol",
+      "highlight": [
+        {
+          "start": 88,
+          "end": 99
+        }
+      ],
+      "title": "",
+      "id": "29423"
+    },
+    {
+      "type": "highlight",
+      "description": "**One-token-per-identifier invariant.**\n- If the **token** is unset it is initialised (`100-101`).\n- Else a mismatching **token** immediately reverts (`102-103`).",
+      "file": "src/pol/rewards/BGTIncentiveDistributor.sol",
+      "highlight": [
+        {
+          "start": 99,
+          "end": 104
+        }
+      ],
+      "title": "",
+      "id": "29424"
+    },
+    {
+      "type": "highlight",
+      "description": "Governance can tweak the delay via `setRewardClaimDelay(...)`. ",
+      "file": "src/pol/rewards/BGTIncentiveDistributor.sol",
+      "highlight": [
+        {
+          "start": 78,
+          "end": 81
+        }
+      ],
+      "title": "",
+      "id": "29425"
+    },
+    {
+      "type": "highlight",
+      "description": "`_setRewardClaimDelay` enforces the upper bound.\n- Line 204 rejects anything above `MAX_REWARD_CLAIM_DELAY`.\n- Lines 207-208 persist and emit the new value.",
+      "file": "src/pol/rewards/BGTIncentiveDistributor.sol",
+      "highlight": [
+        {
+          "start": 203,
+          "end": 209
+        }
+      ],
+      "title": "",
+      "id": "29426"
+    },
+    {
+      "type": "highlight",
+      "description": "`claim()` lets a booster clear many identifiers at once.\nThe loop (147-151) simply forwards each element to `_claim()`. ",
+      "file": "src/pol/rewards/BGTIncentiveDistributor.sol",
+      "highlight": [
+        {
+          "start": 141,
+          "end": 149
+        }
+      ],
+      "title": "",
+      "id": "29427"
+    },
+    {
+      "type": "highlight",
+      "description": "**`_claim()` – guards and proof.**\n- Line 166 rejects unknown trees, 167 enforces the activeAt delay.\n- Line 169  `lifeTimeAmount` = `alreadyClaimed` + `newAmount`.\n- Lines 173-175 verifies the Merkle proof over (`account`, `lifeTimeAmount`); failure reverts with `InvalidProof`.",
+      "file": "src/pol/rewards/BGTIncentiveDistributor.sol",
+      "highlight": [
+        {
+          "start": 163,
+          "end": 176
+        }
+      ],
+      "title": "",
+      "id": "29428"
+    },
+    {
+      "type": "highlight",
+      "description": "`_claim()` – state update and balance check.\n- Line 179 records the new cumulative amount in claimed.\n- Lines 185-186 guarantees the validator's balance covers the payout, else **InsufficientIncentiveTokens**.",
+      "file": "src/pol/rewards/BGTIncentiveDistributor.sol",
+      "highlight": [
+        {
+          "start": 178,
+          "end": 186
+        }
+      ],
+      "title": "",
+      "id": "29429"
+    },
+    {
+      "type": "highlight",
+      "description": "Successful path:\n- Line 190 debits `incentiveTokensPerValidator`\n- Line 193 transfers tokens via `SafeERC20`\n- Line 195 emits `RewardClaimed(identifier, token, account, pubkey, amount)` — letting analysts track spending, keyed by (identifier, account)",
+      "file": "src/pol/rewards/BGTIncentiveDistributor.sol",
+      "highlight": [
+        {
+          "start": 188,
+          "end": 196
+        }
+      ],
+      "title": "",
+      "id": "29430"
+    },
+    {
+      "type": "textOnly",
+      "description": "Putting it together:\n- `Vaults` can only pay what they deposited; `boosters` can only draw what the `Merkle tree` commits.\n- `rewardClaimDelay` gives `boosters` time to verify the `off-chain tree` before funds become live.\n- Wrong token, early claims, over-claiming, bad proofs and empty trees all revert.\nYou now have every hook needed to audit the entire claim lifecycle.",
+      "title": "",
+      "id": "29431"
+    }
+  ]
+}

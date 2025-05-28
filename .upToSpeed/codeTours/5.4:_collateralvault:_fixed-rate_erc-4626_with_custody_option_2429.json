@@ -1,0 +1,194 @@
+{
+  "title": "5.4: CollateralVault: Fixed-Rate ERC-4626 with Custody Option",
+  "id": "8WGdqzWo+FVX4nGAPu+HHPZJVjWmj9cwpgn3zPlTitk=",
+  "originalId": 2429,
+  "position": 17,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "The contract keeps a strict 1-to-1 relationship between `ERC-4626` shares and the underlying collateral. This invariant is protected by four mechanisms:\n- `onlyFactory` blocks the public from minting or burning.\n- Custom `convert` helpers preserve the 1:1 rate even when token decimals differ.\n- A custody mode sweeps assets to– and pulls them back from – an external address on every deposit/withdraw.\n- `Pausable` gates let **governance** freeze the whole flow.\nWe will visit each mechanism in the code.",
+      "title": "",
+      "id": "28922"
+    },
+    {
+      "type": "highlight",
+      "description": "Every state-changing vault entry point is guarded by `onlyFactory`, meaning only the `VaultAdmin` contract that deployed the `vault` may call them.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 62,
+          "end": 66
+        }
+      ],
+      "title": "",
+      "id": "28923"
+    },
+    {
+      "type": "highlight",
+      "description": "`deposit()` and `mint()` are re-exported but now wrapped with `onlyFactory` and `whenNotPaused`.  **EOAs** or other contracts cannot mint shares directly.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 84,
+          "end": 106
+        }
+      ],
+      "title": "",
+      "id": "28924"
+    },
+    {
+      "type": "highlight",
+      "description": "`withdraw()` and `redeem()` receive the same treatment – the factory is the sole door-keeper for burning shares or releasing assets.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 151,
+          "end": 185
+        }
+      ],
+      "title": "",
+      "id": "28925"
+    },
+    {
+      "type": "textOnly",
+      "description": "Blocking the public removes a **classic inflation attack**: a malicious user could send extra tokens into the vault, skew the exchange rate, then `mint` cheap shares. Because only `VaultAdmin` can `mint`/`burn`, the `total supply` always mirrors the `assets` it put in.",
+      "title": "",
+      "id": "28926"
+    },
+    {
+      "type": "highlight",
+      "description": "This implementation ensures the vault maintains a fixed 1:1 exchange rate between shares and assets, regardless of any direct token transfers to the contract. This protects against inflation attacks by basing the total assets solely on the share supply, ignoring any excess tokens that might be sent to the vault directly.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 213,
+          "end": 233
+        }
+      ],
+      "title": "",
+      "id": "28927"
+    },
+    {
+      "type": "highlight",
+      "description": "`_convertToShares` scales asset amounts up or down so that 10^`assetDecimals` assetWei corresponds to 10^`vaultDecimals` shareWei.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 255,
+          "end": 270
+        }
+      ],
+      "title": "",
+      "id": "28928"
+    },
+    {
+      "type": "highlight",
+      "description": "The inverse helper `_convertToAssets` applies the same exponent, guaranteeing the round-trip is always 1:1 after decimal adjustment.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 279,
+          "end": 293
+        }
+      ],
+      "title": "",
+      "id": "28929"
+    },
+    {
+      "type": "textOnly",
+      "description": "Because these helpers are used everywhere the `ERC-4626` logic asks for conversions, the vault maintains an economic **1 share = 1 asset** invariant regardless of differing decimals.",
+      "title": "",
+      "id": "28930"
+    },
+    {
+      "type": "highlight",
+      "description": "**Governance toggles custody mode** with `setCustodyInfo`. Turning it on transfers every existing token to the custody address; turning it off pulls them back first.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 115,
+          "end": 140
+        }
+      ],
+      "title": "",
+      "id": "28931"
+    },
+    {
+      "type": "highlight",
+      "description": "`afterDeposit` hook – when custody is active, deposited assets are immediately forwarded to the external custody address.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 311,
+          "end": 316
+        }
+      ],
+      "title": "",
+      "id": "28932"
+    },
+    {
+      "type": "highlight",
+      "description": "`beforeWithdraw` hook – just before a withdrawal, the vault pulls the precise amount back from custody so the **ERC-4626** transfer can proceed.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 320,
+          "end": 324
+        }
+      ],
+      "title": "",
+      "id": "28933"
+    },
+    {
+      "type": "textOnly",
+      "description": "Thanks to those two hooks, the vault itself never holds funds in custody mode; it merely routes them through, yet `ERC-4626` accounting still balances.",
+      "title": "",
+      "id": "28934"
+    },
+    {
+      "type": "highlight",
+      "description": "Local pause / unpause functions are also restricted to the `factory`.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 72,
+          "end": 83
+        }
+      ],
+      "title": "",
+      "id": "28935"
+    },
+    {
+      "type": "highlight",
+      "description": "`_requireNotPaused` overrides the `OpenZeppelin` hook and reverts with a custom **VaultPaused** error.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 300,
+          "end": 303
+        }
+      ],
+      "title": "",
+      "id": "28936"
+    },
+    {
+      "type": "highlight",
+      "description": "`VaultAdmin` owns the `PAUSER` role and can propagate a pause to any underlying vault via `pauseVault()`.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 160,
+          "end": 167
+        }
+      ],
+      "title": "",
+      "id": "28937"
+    },
+    {
+      "type": "textOnly",
+      "description": "Together these pieces give the protocol fine-grained control, an immutable 1:1 exchange rate, and the flexibility to keep collateral in an external wallet when desired. The design prevents inflation exploits while retaining **ERC-4626** ergonomics.",
+      "title": "",
+      "id": "28938"
+    }
+  ]
+}

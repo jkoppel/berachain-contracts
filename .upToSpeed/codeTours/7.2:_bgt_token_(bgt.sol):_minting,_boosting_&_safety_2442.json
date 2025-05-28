@@ -1,0 +1,226 @@
+{
+  "title": "7.2: BGT Token (BGT.sol): Minting, Boosting & Safety",
+  "id": "FvjOQReBSPSW76LkrmZgFYfiiT3khPXd2p2OM4JbsiI=",
+  "originalId": 2442,
+  "position": 30,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "**Boosting** lets `BGT` holders temporarily lock part of their balance to enhance validator rewards. Everything else in the token is built around keeping those locked amounts separate and safe.",
+      "title": "",
+      "id": "29155"
+    },
+    {
+      "type": "highlight",
+      "description": "Three compact structs capture the whole boost life-cycle.  `QueuedBoost` and `QueuedDropBoost` memorise pending actions, while `UserBoost` tracks what is already active vs still queued.",
+      "file": "src/pol/BGT.sol",
+      "highlight": [
+        {
+          "start": 69,
+          "end": 92
+        }
+      ],
+      "title": "",
+      "id": "29156"
+    },
+    {
+      "type": "highlight",
+      "description": "Five layered mappings knit those structs together –\n- by `user` → `validator (pubkey)` → `queued boost` / `queued drop` / `active boost`\n- by `user` (aggregate boost & queue)  \n- by `validator` (aggregate boost).  \nThe global `totalBoosts` keeps a running sum for normalisation.",
+      "file": "src/pol/BGT.sol",
+      "highlight": [
+        {
+          "start": 96,
+          "end": 110
+        }
+      ],
+      "title": "",
+      "id": "29157"
+    },
+    {
+      "type": "textOnly",
+      "description": "Because these fields split each account between liquid and locked, every write must preserve that separation.",
+      "title": "",
+      "id": "29158"
+    },
+    {
+      "type": "highlight",
+      "description": "Three modifiers enforce the rules:\n- `onlyBlockRewardController` – minting authority  \n- `onlyApprovedSender` – whitelist for moving tokens  \n- `checkUnboostedBalance` – prevents moving what is locked.",
+      "file": "src/pol/BGT.sol",
+      "highlight": [
+        {
+          "start": 129,
+          "end": 145
+        }
+      ],
+      "title": "",
+      "id": "29159"
+    },
+    {
+      "type": "highlight",
+      "description": "`approve`, `transfer`, and `transferFrom` are wrapped with those modifiers so only trusted senders can move tokens and never beyond the caller’s un-boosted balance.",
+      "file": "src/pol/BGT.sol",
+      "highlight": [
+        {
+          "start": 312,
+          "end": 336
+        }
+      ],
+      "title": "",
+      "id": "29160"
+    },
+    {
+      "type": "textOnly",
+      "description": "Happy-path boost flow.",
+      "title": "",
+      "id": "29161"
+    },
+    {
+      "type": "highlight",
+      "description": "`queueBoost` records intent: adds to the user’s queued amount and to the per-validator queue entry.",
+      "file": "src/pol/BGT.sol",
+      "highlight": [
+        {
+          "start": 216,
+          "end": 226
+        }
+      ],
+      "title": "",
+      "id": "29162"
+    },
+    {
+      "type": "highlight",
+      "description": "`activateBoost` (callable by anyone after the delay) migrates that amount from queues into active mappings, updates all aggregates, then stakes the same amount in `BGTStaker`.",
+      "file": "src/pol/BGT.sol",
+      "highlight": [
+        {
+          "start": 241,
+          "end": 265
+        }
+      ],
+      "title": "",
+      "id": "29163"
+    },
+    {
+      "type": "highlight",
+      "description": "Inside the staker nothing is transferred; it simply registers the stake so fee-sharing math in `StakingRewards` can use it.",
+      "file": "src/pol/BGTStaker.sol",
+      "highlight": [
+        {
+          "start": 93,
+          "end": 99
+        }
+      ],
+      "title": "",
+      "id": "29164"
+    },
+    {
+      "type": "textOnly",
+      "description": "**Reverse flow** – **dropping a boost**.",
+      "title": "",
+      "id": "29165"
+    },
+    {
+      "type": "highlight",
+      "description": "`queueDropBoost` schedules removal, verifying the user still has that much boosted.",
+      "file": "src/pol/BGT.sol",
+      "highlight": [
+        {
+          "start": 268,
+          "end": 275
+        }
+      ],
+      "title": "",
+      "id": "29166"
+    },
+    {
+      "type": "highlight",
+      "description": "`dropBoost` walks the state backwards and instructs the staker to withdraw.",
+      "file": "src/pol/BGT.sol",
+      "highlight": [
+        {
+          "start": 286,
+          "end": 305
+        }
+      ],
+      "title": "",
+      "id": "29167"
+    },
+    {
+      "type": "highlight",
+      "description": "`withdraw` mirrors `stake`; balances adjust internally, still no token transfer.",
+      "file": "src/pol/BGTStaker.sol",
+      "highlight": [
+        {
+          "start": 98,
+          "end": 101
+        }
+      ],
+      "title": "",
+      "id": "29168"
+    },
+    {
+      "type": "textOnly",
+      "description": "Supply can only change through minting or redeeming.",
+      "title": "",
+      "id": "29169"
+    },
+    {
+      "type": "highlight",
+      "description": "`mint` is restricted to the `BlockRewardController` and runs the invariant check after minting.",
+      "file": "src/pol/BGT.sol",
+      "highlight": [
+        {
+          "start": 173,
+          "end": 176
+        }
+      ],
+      "title": "",
+      "id": "29170"
+    },
+    {
+      "type": "highlight",
+      "description": "`redeem` burns the caller’s un-boosted `BGT` and releases an equal amount of `ETH` held in the contract.",
+      "file": "src/pol/BGT.sol",
+      "highlight": [
+        {
+          "start": 362,
+          "end": 375
+        }
+      ],
+      "title": "",
+      "id": "29171"
+    },
+    {
+      "type": "highlight",
+      "description": "`_invariantCheck()` guarantees at every write that ETH reserves ≥ total BGT supply.",
+      "file": "src/pol/BGT.sol",
+      "highlight": [
+        {
+          "start": 458,
+          "end": 461
+        }
+      ],
+      "title": "",
+      "id": "29172"
+    },
+    {
+      "type": "highlight",
+      "description": "`burnExceedingReserves()` lets anyone destroy surplus ETH so the reserve never exceeds the maximum that could ever be required.",
+      "file": "src/pol/BGT.sol",
+      "highlight": [
+        {
+          "start": 378,
+          "end": 389
+        }
+      ],
+      "title": "",
+      "id": "29173"
+    },
+    {
+      "type": "textOnly",
+      "description": "These mechanisms keep boost bookkeeping correct, gate token mobility, and ensure every `BGT` remains fully backed while preventing excess reserves.",
+      "title": "",
+      "id": "29174"
+    }
+  ]
+}

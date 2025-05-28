@@ -1,0 +1,85 @@
+{
+  "title": "8.1: Block Reward Controller: Overview",
+  "id": "pwHJ3rRif2va35n3s/VSgD/P2JbhFb7MT5o2qEfxvlU=",
+  "originalId": 2445,
+  "position": 33,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Two contracts make up the block-reward module.  `IBlockRewardController.sol` is the lean **ABI** that the rest of the protocol calls; `BlockRewardController.sol` is the upgradeable implementation that enforces limits, stores parameters, and mints **BGT**.  The next slides show exactly where the public surface lives and where the real work happens.",
+      "title": "",
+      "id": "29215"
+    },
+    {
+      "type": "highlight",
+      "description": "Every external interaction starts here. Lines 56-74 expose five read-only getters for the tunable rates, and lines 86-112 expose the three flagship calls:\n- `computeReward` – pure math, safe to call off-chain.\n- `getMaxBGTPerBlock` – view helper that caps total emissions.\n- `processRewards` – the only state-changing hook; called once per beacon block by the Distributor.",
+      "file": "src/pol/interfaces/IBlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 56,
+          "end": 114
+        }
+      ],
+      "title": "",
+      "id": "29216"
+    },
+    {
+      "type": "highlight",
+      "description": "The implementation opens by declaring the hard ceilings that governance can never exceed.  Keeping `MAX_BASE_RATE`, `MAX_REWARD_RATE`, `MAX_MIN_BOOSTED_REWARD_RATE`, `MAX_BOOST_MULTIPLIER`, and `MAX_REWARD_CONVEXITY` up front makes the protocol’s economic envelope obvious.",
+      "file": "src/pol/rewards/BlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 23,
+          "end": 37
+        }
+      ],
+      "title": "",
+      "id": "29217"
+    },
+    {
+      "type": "highlight",
+      "description": "Scrolling down you find the storage layout.  Three collaborator addresses (`bgt`, `beaconDepositContract`, `distributor`) sit beside the five tunable parameters mirrored by the interface getters.  These variables are the levers governance pulls to adjust inflation.",
+      "file": "src/pol/rewards/BlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 42,
+          "end": 64
+        }
+      ],
+      "title": "",
+      "id": "29218"
+    },
+    {
+      "type": "highlight",
+      "description": "`computeReward` is a pure helper anyone can call to preview rewards. It scales `rewardRate` by a boost-dependent coefficient while clamping the result so it never exceeds `boostMultiplier × rewardRate`.",
+      "file": "src/pol/rewards/BlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 167,
+          "end": 200
+        }
+      ],
+      "title": "",
+      "id": "29219"
+    },
+    {
+      "type": "highlight",
+      "description": "`processRewards` is the heart of the module. Invoked once per beacon block by the Distributor, it mints the constant operator payment (`baseRate`) and\t6if the staking system is live\t6the boost-scaled vault reward, then emits `BlockRewardProcessed` for transparent accounting.",
+      "file": "src/pol/rewards/BlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 212,
+          "end": 244
+        }
+      ],
+      "title": "",
+      "id": "29220"
+    },
+    {
+      "type": "textOnly",
+      "description": "With this bird’s-eye view you now know where the public API lives, where the logic is implemented, which constants police parameter bounds, what state is stored, and which four functions drive the entire component: `computeReward`, `getMaxBGTPerBlock`, `processRewards`, plus the governance setters guarded by the `MAX_*` ceilings.",
+      "title": "",
+      "id": "29221"
+    }
+  ]
+}

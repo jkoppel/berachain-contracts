@@ -1,0 +1,175 @@
+{
+  "title": "5.3: VaultAdmin: Registry, Roles & Fee Book-Keeping",
+  "id": "/6fDR9wH+UKtAXSofIVzmCuR73hizDMbiU424OvQxQ8=",
+  "originalId": 2421,
+  "position": 16,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "This walkthrough shows how collateral vaults are created, paused, and how the protocol’s fee balances are stored and withdrawn. Everything happens in the `VaultAdmin` mix-in and the `HoneyFactory` that extends it.",
+      "title": "",
+      "id": "28862"
+    },
+    {
+      "type": "highlight",
+      "description": "Two dedicated role constants guard administration.  Anyone holding `MANAGER_ROLE` outranks `PAUSER_ROLE`, while neither touches `DEFAULT_ADMIN_ROLE`.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 37,
+          "end": 42
+        }
+      ],
+      "title": "",
+      "id": "28863"
+    },
+    {
+      "type": "highlight",
+      "description": "`MANAGER_ROLE` is declared the *admin* of `PAUSER_ROLE` via `_setRoleAdmin`, giving every manager the power to grant or revoke pauser permissions.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 93,
+          "end": 96
+        }
+      ],
+      "title": "",
+      "id": "28864"
+    },
+    {
+      "type": "highlight",
+      "description": "Core bookkeeping lives in `VaultAdmin`:\n- `registeredAssets` – ordered list of every collateral token.\n- `vaults` – mapping from asset → ERC4626 vault clone.\n- `isBadCollateralAsset` – blacklist that blocks minting.\n- `collectedFees` (+ `collectedAssetFees`) – where fee shares accumulate until withdrawn.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 53,
+          "end": 68
+        }
+      ],
+      "title": "",
+      "id": "28865"
+    },
+    {
+      "type": "highlight",
+      "description": "`__VaultAdmin_init` sets the high-level wiring, creates the role hierarchy, then hands off to the uncahined helper.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 75,
+          "end": 96
+        }
+      ],
+      "title": "",
+      "id": "28866"
+    },
+    {
+      "type": "highlight",
+      "description": "`__VaultAdmin_init_unchained` stores the governance, POL fee collector, fee receiver and beacon addresses, and grants `DEFAULT_ADMIN_ROLE` to `governance`. These values drive every later admin action.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 98,
+          "end": 119
+        }
+      ],
+      "title": "",
+      "id": "28867"
+    },
+    {
+      "type": "highlight",
+      "description": "`_createVault` is an **internal** helper gated by `DEFAULT_ADMIN_ROLE`.\n- Deploys a deterministic beacon-proxy clone with `LibClone`.\n- Registers the asset, initialises the vault, stores it, and emits `VaultCreated`.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 192,
+          "end": 213
+        }
+      ],
+      "title": "",
+      "id": "28868"
+    },
+    {
+      "type": "highlight",
+      "description": "`createVault` is the public entry-point.  It delegates to `_createVault`, then seeds default mint/redeem rates and caps.  Because `_createVault` re-checks the caller, **only a DEFAULT_ADMIN_ROLE holder can create new vaults.**",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 284,
+          "end": 299
+        }
+      ],
+      "title": "",
+      "id": "28869"
+    },
+    {
+      "type": "textOnly",
+      "description": "Pausing is split between the two roles: pausers freeze activity, managers thaw it.",
+      "title": "",
+      "id": "28870"
+    },
+    {
+      "type": "highlight",
+      "description": "- `pause()` - any `PAUSER_ROLE` holder can halt the entire factory.\n- `unpause()` - only a `MANAGER_ROLE` holder can resume.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 145,
+          "end": 157
+        }
+      ],
+      "title": "",
+      "id": "28871"
+    },
+    {
+      "type": "highlight",
+      "description": "`pauseVault` and `unpauseVault` apply the same logic to a single collateral vault.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 159,
+          "end": 176
+        }
+      ],
+      "title": "",
+      "id": "28872"
+    },
+    {
+      "type": "textOnly",
+      "description": "Fees collected during `mint`/`redeem` stay inside `vaults` as `shares` until receivers claim them.",
+      "title": "",
+      "id": "28873"
+    },
+    {
+      "type": "highlight",
+      "description": "`withdrawAllFees` loops over every registered asset, while `withdrawFee` targets a single one, funnelling control to `_withdrawCollectedFee`.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 256,
+          "end": 275
+        }
+      ],
+      "title": "",
+      "id": "28874"
+    },
+    {
+      "type": "highlight",
+      "description": "`_withdrawCollectedFee` burns the parked shares, redeems underlying assets from the vault, zeroes the mappings, and emits `CollectedFeeWithdrawn`.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 281,
+          "end": 295
+        }
+      ],
+      "title": "",
+      "id": "28875"
+    },
+    {
+      "type": "textOnly",
+      "description": "You can now reason about who may create vaults (`DEFAULT_ADMIN_ROLE`), who can pause (`PAUSER_ROLE`), who can unpause (`MANAGER_ROLE`), and that fees are parked as vault shares under `collectedFees` until explicitly withdrawn.",
+      "title": "",
+      "id": "28876"
+    }
+  ]
+}

@@ -1,0 +1,163 @@
+{
+  "title": "7.4: BGTFeeDeployer.sol: Deterministic Deployment of Staker & FeeCollector",
+  "id": "q/0u7wa9oxHc3/9wKtoqJBUjT+adHNEH8YqHqL86THs=",
+  "originalId": 2444,
+  "position": 32,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "`BGT Staker` and `Fee Collector` don’t appear out of thin air; `governance` deploys them once, at addresses that everyone can calculate in advance, then fixes their parameters forever. Let’s follow that path.",
+      "title": "",
+      "id": "29255"
+    },
+    {
+      "type": "highlight",
+      "description": "The whole deployment story starts with inheritance.  `BGTFeeDeployer` extends `Create2Deployer` (line 4), importing every helper we need for deterministic `CREATE2` deployments.",
+      "file": "src/pol/BGTFeeDeployer.sol",
+      "highlight": [
+        {
+          "start": 4,
+          "end": 11
+        }
+      ],
+      "title": "",
+      "id": "29256"
+    },
+    {
+      "type": "highlight",
+      "description": "Inside the parent we meet the canonical factory address (line 14) and `deployWithCreate2` (24-35).  Passing `salt ‖ initCode` through this helper forces the resulting contract address to be a pure, predictable function of those two values.",
+      "file": "src/base/Create2Deployer.sol",
+      "highlight": [
+        {
+          "start": 13,
+          "end": 32
+        }
+      ],
+      "title": "",
+      "id": "29257"
+    },
+    {
+      "type": "highlight",
+      "description": "`deployProxyWithCreate2` (63-65) wraps the same mechanism but feeds the init-code of an `ERC-1967 proxy`.  The pattern lets us publish **up-gradable proxies** at deterministic locations.",
+      "file": "src/base/Create2Deployer.sol",
+      "highlight": [
+        {
+          "start": 59,
+          "end": 66
+        }
+      ],
+      "title": "",
+      "id": "29258"
+    },
+    {
+      "type": "highlight",
+      "description": "Lines 12-18 declare the proxy addresses as `immutable`. Once the **constructor** finishes these values can never change, giving the rest of the protocol a single, reliable source of truth.",
+      "file": "src/pol/BGTFeeDeployer.sol",
+      "highlight": [
+        {
+          "start": 12,
+          "end": 19
+        }
+      ],
+      "title": "",
+      "id": "29259"
+    },
+    {
+      "type": "highlight",
+      "description": "Constructor — step `①`: publish code.\n- Implementation byte-code is pushed with salt `0` (`28 & 34`). Nobody stores those addresses.\n- Proxies are deployed with governance-chosen salts (`31 & 36`). Because the salt is fixed, the final address is known before deployment.",
+      "file": "src/pol/BGTFeeDeployer.sol",
+      "highlight": [
+        {
+          "start": 20,
+          "end": 36
+        }
+      ],
+      "title": "",
+      "id": "29260"
+    },
+    {
+      "type": "highlight",
+      "description": "Constructor — step ②: initialise and cross-wire.\n- `BGTStaker.initialize` receives the fresh FeeCollector address (39).\n- `FeeCollector.initialize` receives the `BGTStaker` address **plus** the hard-coded `payoutAmount` (40).  From the first block each contract knows and trusts the other.",
+      "file": "src/pol/BGTFeeDeployer.sol",
+      "highlight": [
+        {
+          "start": 38,
+          "end": 41
+        }
+      ],
+      "title": "",
+      "id": "29261"
+    },
+    {
+      "type": "highlight",
+      "description": "Inside `BGTStaker.initialize` the constructor arguments are pushed into storage: ownership set, staking module configured, and the `Fee Collector` address persisted at line 51.",
+      "file": "src/pol/BGTStaker.sol",
+      "highlight": [
+        {
+          "start": 39,
+          "end": 52
+        }
+      ],
+      "title": "",
+      "id": "29262"
+    },
+    {
+      "type": "highlight",
+      "description": "`FeeCollector.initialize` likewise stores its critical parameters. Note how `payoutToken`, immutable `payoutAmount`, and `rewardReceiver` (= `BGTStaker`) are locked in before any fee can be claimed.",
+      "file": "src/pol/FeeCollector.sol",
+      "highlight": [
+        {
+          "start": 60,
+          "end": 73
+        }
+      ],
+      "title": "",
+      "id": "29263"
+    },
+    {
+      "type": "highlight",
+      "description": "Where do those salts come from?  `Governance` publishes them once in `POLSalts.sol`.  Changing a value would change the predicted **proxy address**, so they act as protocol constants.",
+      "file": "script/pol/POLSalts.sol",
+      "highlight": [
+        {
+          "start": 4,
+          "end": 11
+        }
+      ],
+      "title": "",
+      "id": "29264"
+    },
+    {
+      "type": "highlight",
+      "description": "`PAYOUT_AMOUNT` is fixed in the `deployment script` (37).  **Auditors** can therefore verify the exact fee that will ever be required to claim rewards.",
+      "file": "script/pol/deployment/3_DeployPoL.s.sol",
+      "highlight": [
+        {
+          "start": 35,
+          "end": 38
+        }
+      ],
+      "title": "",
+      "id": "29265"
+    },
+    {
+      "type": "highlight",
+      "description": "During live deployment those constants are fed straight into `BGTFeeDeployer` (126-128).  When the transaction lands, the proxies appear at their pre-computed addresses with all parameters sealed.",
+      "file": "script/pol/deployment/3_DeployPoL.s.sol",
+      "highlight": [
+        {
+          "start": 123,
+          "end": 131
+        }
+      ],
+      "title": "",
+      "id": "29266"
+    },
+    {
+      "type": "textOnly",
+      "description": "You can now take any live BGT Staker or Fee Collector address, trace it back to its `salt`, reproduce the address off-chain, and confirm the immutable parameters fixed by governance.",
+      "title": "",
+      "id": "29267"
+    }
+  ]
+}

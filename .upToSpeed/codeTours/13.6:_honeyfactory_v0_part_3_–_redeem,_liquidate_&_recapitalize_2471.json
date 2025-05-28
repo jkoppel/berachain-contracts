@@ -1,0 +1,176 @@
+{
+  "title": "13.6: HoneyFactory_V0 Part 3 – Redeem, Liquidate & Recapitalize",
+  "id": "UJCUh+Sg4AUM829JyiUXp9zj11911CyMYMHSsPaOS4M=",
+  "originalId": 2471,
+  "position": 59,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "This tour follows the three user-visible escape hatches – `redeem`, `liquidate` and `recapitalize` – and then examines the helpers they depend on. The tour demonstrates how cap limits, peg tests and invariant checks combine to keep `Honey` fully collateralised and close to its `USD` peg.",
+      "title": "",
+      "id": "29543"
+    },
+    {
+      "type": "highlight",
+      "description": "A standard redeem begins here. Lines 378-379 build an array sized to every registered asset while 380 (next slide) decides the code path. Before touching collateral the factory:\n- 378 confirms the asset really is registered.\n- 381 compares the caller's basket-mode expectation with live status, aborting on mismatch.\nThe function only continues when the external environment is exactly as the caller assumed.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 368,
+          "end": 379
+        }
+      ],
+      "title": "",
+      "id": "29544"
+    },
+    {
+      "type": "highlight",
+      "description": "Lines 390-401 handle the reference-collateral edge case.  Because relative caps are defined **against** this `token`, redeeming it could loosen other caps.  The loop re-runs `_isCappedRelative` for every other asset (396-400) and reverts if any would overflow.\nFinally 404-406 gate the whole transaction behind `globalCap`.  A single redemption cannot leave the basket overweight.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 390,
+          "end": 406
+        }
+      ],
+      "title": "",
+      "id": "29545"
+    },
+    {
+      "type": "highlight",
+      "description": "`_isCappedRelative` (695-710) enforces per-asset limits.  The `reference collateral` always passes (696-698).  For the rest it divides that asset’s `share balance` by the `reference balance` (700-709) and checks the result against the stored `relativeCap`.  If the `reference balance` is zero, every other asset must also be empty.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 695,
+          "end": 710
+        }
+      ],
+      "title": "",
+      "id": "29546"
+    },
+    {
+      "type": "highlight",
+      "description": "Global caps live in `_isCappedGlobal`.  For mints the loop (716-721) focuses only on the asset that will grow; for redeems it ignores the asset that will shrink (723-726).  Every remaining weight must sit below globalCap or the transaction reverts (728-729).",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 713,
+          "end": 732
+        }
+      ],
+      "title": "",
+      "id": "29547"
+    },
+    {
+      "type": "highlight",
+      "description": "`_redeem` converts `Honey` into vault shares (618-622) using the static `redeemRate`, burns the `Honey` (620-621) and immediately parks fee shares in protocol accounts.  Assets leave the vault through `_redeemShares` (625) and the vault’s invariants are checked again at 627-628 before the event is emitted.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 608,
+          "end": 630
+        }
+      ],
+      "title": "",
+      "id": "29548"
+    },
+    {
+      "type": "highlight",
+      "description": "`_getSharesRedeemedFromHoney` shows why redemption is slightly conservative.  `HoneyAmount` × `redeemRate` (655-656) gives the user’s shares; the difference (657-661) is protocol fee, split between PoL and the fee receiver.  Collateral therefore shrinks faster than Honey supply – a built-in safety buffer.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 647,
+          "end": 662
+        }
+      ],
+      "title": "",
+      "id": "29549"
+    },
+    {
+      "type": "highlight",
+      "description": "`_checkInvariants` is the last line of defence. Lines 770-776 verify that `totalAssets` (including **custody vaults**) cover `totalShares`; 779-784 ensure `collected fee shares` remain fully backed. Any imbalance reverts the whole user transaction.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 768,
+          "end": 785
+        }
+      ],
+      "title": "",
+      "id": "29550"
+    },
+    {
+      "type": "highlight",
+      "description": "`liquidate()` begins with strict policy gates. The asset to be removed must already be flagged `badCollateral` (437-438) and `global liquidation` must be enabled (434-435). Attempting to liquidate the reference asset is disallowed until governance replaces it (441-445).",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 430,
+          "end": 439
+        }
+      ],
+      "title": "",
+      "id": "29551"
+    },
+    {
+      "type": "highlight",
+      "description": "**Premium maths**: **good collateral** is first deposited (447-448) and valued. The swap size in **bad shares** is price-ratio adjusted and boosted by `liquidationRates` (451-452). If the basket lacks that many **bad shares**, lines 453-460 scale the swap down and refund the surplus **good collateral** so the **vault** never promises what it cannot deliver.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 447,
+          "end": 462
+        }
+      ],
+      "title": "",
+      "id": "29552"
+    },
+    {
+      "type": "highlight",
+      "description": "`Cap guards` (464-469) make sure the incoming good collateral does not over-weight its vault and that the shrinking bad vault still respects `globalCap`.  After swapping, both vaults pass through `_checkInvariants` (477-478) before **Liquidated** is emitted.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 464,
+          "end": 479
+        }
+      ],
+      "title": "",
+      "id": "29553"
+    },
+    {
+      "type": "highlight",
+      "description": "`recapitalize()` only activates when live assets sit below a governance-set `targetBalance` (`486-491`). The asset must still be pegged (`494-496`). Incoming amount is clipped so the vault merely reaches the target (`498-500`) – never above.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 483,
+          "end": 500
+        }
+      ],
+      "title": "",
+      "id": "29554"
+    },
+    {
+      "type": "highlight",
+      "description": "Shares are calculated once (503-504) and must exceed `minSharesToRecapitalize` (505-507) so spam cannot clog the function.  Depositing then re-runs relative and global caps (511-516) before invariants are rechecked (518) and the **Recapitalized** event signals success.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 502,
+          "end": 519
+        }
+      ],
+      "title": "",
+      "id": "29555"
+    },
+    {
+      "type": "textOnly",
+      "description": "Across all three pathways: **fee haircuts** widen the **collateral buffer**, **per-asset and basket caps** keep composition healthy, **peg and bad-collateral flags** block unsafe assets, and the **invariant audit** makes every operation self-consistent. These concentric defences ensure `Honey` supply is always covered and price deviations are quickly corrected.",
+      "title": "",
+      "id": "29556"
+    }
+  ]
+}

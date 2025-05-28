@@ -1,0 +1,163 @@
+{
+  "title": "5.11: HoneyDeployer & Deterministic Deployment",
+  "id": "MlLmiqPl+/uHkF9DNdC2d7qQyitJ7W1qS4tYn2XR0IE=",
+  "originalId": 2436,
+  "position": 24,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "The protocol makes every core address predictable by funneling all deployments through the same `CREATE2` helper.  We will follow the chain from the low-level factory up to the `Honey` and `HoneyFactory` proxies, highlighting the `salts`, `governance` and `priceOracle` parameters, and the `initialise` wiring that turns three raw proxies into a working system.",
+      "title": "",
+      "id": "29131"
+    },
+    {
+      "type": "highlight",
+      "description": "This code introduces the deterministic deployment factory - a well-known contract that enables predictable CREATE2 deployments. The factory address is a constant that anyone can use to deploy contracts to the same addresses across different networks. When combined with a salt value, this allows us to know contract addresses before they're actually deployed.",
+      "file": "src/base/Create2Deployer.sol",
+      "highlight": [
+        {
+          "start": 13,
+          "end": 38
+        }
+      ],
+      "title": "",
+      "id": "29132"
+    },
+    {
+      "type": "highlight",
+      "description": "`deployProxyWithCreate2` (63) re-uses the same trick with an `ERC1967` proxy byte-code assembled on 76-78.  Any proxy minted this way therefore inherits exactly the same deterministic property.",
+      "file": "src/base/Create2Deployer.sol",
+      "highlight": [
+        {
+          "start": 59,
+          "end": 78
+        }
+      ],
+      "title": "",
+      "id": "29133"
+    },
+    {
+      "type": "highlight",
+      "description": "`HoneyDeployer`’s constructor receives `governance`, `fee endpoints`, three `salts` and the `priceOracle`.  The very first action (36) spins up an `UpgradeableBeacon` that stores the `CollateralVault` implementation shared by every vault proxy.",
+      "file": "src/honey/HoneyDeployer.sol",
+      "highlight": [
+        {
+          "start": 26,
+          "end": 37
+        }
+      ],
+      "title": "",
+      "id": "29134"
+    },
+    {
+      "type": "highlight",
+      "description": "Next it deterministically deploys the Honey implementation (39) and its proxy (41) using `honeySalt`, then repeats the pattern for `HoneyFactory` with `honeyFactorySalt` (44-46).  Both proxies land at addresses that are a pure function of their salt and byte-code hash.",
+      "file": "src/honey/HoneyDeployer.sol",
+      "highlight": [
+        {
+          "start": 38,
+          "end": 46
+        }
+      ],
+      "title": "",
+      "id": "29135"
+    },
+    {
+      "type": "highlight",
+      "description": "A third CREATE2 round produces the `HoneyFactoryReader` proxy (51). The three initialise calls that follow wire everything together:\n* `Honey` gets `governance` and the freshly deployed factory.\n* `HoneyFactory` gets `governance`, `Honey`, POL fee collector, fee receiver, `priceOracle`, and the beacon.\n* The reader learns `governance` and `factory`.",
+      "file": "src/honey/HoneyDeployer.sol",
+      "highlight": [
+        {
+          "start": 48,
+          "end": 56
+        }
+      ],
+      "title": "",
+      "id": "29136"
+    },
+    {
+      "type": "highlight",
+      "description": "`Honey.initialize` records the `factory` (34) and grants `DEFAULT_ADMIN_ROLE` to `governance` (35). From this moment on only the `factory` can `mint` or `burn` tokens.",
+      "file": "src/honey/Honey.sol",
+      "highlight": [
+        {
+          "start": 27,
+          "end": 35
+        }
+      ],
+      "title": "",
+      "id": "29137"
+    },
+    {
+      "type": "highlight",
+      "description": "`HoneyFactory.initialize` pulls all critical knobs into one place: governance, the `Honey token`, `POL fee collector`, `fee receiver`, `priceOracle`, and the `vault beacon` (90-100).",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 89,
+          "end": 101
+        }
+      ],
+      "title": "",
+      "id": "29138"
+    },
+    {
+      "type": "highlight",
+      "description": "105-112 store the `oracle` and set initial fee rates plus latency limits. None of these runtime values influence the `proxy address`, keeping it fully deterministic.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 102,
+          "end": 116
+        }
+      ],
+      "title": "",
+      "id": "29139"
+    },
+    {
+      "type": "highlight",
+      "description": "All three `salts` live in one tiny `contract` so anyone can reproduce the calculation **off-chain**.",
+      "file": "script/honey/HoneySalts.sol",
+      "highlight": [
+        {
+          "start": 4,
+          "end": 6
+        }
+      ],
+      "title": "",
+      "id": "29140"
+    },
+    {
+      "type": "highlight",
+      "description": "The prediction script uses the same `Create2Deployer` logic to print the addresses before anything is mined – a quick verification tool for auditors and front-ends.",
+      "file": "script/honey/HoneyPredictAddresses.s.sol",
+      "highlight": [
+        {
+          "start": 14,
+          "end": 18
+        }
+      ],
+      "title": "",
+      "id": "29141"
+    },
+    {
+      "type": "highlight",
+      "description": "`getCreate2Address` (55-56) shows the pure formula: `address = keccak256(0xff ++ factory ++ salt ++ initCodeHash)[12:]`.  With `factory`, `salt` and `initCodeHash` all fixed, the result is inevitable.",
+      "file": "src/base/Create2Deployer.sol",
+      "highlight": [
+        {
+          "start": 46,
+          "end": 57
+        }
+      ],
+      "title": "",
+      "id": "29142"
+    },
+    {
+      "type": "textOnly",
+      "description": "By funnelling every deployment through the same `CREATE2` factory, with hard-coded salts and **constructor-less proxies**, `Honey`, `HoneyFactory` and their reader will always appear at the same addresses. The **beacon pattern** then lets future upgrades swap implementations without ever moving those proxies, preserving the pre-computable location forever.",
+      "title": "",
+      "id": "29143"
+    }
+  ]
+}

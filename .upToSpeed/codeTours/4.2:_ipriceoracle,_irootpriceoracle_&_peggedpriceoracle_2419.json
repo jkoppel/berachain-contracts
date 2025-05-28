@@ -1,0 +1,136 @@
+{
+  "title": "4.2: IPriceOracle, IRootPriceOracle & PeggedPriceOracle",
+  "id": "/hKjDUGRTxXyLsN4CafSBnk3PmGTyEXczlMMcpa8Mbw=",
+  "originalId": 2419,
+  "position": 11,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Start with the canonical interface every price feed must satisfy.",
+      "title": "",
+      "id": "28815"
+    },
+    {
+      "type": "highlight",
+      "description": "The `Data` struct packs the entire quote: `line 10` stores the `USD` price scaled to `WAD` (`1 = 1 e18`) while `line 12` pins the exact second it was published – callers can judge freshness themselves.",
+      "file": "src/extras/IPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 8,
+          "end": 13
+        }
+      ],
+      "title": "",
+      "id": "28816"
+    },
+    {
+      "type": "highlight",
+      "description": "Two custom errors set a clear contract: never pass `address(0)` and only ask for assets the **oracle** tracks.",
+      "file": "src/extras/IPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 15,
+          "end": 18
+        }
+      ],
+      "title": "",
+      "id": "28817"
+    },
+    {
+      "type": "highlight",
+      "description": "Three read functions give a spectrum of recency guarantees.  \n- `getPrice` (lines 23-24) must revert if the stored update is deemed stale.  \n- `getPriceUnsafe` (lines 25-33) removes all checks – the caller must inspect `publishTime`.",
+      "file": "src/extras/IPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 19,
+          "end": 33
+        }
+      ],
+      "title": "",
+      "id": "28818"
+    },
+    {
+      "type": "highlight",
+      "description": "`getPriceNoOlderThan` (lines 35-40) lets the caller specify the tolerated staleness, reverting otherwise. `priceAvailable` (line 42) is a cheap existence probe and says nothing about freshness.",
+      "file": "src/extras/IPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 35,
+          "end": 44
+        }
+      ],
+      "title": "",
+      "id": "28819"
+    },
+    {
+      "type": "textOnly",
+      "description": "Root oracles combine multiple feeds and therefore extend the **base interface**.",
+      "title": "",
+      "id": "28820"
+    },
+    {
+      "type": "highlight",
+      "description": "Alongside everything inherited, `IRootPriceOracle` adds an **UnreliablePrice** error (line 10) for situations where only a spot-oracle price is live, plus events (lines 14-18) that broadcast any swap of the underlying spot or Pyth oracles.",
+      "file": "src/extras/IRootPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 6,
+          "end": 19
+        }
+      ],
+      "title": "",
+      "id": "28821"
+    },
+    {
+      "type": "textOnly",
+      "description": "With the **interfaces** clear, inspect the smallest possible compliant implementation.",
+      "title": "",
+      "id": "28822"
+    },
+    {
+      "type": "highlight",
+      "description": "`_priceData` hard-codes a perfect peg: 1 USD (`1 e18`) and the current block timestamp. Every public read will reuse this struct.",
+      "file": "src/extras/PeggedPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 11,
+          "end": 14
+        }
+      ],
+      "title": "",
+      "id": "28823"
+    },
+    {
+      "type": "highlight",
+      "description": "All three getters simply ignore their parameters and forward `_priceData`, automatically passing any recency test the caller might impose.",
+      "file": "src/extras/PeggedPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 20,
+          "end": 37
+        }
+      ],
+      "title": "",
+      "id": "28824"
+    },
+    {
+      "type": "highlight",
+      "description": "`priceAvailable` always returns true, completing the contract with the least code possible.",
+      "file": "src/extras/PeggedPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 39,
+          "end": 43
+        }
+      ],
+      "title": "",
+      "id": "28825"
+    },
+    {
+      "type": "textOnly",
+      "description": "This trivial oracle honours every rule we saw: **WAD precision**, **explicit timestamps**, **clear recency semantics**, and **custom error expectations** – making it an ideal placeholder until real feeds come online.",
+      "title": "",
+      "id": "28826"
+    }
+  ]
+}

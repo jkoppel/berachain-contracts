@@ -1,0 +1,150 @@
+{
+  "title": "8.2: Block Reward Controller Interface",
+  "id": "UrBhWit/x2iFo4IHYltERdj5gJ3kO4W42fb/qZS2dQk=",
+  "originalId": 2446,
+  "position": 34,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "This tour focuses on `BlockRewardController`'s public interface and the governance levers that steer `BGT` issuance. We will step through:\n- every event and why off-chain software should listen\n- the read-only views that surface the current tuning\n- the pure `computeReward` helper and its embedded formula\n- `processRewards` – the distributor's entry point each block\n- each setter and the `onlyOwner` gate that binds them to governance\n\nWe assume you already met the underlying storage variables and the `BGT` token earlier.",
+      "title": "",
+      "id": "29203"
+    },
+    {
+      "type": "highlight",
+      "description": "Three events mark changes to the core inflation knobs.  **Indexers** can rely on them to build a **time-series** of `base`, `variable` and `floor` parameters for any historical block.",
+      "file": "src/pol/interfaces/IBlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 11,
+          "end": 32
+        }
+      ],
+      "title": "",
+      "id": "29204"
+    },
+    {
+      "type": "highlight",
+      "description": "Two additional parameter events track the boost curve, while `SetDistributor` and `BlockRewardProcessed` give operational visibility: the first rotates the distribution module, the second fires once per processed beacon block so explorers can reconcile minted supply.",
+      "file": "src/pol/interfaces/IBlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 33,
+          "end": 55
+        }
+      ],
+      "title": "",
+      "id": "29205"
+    },
+    {
+      "type": "highlight",
+      "description": "These view functions surface the live values held in storage.  Each getter maps 1-to-1 with a variable you saw earlier (`baseRate`, `rewardRate`, `minBoostedRewardRate`, `boostMultiplier`, `rewardConvexity`).  Dashboards read them between blocks; scripts use them as inputs for what-if simulations.",
+      "file": "src/pol/interfaces/IBlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 56,
+          "end": 74
+        }
+      ],
+      "title": "",
+      "id": "29206"
+    },
+    {
+      "type": "highlight",
+      "description": "`computeReward` is a pure helper that anyone (on-chain or off) can call to model issuance. The docstring embeds the closed-form formula:\n\n`r = (1 + mul) \\cdot (1 - 1 / (1 + mul \\cdot boost^{conv})) \\cdot rewardRate \\in [0 , mul \\cdot rewardRate]`\n\nNotice how the multiplier caps rewards while convexity controls the curvature towards that cap.",
+      "file": "src/pol/interfaces/IBlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 76,
+          "end": 85
+        }
+      ],
+      "title": "",
+      "id": "29207"
+    },
+    {
+      "type": "highlight",
+      "description": "The implementation uses `Solady`’s `math helpers` to keep every operand in fixed-point. Lines 188-197 clamp numerical error so the result never exceeds the theoretical maximum – an important invariant for supply accounting.",
+      "file": "src/pol/rewards/BlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 166,
+          "end": 200
+        }
+      ],
+      "title": "",
+      "id": "29208"
+    },
+    {
+      "type": "highlight",
+      "description": "`processRewards` is the single public method the distributor calls for each validator:\n- `pubkey` (bytes) – the 48-byte beacon pubkey\n- `nextTimestamp` – timestamp of the beacon block just processed\n- `isReady` – flips to true once `BeraChef` can handle boosted rewards\nIt returns the amount just minted to the distributor.",
+      "file": "src/pol/interfaces/IBlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 104,
+          "end": 112
+        }
+      ],
+      "title": "",
+      "id": "29209"
+    },
+    {
+      "type": "highlight",
+      "description": "Inside, base rewards always mint straight to the operator (lines 235-238).  Boosted rewards are minted to the distributor (line 241) only when `isReady` is true.  The event at line 233 writes the full breakdown so off-chain agents never need to replay the math.",
+      "file": "src/pol/rewards/BlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 212,
+          "end": 241
+        }
+      ],
+      "title": "",
+      "id": "29210"
+    },
+    {
+      "type": "highlight",
+      "description": "Governance tuning happens through these five `setters`. Each one updates exactly one of the `storage variables` you already know, and every call emits the matching `event` for auditability.",
+      "file": "src/pol/interfaces/IBlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 114,
+          "end": 147
+        }
+      ],
+      "title": "",
+      "id": "29211"
+    },
+    {
+      "type": "highlight",
+      "description": "Example implementation: `setBaseRate`. The `onlyOwner` modifier inherited from OpenZeppelin’s `OwnableUpgradeable` restricts this call to the governance timelock. A guard rejects values above `MAX_BASE_RATE`, then the event broadcasts the change.",
+      "file": "src/pol/rewards/BlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 107,
+          "end": 115
+        }
+      ],
+      "title": "",
+      "id": "29212"
+    },
+    {
+      "type": "highlight",
+      "description": "All other setters follow the same pattern.  This one for reward convexity stores the value as `int256`, matching the type expected by the reward formula while still protecting against zero or out-of-range inputs.",
+      "file": "src/pol/rewards/BlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 143,
+          "end": 151
+        }
+      ],
+      "title": "",
+      "id": "29213"
+    },
+    {
+      "type": "textOnly",
+      "description": "You now have the complete map of `BlockRewardController`’s public API and governance surface: which calls mutate state, which simply reflect it, and which events to monitor to stay perfectly in sync.",
+      "title": "",
+      "id": "29214"
+    }
+  ]
+}

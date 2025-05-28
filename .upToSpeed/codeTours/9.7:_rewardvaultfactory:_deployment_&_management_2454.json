@@ -1,0 +1,176 @@
+{
+  "title": "9.7: RewardVaultFactory: Deployment & Management",
+  "id": "8iX5EgwFFRsPiomqzsWqrYgj32frIFyzTd3Gza4AsNA=",
+  "originalId": 2454,
+  "position": 42,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "We'll explore how `RewardVaultFactory` mass-deploys vaults via the **beacon-proxy pattern**. We'll cover **role hierarchy**, **initialization**, **vault creation steps**, **address prediction**, **governance gates**, **upgradeability**, **factory ownership**, and finally how **deterministic fan-out** yields one vault per staking token.",
+      "title": "",
+      "id": "29307"
+    },
+    {
+      "type": "highlight",
+      "description": "These lines define the core roles and key storage. `VAULT_MANAGER_ROLE` is the admin for `VAULT_PAUSER_ROLE`, so vault managers can grant or revoke pausing rights. The beacon address points to the `UpgradeableBeacon` that will govern all vault proxies.",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 22,
+          "end": 33
+        }
+      ],
+      "title": "",
+      "id": "29308"
+    },
+    {
+      "type": "highlight",
+      "description": "initialize sets up `AccessControl` and `UUPS`, grants `DEFAULT_ADMIN_ROLE` to `governance`, makes `VAULT_MANAGER_ROLE` the admin of `VAULT_PAUSER_ROLE`, stores `BGT` token, `distributor`, and `beaconDepositContract`, then deploys an `UpgradeableBeacon` using `governance` as the beacon owner and `vaultImpl` as the implementation.",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 55,
+          "end": 79
+        }
+      ],
+      "title": "",
+      "id": "29309"
+    },
+    {
+      "type": "highlight",
+      "description": "Duplicate guard: if `getVault[stakingToken]` is nonzero, return the existing vault immediately, preventing redundant deployments.",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 100,
+          "end": 102
+        }
+      ],
+      "title": "",
+      "id": "29310"
+    },
+    {
+      "type": "highlight",
+      "description": "Contract check: `stashToken.code.length` must be >0, so we reject **EOAs**. This ensures only **token contracts** can have vaults.",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 103,
+          "end": 105
+        }
+      ],
+      "title": "",
+      "id": "29311"
+    },
+    {
+      "type": "highlight",
+      "description": "**Salt computation**: **assembly** loads `stakingToken` into memory and hashes it to produce a unique salt. This makes each vault address deterministic and tied to its `staking token`.",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 108,
+          "end": 111
+        }
+      ],
+      "title": "",
+      "id": "29312"
+    },
+    {
+      "type": "highlight",
+      "description": "This line deploys a minimal proxy that inherits its implementation from the beacon contract, enabling upgradeable functionality through the beacon pattern.",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 112,
+          "end": 114
+        }
+      ],
+      "title": "",
+      "id": "29313"
+    },
+    {
+      "type": "highlight",
+      "description": "**State registration**: store the new vault in `getVault` and append it to `allVaults`, then emit `VaultCreated` for off-chain indexing.",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 115,
+          "end": 117
+        }
+      ],
+      "title": "",
+      "id": "29314"
+    },
+    {
+      "type": "highlight",
+      "description": "**Vault initialization:** The final step configures the newly created vault by setting up the vault's core dependencies through the initialization process in the beacon-proxy pattern.",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 120,
+          "end": 123
+        }
+      ],
+      "title": "",
+      "id": "29315"
+    },
+    {
+      "type": "highlight",
+      "description": "`predictRewardVaultAddress` replicates the salt logic in view mode and uses `LibClone.predictDeterministicAddressERC1967BeaconProxy`, allowing off-chain or pre-deployment address calculation.",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 129,
+          "end": 137
+        }
+      ],
+      "title": "",
+      "id": "29316"
+    },
+    {
+      "type": "highlight",
+      "description": "This function ensures that changes to the incentive distributor can only be made through proper governance channels, maintaining secure administrative control over reward distribution.",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 87,
+          "end": 92
+        }
+      ],
+      "title": "",
+      "id": "29317"
+    },
+    {
+      "type": "highlight",
+      "description": "`_authorizeUpgrade` overrides `UUPS` and requires `DEFAULT_ADMIN_ROLE`, enforcing that only governance can upgrade the factory implementation.",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 85,
+          "end": 86
+        }
+      ],
+      "title": "",
+      "id": "29318"
+    },
+    {
+      "type": "highlight",
+      "description": "This initialization establishes the ownership hierarchy where each deployed vault recognizes its factory as its owner, enabling factory-level control over critical vault operations.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 108,
+          "end": 108
+        }
+      ],
+      "title": "",
+      "id": "29319"
+    },
+    {
+      "type": "textOnly",
+      "description": "In summary, the `factory` deploys a single beacon-backed implementation and fans out minimal proxies deterministically keyed by staking token. Roles create a **governance → vault manager → vault pauser** hierarchy, `DEFAULT_ADMIN_ROLE` controls upgrades and distributor settings, and `factory` ownership secures privileged vault actions.",
+      "title": "",
+      "id": "29320"
+    }
+  ]
+}

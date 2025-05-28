@@ -1,0 +1,150 @@
+{
+  "title": "9.5: Reward Distribution Flow",
+  "id": "qr+bLVSN+7ly9kx9v/VkodOdK0ZB0u25vscQDqSizZ8=",
+  "originalId": 2452,
+  "position": 40,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "**A BGT emission** enters the `vault` through one `public entry-point` and fans out into several `guarded token transfers`. We will trace that path step-by-step.",
+      "title": "",
+      "id": "29321"
+    },
+    {
+      "type": "highlight",
+      "description": "**The Distributor** calls `notifyRewardAmount`. Two things happen:\n- reward accounting is updated via the inherited `_notifyRewardAmount`\n- the same emission is immediately routed to the incentive engine through `_processIncentives`",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 157,
+          "end": 161
+        }
+      ],
+      "title": "",
+      "id": "29322"
+    },
+    {
+      "type": "highlight",
+      "description": "`_notifyRewardAmount` lives in the shared `StakingRewards` base. We only need to know it exists – it credits the emission to the vault; the heavy lifting for incentives happens elsewhere.",
+      "file": "src/base/StakingRewards.sol",
+      "highlight": [
+        {
+          "start": 104,
+          "end": 109
+        }
+      ],
+      "title": "",
+      "id": "29323"
+    },
+    {
+      "type": "highlight",
+      "description": "`_processIncentives` begins by resolving who should receive the incentives:\n- `BeaconDeposit` maps the validator's pubkey ➜ operator address (`line 459`).\n- It grabs helper contracts (`BeraChef` and the `BGTIncentiveDistributor`) for later splits.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 452,
+          "end": 460
+        }
+      ],
+      "title": "",
+      "id": "29324"
+    },
+    {
+      "type": "highlight",
+      "description": "A for-loop iterates over every whitelisted incentive token. For each token:\n\n`amount = bgtEmitted × incentiveRate ÷ PRECISION` (`line 468`) and is then capped by what is still un-spent (`line 470`).",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 463,
+          "end": 470
+        }
+      ],
+      "title": "",
+      "id": "29325"
+    },
+    {
+      "type": "highlight",
+      "description": "BeraChef calculates and deducts the validator's portion of the rewards before proceeding with other distributions.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 472,
+          "end": 476
+        }
+      ],
+      "title": "",
+      "id": "29326"
+    },
+    {
+      "type": "highlight",
+      "description": "If `validatorShare` > 0 the `vault` sends it straight to the `operator` (`line 481`).  Success and failure are logged; failures **do NOT revert** so other tokens in the same loop are not blocked.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 478,
+          "end": 487
+        }
+      ],
+      "title": "",
+      "id": "29327"
+    },
+    {
+      "type": "highlight",
+      "description": "The remaining portion is routed to BGT boosters:\n1. `approve()` is issued with a strict `SAFE_GAS_LIMIT` (line 495).\n2. The booster distributor is called, also under `SAFE_GAS_LIMIT` (line 500).\n3. If any leg fails the allowance is reset to 0 (lines 506-510) so **\"sticky-approval\"** tokens like `USDT` cannot jam future payouts.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 491,
+          "end": 510
+        }
+      ],
+      "title": "",
+      "id": "29328"
+    },
+    {
+      "type": "highlight",
+      "description": "After every token’s transfer attempts, the vault debits bookkeeping – `incentive.amountRemaining` is updated to reflect what was actually delivered.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 519,
+          "end": 520
+        }
+      ],
+      "title": "",
+      "id": "29329"
+    },
+    {
+      "type": "highlight",
+      "description": "Two caps safeguard the whole flow:\n- `MAX_INCENTIVE_RATE` bounds per-emission rates (`line 61`).\n- `SAFE_GAS_LIMIT` (`line 65`) ensures low-level calls cannot be abused to consume excessive gas.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 61,
+          "end": 67
+        }
+      ],
+      "title": "",
+      "id": "29330"
+    },
+    {
+      "type": "highlight",
+      "description": "Every incentive token maintains its own accounting via this `struct`. `amountRemaining` feeds the `cap` we saw earlier and is the single source of truth for what is left to pay out.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 49,
+          "end": 58
+        }
+      ],
+      "title": "",
+      "id": "29331"
+    },
+    {
+      "type": "textOnly",
+      "description": "Putting it all together: every `BGT` emission gets priced against each incentive token (subject to `MAX_INCENTIVE_RATE`), split between the validator and boosters, and `amountRemaining` is reduced – all under `SAFE_GAS_LIMIT` so a mis-behaving token cannot block rewards for the rest of the network.",
+      "title": "",
+      "id": "29332"
+    }
+  ]
+}

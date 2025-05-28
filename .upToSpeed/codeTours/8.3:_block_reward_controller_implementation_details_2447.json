@@ -1,0 +1,137 @@
+{
+  "title": "8.3: Block Reward Controller Implementation Details",
+  "id": "vyray3TblcVSKkgPds1cxyFCb6a99kPKmigR6Z0VqmE=",
+  "originalId": 2447,
+  "position": 35,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "This walkthrough focuses on the `BlockRewardController`’s core logic. You’ll learn how governance bounds its parameters, how storage slots map to the interface, how a minimal `onlyDistributor` check works, how `setters` enforce safe limits, the convex reward formula, its ceiling/floor logic, and the end-to-end reward minting flow.",
+      "title": "",
+      "id": "29278"
+    },
+    {
+      "type": "highlight",
+      "description": "Five `MAX_*` constants cap all governance-controlled parameters:\n- `MAX_BASE_RATE`, `MAX_REWARD_RATE` → upper-bounds linear mint rates.\n- `MAX_MIN_BOOSTED_REWARD_RATE` → prevents an excessive floor after boosts.\n- `MAX_BOOST_MULTIPLIER` → limits the multiplier in the curve.\n- `MAX_REWARD_CONVEXITY` → cements convexity ≤ 1, ensuring a concave shape.",
+      "file": "src/pol/rewards/BlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 23,
+          "end": 36
+        }
+      ],
+      "title": "",
+      "id": "29279"
+    },
+    {
+      "type": "highlight",
+      "description": "Each storage slot has a public getter in the interface:\n- `bgt`, `beaconDepositContract`, `distributor` → token, operator lookup, and distributor address.\n- `baseRate`, `rewardRate`                    → flat and unscaled mint rates.\n- `minBoostedRewardRate`, `boostMultiplier`, `rewardConvexity` → floor, vertical stretch, and curve shape parameters.",
+      "file": "src/pol/rewards/BlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 42,
+          "end": 64
+        }
+      ],
+      "title": "",
+      "id": "29280"
+    },
+    {
+      "type": "highlight",
+      "description": "This modifier implements access control using the Utils library's revertWith pattern. The pattern handles unauthorized access by reverting the transaction with a custom error selector when the caller is not the designated distributor.",
+      "file": "src/pol/rewards/BlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 96,
+          "end": 101
+        }
+      ],
+      "title": "",
+      "id": "29281"
+    },
+    {
+      "type": "highlight",
+      "description": "`Utils.revertWith` writes only the `4-byte selector` into memory and reverts. Compared to strings, this is gas-cheaper and lets off-chain systems pattern-match errors by selector alone.",
+      "file": "src/libraries/Utils.sol",
+      "highlight": [
+        {
+          "start": 16,
+          "end": 22
+        }
+      ],
+      "title": "",
+      "id": "29282"
+    },
+    {
+      "type": "highlight",
+      "description": "Example setter: `setBaseRate`\n- guard (108–110): revert if > `MAX_BASE_RATE`.\n- emit (112): `BaseRateChanged(old, new)` to aid monitoring.\n- assign (114): update storage.  \nAll other setters repeat this `guard`→`event`→`write` pattern.",
+      "file": "src/pol/rewards/BlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 107,
+          "end": 115
+        }
+      ],
+      "title": "",
+      "id": "29283"
+    },
+    {
+      "type": "highlight",
+      "description": "Skimming remaining setters:\n- `setRewardRate`    (118–123)\n- `setMinBoosted...` (126–132)\n- `setBoostMultiplier` (136–140)\n- `setRewardConvexity` (145–151) includes a `conv>0` check.\n- `setDistributor`    (155–160) ensures nonzero address.\nEach uses its `MAX_*` or `zero-address` guard before emitting and assigning.",
+      "file": "src/pol/rewards/BlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 116,
+          "end": 160
+        }
+      ],
+      "title": "",
+      "id": "29284"
+    },
+    {
+      "type": "highlight",
+      "description": "computeReward crafts a concave, capped curve:\n- `boost==1 WAD` ➔ `mul*rewardRate` shortcut (185).\n- `tmp_0 = boost^conv ∈ (0,1]`        (188).\n- `tmp_1 = 1 + mul*tmp_0`             (190).\n- `tmp_2 = 1 – 1/tmp_1 ∈ [0, mul/(1+mul)]` (192).\n- `coeff = tmp_2*(1+mul)`, capped at `mul` (196).\n- `reward = rewardRate*coeff`         (198–199).\nThat cap ensures `reward≤mul*rewardRate`, matching **MAX_BOOST_MULTIPLIER**.",
+      "file": "src/pol/rewards/BlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 166,
+          "end": 200
+        }
+      ],
+      "title": "",
+      "id": "29285"
+    },
+    {
+      "type": "highlight",
+      "description": "`getMaxBGTPerBlock` calls `computeReward` with full boost:\n- `amount = computeReward(1e18, rewardRate, boostMultiplier, rewardConvexity)`.\n- enforce `amount ≥ minBoostedRewardRate` floor (206–208).\n- add `baseRate` at the end (209).\nThis forms a safety ceiling and drives the token's reserve maths.",
+      "file": "src/pol/rewards/BlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 203,
+          "end": 210
+        }
+      ],
+      "title": "",
+      "id": "29286"
+    },
+    {
+      "type": "highlight",
+      "description": "`processRewards` orchestrates minting:\n- 222-231: compute base and boosted rewards (applying the `floor`).\n- 233: emit `BlockRewardProcessed` for on-chain transparency.\n- 235-238: lookup operator via `beaconDeposit.getOperator(pubkey)` (view only) and mint base to it.\n- 240-241: mint boosted portion to distributor for downstream vaults.\nAll external calls (`beaconDeposit`, `BGT.mint`) happen after safety checks to avoid reentrancy issues.",
+      "file": "src/pol/rewards/BlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 212,
+          "end": 243
+        }
+      ],
+      "title": "",
+      "id": "29287"
+    },
+    {
+      "type": "textOnly",
+      "description": "You’ve now seen how `governance` bounds every parameter, how `storage maps` cleanly map to the `interface`, how a lean `modifier` pairs with a custom `revert`, how every `setter` is safe by design, how a concave reward formula is computed and capped, and how `processRewards` ties it all together into a **secure minting flow**.",
+      "title": "",
+      "id": "29288"
+    }
+  ]
+}

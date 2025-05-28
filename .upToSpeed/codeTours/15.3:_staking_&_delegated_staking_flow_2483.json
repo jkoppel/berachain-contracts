@@ -1,0 +1,189 @@
+{
+  "title": "15.3: Staking & Delegated Staking Flow",
+  "id": "csnHyhXsu4OVsjETiJuLActUlsG2IrvuhcsLGPNar9I=",
+  "originalId": 2483,
+  "position": 71,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Follow the life-cycle of **BGT** inside the **vault**: a user self-stakes, delegates add extra weight, both sides withdraw safely, and an optional operator helps claim rewards.  At each stop we will look at the bookkeeping that enforces the **“only your self-stake is yours”** rule.",
+      "title": "",
+      "id": "29756"
+    },
+    {
+      "type": "highlight",
+      "description": "Staking begins here.  The public `stake` entry point does nothing except forward to the shared `_stake` helper – all accounting lives in the base library.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 286,
+          "end": 290
+        }
+      ],
+      "title": "",
+      "id": "29757"
+    },
+    {
+      "type": "highlight",
+      "description": "`_stake` in detail: 159-161 reject zero deposits, 162-166 turn on rewards for the very first stake, 168 updates rewards before balances move, 170-178 adds to both `totalSupply` and the caller’s balance with explicit overflow checks, and 179-180 pulls `BGT` from the staker.  Every later feature (delegation, exit, etc.) relies on this same engine.",
+      "file": "src/base/StakingRewards.sol",
+      "highlight": [
+        {
+          "start": 156,
+          "end": 180
+        }
+      ],
+      "title": "",
+      "id": "29758"
+    },
+    {
+      "type": "highlight",
+      "description": "`delegateStake` starts with the same `_stake` call (296) but then records who provided the capital.  298-302 bump the owner’s `delegateTotalStaked`, while 303-304 track the slice attributable to this delegate.  The `DelegateStaked` event (306) lets off-chain indexers follow the action.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 293,
+          "end": 306
+        }
+      ],
+      "title": "",
+      "id": "29759"
+    },
+    {
+      "type": "highlight",
+      "description": "Where that data lives: each account owns one `DelegateStake` struct that holds an aggregate counter plus a per-delegate mapping.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 41,
+          "end": 47
+        }
+      ],
+      "title": "",
+      "id": "29760"
+    },
+    {
+      "type": "highlight",
+      "description": "A normal `withdraw` first passes the `checkSelfStakedBalance` gate, ensuring the caller cannot touch tokens that delegates have locked in for them.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 309,
+          "end": 312
+        }
+      ],
+      "title": "",
+      "id": "29761"
+    },
+    {
+      "type": "highlight",
+      "description": "The modifier wires the guard into every `self-withdraw` call.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 136,
+          "end": 139
+        }
+      ],
+      "title": "",
+      "id": "29762"
+    },
+    {
+      "type": "highlight",
+      "description": "_checkSelfStakedBalance subtracts `delegateTotalStaked` from the user’s raw vault balance (`433`) and reverts with `InsufficientSelfStake` if the result is too small (`434-435`).  This single arithmetic line enforces the vault’s core safety property.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 431,
+          "end": 435
+        }
+      ],
+      "title": "",
+      "id": "29763"
+    },
+    {
+      "type": "highlight",
+      "description": "`delegateWithdraw` mirrors the stake path in reverse: 319-324 update the per-delegate and total delegated counters with under/overflow comments, then 326 funnels into the same `_withdraw` core. Because `_withdraw` already checks the owner’s total balance, the additional math only needs to protect the delegate’s slice.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 315,
+          "end": 326
+        }
+      ],
+      "title": "",
+      "id": "29764"
+    },
+    {
+      "type": "highlight",
+      "description": "`exit` provides a one-shot \"pull everything\" flow: line 346 calculates *self-stake only*, withdraws it, and immediately forwards all accrued rewards to the chosen recipient.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 343,
+          "end": 349
+        }
+      ],
+      "title": "",
+      "id": "29765"
+    },
+    {
+      "type": "highlight",
+      "description": "A staker can assign an operator with `setOperator`; the mapping is a single storage write and fires an `OperatorSet` event.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 351,
+          "end": 355
+        }
+      ],
+      "title": "",
+      "id": "29766"
+    },
+    {
+      "type": "highlight",
+      "description": "`onlyOperatorOrUser` checks every reward-claiming path: the caller must be the **owner** (**130**) or the recorded operator (**131-132**).",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 129,
+          "end": 134
+        }
+      ],
+      "title": "",
+      "id": "29767"
+    },
+    {
+      "type": "highlight",
+      "description": "Storage recap inside the vault itself: `_delegateStake` keeps delegate maths, `_operators` keeps operator addresses.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 82,
+          "end": 86
+        }
+      ],
+      "title": "",
+      "id": "29768"
+    },
+    {
+      "type": "highlight",
+      "description": "And in the shared base contract each user’s raw balance and reward counters live in `_accountInfo`.",
+      "file": "src/base/StakingRewards.sol",
+      "highlight": [
+        {
+          "start": 64,
+          "end": 66
+        }
+      ],
+      "title": "",
+      "id": "29769"
+    },
+    {
+      "type": "textOnly",
+      "description": "Putting it together: your raw vault balance (`_accountInfo.balance`) minus what delegates provided (`delegateTotalStaked`) equals your true self-stake, and every withdrawal path must respect that. Delegates can add or remove their own capital, and an operator can harvest rewards, but only the owner can touch self-stake. The **arithmetic guard** at 431-435 is the single line that makes it all safe.",
+      "title": "",
+      "id": "29770"
+    }
+  ]
+}

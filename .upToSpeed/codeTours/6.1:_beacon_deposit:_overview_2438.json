@@ -1,0 +1,92 @@
+{
+  "title": "6.1: Beacon Deposit: Overview",
+  "id": "cC//yEkzqWd4BtQQ3LDghprHRWkL04eLlABTqDX7pRU=",
+  "originalId": 2438,
+  "position": 26,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "**BeaconDeposit** is the smart-contract gatekeeper for validator deposits and operator management. Its **ABI** is split in two:\n- `IBeaconDeposit.sol` – pure interface, with events and function signatures.\n- `BeaconDeposit.sol` – implementation that enforces deposit rules, stores operator data, and emits the events the beacon-chain indexes.\nThis short tour shows where each core idea lives so later deep-dives feel familiar.",
+      "title": "",
+      "id": "29066"
+    },
+    {
+      "type": "highlight",
+      "description": "The interface opens with four event types. From the names alone you know the component records stake inflow (`Deposit`) and the full life-cycle of operator rotation (`Queued`, `Cancelled`, `Updated`). The implementation will emit exactly these.",
+      "file": "src/pol/interfaces/IBeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 12,
+          "end": 48
+        }
+      ],
+      "title": "",
+      "id": "29067"
+    },
+    {
+      "type": "highlight",
+      "description": "A glance at the header confirms focus: the contract `handles validators deposits` and its **events** are what the beacon chain cares about.",
+      "file": "src/pol/BeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 8,
+          "end": 14
+        }
+      ],
+      "title": "",
+      "id": "29068"
+    },
+    {
+      "type": "highlight",
+      "description": "Two constants worth committing to memory:\n- `MIN_DEPOSIT_AMOUNT_IN_GWEI` (line 25) hard-codes the 10 000 gwei economic floor.\n- `ONE_DAY` (line 38) fixes the 24-hour cool-down before a queued operator can take over.",
+      "file": "src/pol/BeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 22,
+          "end": 38
+        }
+      ],
+      "title": "",
+      "id": "29069"
+    },
+    {
+      "type": "highlight",
+      "description": "Four storage slots underpin every public action:\n1. `depositCount` (`line 53`) – ever-increasing index for each deposit.\n2. `genesisDepositsRoot` (`line 57`) – set at deployment; not touched later.\n3. `_operatorByPubKey` (`line 60`) – maps validator pubkey → current operator.\n4. `queuedOperator` (`line 63`) – holds newOperator & queuedTimestamp until the hand-over is accepted.",
+      "file": "src/pol/BeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 44,
+          "end": 65
+        }
+      ],
+      "title": "",
+      "id": "29070"
+    },
+    {
+      "type": "highlight",
+      "description": "**Public write #1** — `deposit()`: receives `ETH`, validates **byte-lengths**, sets **operator** on first use, and finally emits `Deposit`.",
+      "file": "src/pol/BeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 83,
+          "end": 90
+        }
+      ],
+      "title": "",
+      "id": "29071"
+    },
+    {
+      "type": "highlight",
+      "description": "The remaining write surface is the three-step operator rotation protocol:\n- `requestOperatorChange` (line 135) – current operator queues a new address.\n- `cancelOperatorChange` (line 154) – current operator can abort before acceptance.\n- `acceptOperatorChange` (line 164) – new operator finalises the swap once ONE_DAY has elapsed.",
+      "file": "src/pol/BeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 134,
+          "end": 170
+        }
+      ],
+      "title": "",
+      "id": "29072"
+    }
+  ]
+}

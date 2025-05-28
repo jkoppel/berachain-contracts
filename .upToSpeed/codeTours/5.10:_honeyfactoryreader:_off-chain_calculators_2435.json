@@ -1,0 +1,98 @@
+{
+  "title": "5.10: HoneyFactoryReader: Off-chain Calculators",
+  "id": "fN7kmOZdIuurRU4IZM8y0YN8DoaLTXJDMoBytP+GZi8=",
+  "originalId": 2435,
+  "position": 23,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "We will walk through the **view helpers** that let a front-end predict how much collateral or Honey moves before any state-changing transaction is signed. All of them live in `HoneyFactoryReader` and can be queried freely from a `dApp`.",
+      "title": "",
+      "id": "29058"
+    },
+    {
+      "type": "highlight",
+      "description": "`previewMintCollaterals` answers “how many tokens must I deposit to mint a given amount of `Honey`?”  – Line 47 collects the registered collaterals once.  – Basket-mode decides whether weights are respected (line 50) or overwritten to 1 e18 for the chosen asset (line 56).  – Line 60 turns the `Honey` target into **shares** by applying the `weight` and asset-specific `mintRate`.  – Line 61 converts those shares into real `ERC-20` amounts with the `vault`’s `convertToAssets` view.",
+      "file": "src/honey/HoneyFactoryReader.sol",
+      "highlight": [
+        {
+          "start": 41,
+          "end": 63
+        }
+      ],
+      "title": "",
+      "id": "29059"
+    },
+    {
+      "type": "highlight",
+      "description": "`previewMintHoney` is the **inverse**: “if I supply `amount` of one collateral, how much **Honey** will I get and what other collaterals will also be used?”  – Line 81 delegates to `_getWeightedCollaterals` to build the full input vector.  – Each element is individually fed into `_previewMint`; line 84 accumulates their **Honey** contribution to give the final answer.",
+      "file": "src/honey/HoneyFactoryReader.sol",
+      "highlight": [
+        {
+          "start": 72,
+          "end": 86
+        }
+      ],
+      "title": "",
+      "id": "29060"
+    },
+    {
+      "type": "highlight",
+      "description": "`previewRedeemCollaterals` mirrors the previous helper for the redeem path.\n\n- With `basket-mode` off (lines 104-109), only the requested asset is populated.\n- With `basket-mode` on (lines 112-115), **Honey** is split by weight and each portion is run through `_previewRedeem` to produce exact **ERC-20** outputs.",
+      "file": "src/honey/HoneyFactoryReader.sol",
+      "highlight": [
+        {
+          "start": 93,
+          "end": 116
+        }
+      ],
+      "title": "",
+      "id": "29061"
+    },
+    {
+      "type": "highlight",
+      "description": "`previewRedeemHoney` lets a UI ask: “I want exactly `amount` of this collateral back; how much **Honey** must I burn and what extra assets will I also receive?”  – Line 134 again relies on `_getWeightedCollaterals`.  – Line 137 converts each collateral target into the **Honey** that must be supplied via `_previewHoneyToRedeem`, then sums the result.",
+      "file": "src/honey/HoneyFactoryReader.sol",
+      "highlight": [
+        {
+          "start": 125,
+          "end": 138
+        }
+      ],
+      "title": "",
+      "id": "29062"
+    },
+    {
+      "type": "highlight",
+      "description": "`_getWeightedCollaterals` is the common work-horse.  1. Lines 219-224: when **basket-mode** is off it simply returns the requested `amount` for the chosen asset and zeroes for the rest.  2. Lines 228-235: in **basket-mode** it normalises the reference amount to 18 decimals (using `Utils.changeDecimals` at line 230), rescales by the inverse weight so the reference asset lands on `amount` (line 231), then projects that figure back through each vault’s `convertToAssets` to obtain correctly-scaled amounts for every token.",
+      "file": "src/honey/HoneyFactoryReader.sol",
+      "highlight": [
+        {
+          "start": 214,
+          "end": 236
+        }
+      ],
+      "title": "",
+      "id": "29063"
+    },
+    {
+      "type": "highlight",
+      "description": "`Utils.changeDecimals` is a compact helper that rescales a raw amount from one **ERC-20** decimal domain into another, preventing rounding issues when the algorithm–which operates in 18-decimal space–needs to compare or return values in token-native units.",
+      "file": "src/libraries/Utils.sol",
+      "highlight": [
+        {
+          "start": 115,
+          "end": 124
+        }
+      ],
+      "title": "",
+      "id": "29064"
+    },
+    {
+      "type": "textOnly",
+      "description": "Re-using these helpers in an integration:\n1. Fetch the list of registered assets once (e.g. `numRegisteredAssets()` and `registeredAssets(i)`).\n2. Mint flows:\n   – Show collateral requirements → `previewMintCollaterals(asset, honeyOut)`.\n   – User enters collateralIn → `previewMintHoney(asset, collateralIn)`.\n3. Redeem flows use the twin helpers `previewRedeemCollaterals` and `previewRedeemHoney`.\n4. All functions are `view`, gas-cheap, and safe to batch in a multicall, so every Honey mint/redeem scenario can be simulated entirely off-chain.",
+      "title": "",
+      "id": "29065"
+    }
+  ]
+}

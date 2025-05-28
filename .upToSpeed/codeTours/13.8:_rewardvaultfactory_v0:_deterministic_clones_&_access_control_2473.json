@@ -1,0 +1,150 @@
+{
+  "title": "13.8: RewardVaultFactory_V0: Deterministic Clones & Access Control",
+  "id": "386IFWWBsKBk1aXgzZ6zph0TCOswWmrETie75TXoG5M=",
+  "originalId": 2473,
+  "position": 61,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "We follow a `reward-vault` from its factory-side birth, tracking the `AccessControl` tree, the `beacon` that upgrades every vault, the deterministic clone that deploys it, and the `helper` that lets anyone predict its address.",
+      "title": "",
+      "id": "29564"
+    },
+    {
+      "type": "highlight",
+      "description": "The factory defines two dedicated leaf roles that sit under `OpenZeppelin`’s `AccessControl` hierarchy.",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 22,
+          "end": 27
+        }
+      ],
+      "title": "",
+      "id": "29565"
+    },
+    {
+      "type": "highlight",
+      "description": "`initialize()` starts the hierarchy: governance receives `DEFAULT_ADMIN_ROLE` (line 67) and is therefore the only entity that can grant or revoke any other role; line 70 promotes `VAULT_MANAGER_ROLE` to be the admin over `VAULT_PAUSER_ROLE`.",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 65,
+          "end": 72
+        }
+      ],
+      "title": "",
+      "id": "29566"
+    },
+    {
+      "type": "highlight",
+      "description": "The same initializer caches the protocol addresses (`BGT`, `distributor`, `BeaconDeposit`) and spins up an `UpgradeableBeacon` whose owner is `governance`, binding every vault to a single implementation that `governance` can upgrade in one shot.",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 71,
+          "end": 79
+        }
+      ],
+      "title": "",
+      "id": "29567"
+    },
+    {
+      "type": "highlight",
+      "description": "This empty but protected function ensures that only governance can upgrade the factory's implementation, maintaining secure control over the system's evolution.",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 85,
+          "end": 86
+        }
+      ],
+      "title": "",
+      "id": "29568"
+    },
+    {
+      "type": "highlight",
+      "description": "`createRewardVault()` first returns an existing vault if present (100-101) and checks that the `stakingToken` really is a contract (104-105).",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 98,
+          "end": 105
+        }
+      ],
+      "title": "",
+      "id": "29569"
+    },
+    {
+      "type": "highlight",
+      "description": "It then derives a deterministic salt from the `stakingToken` address (107-112), deploys a minimal beacon proxy via `LibClone` (112), records the vault (115-118) and calls `initialize()` on the fresh proxy (120) so it knows the protocol addresses.",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 106,
+          "end": 123
+        }
+      ],
+      "title": "",
+      "id": "29570"
+    },
+    {
+      "type": "highlight",
+      "description": "`predictRewardVaultAddress()` repeats the exact salt calculation and asks `LibClone` for the would-be address, letting scripts discover vault addresses before deployment.",
+      "file": "src/pol/rewards/RewardVaultFactory.sol",
+      "highlight": [
+        {
+          "start": 129,
+          "end": 137
+        }
+      ],
+      "title": "",
+      "id": "29571"
+    },
+    {
+      "type": "highlight",
+      "description": "Inside every vault these modifiers enforce the factory’s roles: `onlyFactoryOwner`, `onlyFactoryVaultManager` and `onlyFactoryVaultPauser` defer all checks to the `AccessControl` state of the factory.",
+      "file": "src/base/FactoryOwnable.sol",
+      "highlight": [
+        {
+          "start": 43,
+          "end": 59
+        }
+      ],
+      "title": "",
+      "id": "29572"
+    },
+    {
+      "type": "highlight",
+      "description": "The look-ups use the factory’s `DEFAULT_ADMIN_ROLE`, `VAULT_MANAGER_ROLE` and `VAULT_PAUSER_ROLE` so that a vault’s permissions always mirror the factory’s `AccessControl` tree.",
+      "file": "src/base/FactoryOwnable.sol",
+      "highlight": [
+        {
+          "start": 93,
+          "end": 109
+        }
+      ],
+      "title": "",
+      "id": "29573"
+    },
+    {
+      "type": "highlight",
+      "description": "The initialization step establishes the vault's connection to the factory's role system, enabling it to recognize authorized users without maintaining separate role data. This is a key part of the vault's access control architecture.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 98,
+          "end": 112
+        }
+      ],
+      "title": "",
+      "id": "29574"
+    },
+    {
+      "type": "textOnly",
+      "description": "Consequences:\n- governance upgrades every vault through the beacon and the factory.\n- managers handle day-to-day config and may appoint/revoke pausers.\n- pausers can freeze individual vaults in emergencies.\n- deterministic salt = `keccak256(stakingToken)` allows off-chain address prediction.\n\nOne `AccessControl` tree, one beacon, many vaults.",
+      "title": "",
+      "id": "29575"
+    }
+  ]
+}

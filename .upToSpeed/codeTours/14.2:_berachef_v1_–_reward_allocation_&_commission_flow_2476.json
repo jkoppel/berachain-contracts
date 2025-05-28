@@ -1,0 +1,156 @@
+{
+  "title": "14.2: BeraChef V1 – Reward Allocation & Commission Flow",
+  "id": "E7TO6CCodLimjnMy/oQJcU9vaF8cIT+DY6Oo89Yqxhg=",
+  "originalId": 2476,
+  "position": 64,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "The tour traces a reward-weight or commission value from initial operator proposal through to downstream accounting consumption. This path demonstrates how constants, `data-structures`, storage, and `functions` work together to create a deterministic yet flexible lifecycle.",
+      "title": "",
+      "id": "29588"
+    },
+    {
+      "type": "highlight",
+      "description": "Every percentage is expressed in `parts-per-10 000` (line 23).  Operators default to a `5 %` commission (26).  Two hard caps protect users: a commission change cannot be delayed more than `2 × 8191 blocks` (30-31) and a reward allocation cannot be scheduled more than `≈30 days ahead` (33-34).",
+      "file": "src/V1_Contracts/BeraChef_V1.sol",
+      "highlight": [
+        {
+          "start": 22,
+          "end": 34
+        }
+      ],
+      "title": "",
+      "id": "29589"
+    },
+    {
+      "type": "highlight",
+      "description": "`RewardAllocation` packages the future activation block together with an array of `Weight` objects. A `Weight` records a `receiver address` and its slice of rewards, using the denominator defined earlier.",
+      "file": "src/V1_Contracts/interfaces/IBeraChef_V1.sol",
+      "highlight": [
+        {
+          "start": 12,
+          "end": 29
+        }
+      ],
+      "title": "",
+      "id": "29590"
+    },
+    {
+      "type": "highlight",
+      "description": "State is kept in pairs so that every concept has an \"active\" and a \"queued\" copy:\n- `activeRewardAllocations` / `queuedRewardAllocations` per validator key.\n- `valCommission` / `valQueuedCommission` per validator key.\nA whitelist (`isWhitelistedVault`) guards the receivers list while `defaultRewardAllocation` backstops validators that never customise.",
+      "file": "src/V1_Contracts/BeraChef_V1.sol",
+      "highlight": [
+        {
+          "start": 52,
+          "end": 72
+        }
+      ],
+      "title": "",
+      "id": "29591"
+    },
+    {
+      "type": "textOnly",
+      "description": "**Life-cycle step 1** — an operator queues a new reward allocation; the data sit in storage until activation.",
+      "title": "",
+      "id": "29592"
+    },
+    {
+      "type": "highlight",
+      "description": "This function implements the first step in changing reward allocations. Look for three key validation checks that protect against invalid allocations: a minimum delay requirement, prevention of duplicate queuing, and weight validation. After passing these checks, the allocation is stored and an event is emitted.",
+      "file": "src/V1_Contracts/BeraChef_V1.sol",
+      "highlight": [
+        {
+          "start": 207,
+          "end": 241
+        }
+      ],
+      "title": "",
+      "id": "29593"
+    },
+    {
+      "type": "highlight",
+      "description": "Later the Distributor calls `activateReadyQueuedRewardAllocation`.  Readiness is checked (273); the queued `struct` is promoted to `activeRewardAllocations` (274-277) and the queue entry is deleted (278-279).",
+      "file": "src/V1_Contracts/BeraChef_V1.sol",
+      "highlight": [
+        {
+          "start": 271,
+          "end": 280
+        }
+      ],
+      "title": "",
+      "id": "29594"
+    },
+    {
+      "type": "highlight",
+      "description": "`_validateWeights` guarantees correctness:\n- array length ≤ governance limit (368-370)\n- no zero-percent rows (377-380)\n- every receiver is whitelisted (381-384)\n- numerators sum to exactly `ONE_HUNDRED_PERCENT` (385-392)\nOnly well-formed allocations reach storage.",
+      "file": "src/V1_Contracts/BeraChef_V1.sol",
+      "highlight": [
+        {
+          "start": 363,
+          "end": 393
+        }
+      ],
+      "title": "",
+      "id": "29595"
+    },
+    {
+      "type": "highlight",
+      "description": "Commission changes follow the same pattern.  `queueValCommission` stores (`block.number`, `commissionRate`) after verifying the rate ≤ 100 % (245-247) and that nothing is already queued (248-251).",
+      "file": "src/V1_Contracts/BeraChef_V1.sol",
+      "highlight": [
+        {
+          "start": 243,
+          "end": 254
+        }
+      ],
+      "title": "",
+      "id": "29596"
+    },
+    {
+      "type": "highlight",
+      "description": "`activateQueuedValCommission` may be called by anyone once the configured delay has passed (259-263).  It writes the new rate (265-266), emits an event, and clears the queue (267-268).",
+      "file": "src/V1_Contracts/BeraChef_V1.sol",
+      "highlight": [
+        {
+          "start": 256,
+          "end": 269
+        }
+      ],
+      "title": "",
+      "id": "29597"
+    },
+    {
+      "type": "highlight",
+      "description": "`_getOperatorCommission` defaults to 5% when no commission has ever been activated (430-434), ensuring every validator always has a deterministic rate.",
+      "file": "src/V1_Contracts/BeraChef_V1.sol",
+      "highlight": [
+        {
+          "start": 424,
+          "end": 435
+        }
+      ],
+      "title": "",
+      "id": "29598"
+    },
+    {
+      "type": "highlight",
+      "description": "Downstream accounting calls `getValidatorIncentiveTokenShare`. It multiplies the incoming incentive amount by the active commission (**354-356**) to deliver the operator’s share; the remainder goes to the Weight receivers.",
+      "file": "src/V1_Contracts/BeraChef_V1.sol",
+      "highlight": [
+        {
+          "start": 346,
+          "end": 357
+        }
+      ],
+      "title": "",
+      "id": "29599"
+    },
+    {
+      "type": "textOnly",
+      "description": "Putting it together:\n1. **Governance** whitelists vaults and sets a default allocation.\n2. **Validators** queue allocations; **Distributor** activates them at startBlock.\n3. Weights must stay on the whitelist, respect the length limit, and sum to 100%.\n4. **Operators** queue commission changes; after the delay anyone may activate them.\n5. Reward distribution uses `getValidatorIncentiveTokenShare`, guaranteeing the operator takes the correct fraction while the rest follows the active **RewardAllocation**.",
+      "title": "",
+      "id": "29600"
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "title": "14.3: RewardVault V1 – Storage & Core Data Structures",
+  "id": "CRVyc5FMM0FvgHCWWbRbV14CzZP7fs77t9NSM3RBpDQ=",
+  "originalId": 2477,
+  "position": 65,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Before any function logic runs, `RewardVault_V1` commits a concise set of blueprints and variables to storage.  We will walk through them one file segment at a time, so you can picture exactly what the vault keeps on-chain.",
+      "title": "",
+      "id": "29615"
+    },
+    {
+      "type": "highlight",
+      "description": "Lines 41-47 define `DelegateStake`.  Line 45 is a single counter `delegateTotalStaked`, while line 46 introduces the nested mapping `stakedByDelegate`.  The pair lets later code answer both aggregate and per-delegate questions without extra parallel mappings.",
+      "file": "src/V1_Contracts/RewardVault_V1.sol",
+      "highlight": [
+        {
+          "start": 37,
+          "end": 48
+        }
+      ],
+      "title": "",
+      "id": "29616"
+    },
+    {
+      "type": "highlight",
+      "description": "Lines 49-59 give the `Incentive` struct—every per-token fact needed for extra-reward accounting:\n- `minIncentiveRate` guards against spam.\n- `incentiveRate` is the active rate (token / 1e18 **BGT**).\n- `amountRemaining` tracks undistributed balance.\n- `manager` is the authorised top-up address.",
+      "file": "src/V1_Contracts/RewardVault_V1.sol",
+      "highlight": [
+        {
+          "start": 49,
+          "end": 59
+        }
+      ],
+      "title": "",
+      "id": "29617"
+    },
+    {
+      "type": "highlight",
+      "description": "The **STORAGE block** opens with three configuration slots:\n- Line 74 caps the number of simultaneous incentive tokens (`maxIncentiveTokensCount`).  Governance can tighten or loosen this ceiling to limit risk.\n- Lines 77-78 store the trusted BGT `distributor` address.\n- Lines 79-80 reference the `beaconDepositContract`, the source of pubkey→operator mappings.",
+      "file": "src/V1_Contracts/RewardVault_V1.sol",
+      "highlight": [
+        {
+          "start": 73,
+          "end": 80
+        }
+      ],
+      "title": "",
+      "id": "29618"
+    },
+    {
+      "type": "highlight",
+      "description": "Lines 82-92 contain the vault's core bookkeeping:\n- `_delegateStake` (82) maps **account ⇒ DelegateStake**, giving a two-level key courtesy of the nested mapping inside the struct.\n- `_operators` (85) lets users register an operator address.\n- `incentives` (88) maps **token ⇒ Incentive**, mirroring the delegate-stake nesting pattern.\n- `whitelistedTokens` (91) is an array used for on-chain iteration during distribution.",
+      "file": "src/V1_Contracts/RewardVault_V1.sol",
+      "highlight": [
+        {
+          "start": 82,
+          "end": 92
+        }
+      ],
+      "title": "",
+      "id": "29619"
+    },
+    {
+      "type": "highlight",
+      "description": "Lines 231-236 show how governance may update `maxIncentiveTokensCount`. The function reverts if the new cap is below the current whitelist length, protecting storage invariants while still letting the cap increase.",
+      "file": "src/V1_Contracts/RewardVault_V1.sol",
+      "highlight": [
+        {
+          "start": 231,
+          "end": 236
+        }
+      ],
+      "title": "",
+      "id": "29620"
+    },
+    {
+      "type": "textOnly",
+      "description": "Putting it together: `DelegateStake` cleanly separates self-stake from delegated stake, `Incentive` encapsulates all per-token reward facts, and the surrounding variables fall into four categories—configuration, delegation, operator, and incentive bookkeeping. These slots form the foundation upon which the vault’s staking, delegation, and reward-distribution logic operates.",
+      "title": "",
+      "id": "29621"
+    }
+  ]
+}

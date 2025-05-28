@@ -1,0 +1,189 @@
+{
+  "title": "4.4: RootPriceOracle & its Deployer",
+  "id": "yPC6O2hmVlMa7NnwS6PIj5peUgoACCI8tI7msorQCH0=",
+  "originalId": 2420,
+  "position": 13,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "This tour shows how a `root` oracle picks a conservative price by weighing `Pyth` data against a pool’s `spot-price`, and how the contract is deterministically deployed.",
+      "title": "",
+      "id": "28885"
+    },
+    {
+      "type": "highlight",
+      "description": "The contract keeps only what it needs: a role constant, unit scale `WAD`, and pointers to the two underlying oracles. These fields are the basis for everything that follows.",
+      "file": "src/extras/RootPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 16,
+          "end": 24
+        }
+      ],
+      "title": "",
+      "id": "28886"
+    },
+    {
+      "type": "highlight",
+      "description": "`initialize` replaces a constructor so the bytecode stays constant for `CREATE2`. It validates the admin address and confers the `DEFAULT_ADMIN_ROLE`, letting governance later grant the `MANAGER_ROLE` to operators.",
+      "file": "src/extras/RootPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 26,
+          "end": 31
+        }
+      ],
+      "title": "",
+      "id": "28887"
+    },
+    {
+      "type": "highlight",
+      "description": "When either `oracle address` is updated an `event` is emitted. External observers can therefore detect feed upgrades in real-time.",
+      "file": "src/extras/IRootPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 12,
+          "end": 18
+        }
+      ],
+      "title": "",
+      "id": "28888"
+    },
+    {
+      "type": "highlight",
+      "description": "`setSpotOracle` is guarded by `MANAGER_ROLE`, forbids a zero address, stores the new oracle and fires `SpotOracleSet`.",
+      "file": "src/extras/RootPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 33,
+          "end": 41
+        }
+      ],
+      "title": "",
+      "id": "28889"
+    },
+    {
+      "type": "highlight",
+      "description": "`setPythOracle` mirrors the same pattern for the Pyth feed via `PythOracleSet`.",
+      "file": "src/extras/RootPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 43,
+          "end": 51
+        }
+      ],
+      "title": "",
+      "id": "28890"
+    },
+    {
+      "type": "highlight",
+      "description": "`getPrice` outlines the decision tree:\n1. Query each oracle’s `priceAvailable` (via a helper).\n2. If `Pyth` is unavailable the call reverts – a pure AMM price is considered unreliable.\n3. If the spot oracle is missing it simply returns `Pyth`’s value.\n4. Otherwise both feeds are fetched and the result with the largest deviation from **1 WAD** is chosen.",
+      "file": "src/extras/RootPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 58,
+          "end": 70
+        }
+      ],
+      "title": "",
+      "id": "28891"
+    },
+    {
+      "type": "highlight",
+      "description": "**Deviation selection logic:**\n- Any spot price above 1 **WAD** is clamped to protect against pool manipulation (144-146).\n- Absolute deviations for both feeds are computed (148-149).\n- The feed with the greater deviation supplies the return value (151).",
+      "file": "src/extras/RootPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 144,
+          "end": 151
+        }
+      ],
+      "title": "",
+      "id": "28892"
+    },
+    {
+      "type": "highlight",
+      "description": "`getPriceUnsafe` is identical except that it delegates to each oracle’s *unsafe* accessor, foregoing freshness checks while still applying the same availability and deviation rules.",
+      "file": "src/extras/RootPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 77,
+          "end": 89
+        }
+      ],
+      "title": "",
+      "id": "28893"
+    },
+    {
+      "type": "highlight",
+      "description": "`getPriceNoOlderThan` adds an `age` bound and forwards it to both feeds, otherwise following the same flow.",
+      "file": "src/extras/RootPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 96,
+          "end": 109
+        }
+      ],
+      "title": "",
+      "id": "28894"
+    },
+    {
+      "type": "highlight",
+      "description": "`_getAssetAvailability` returns two booleans indicating which feeds can quote the asset. It is reused by every public price accessor.",
+      "file": "src/extras/RootPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 123,
+          "end": 130
+        }
+      ],
+      "title": "",
+      "id": "28895"
+    },
+    {
+      "type": "highlight",
+      "description": "`priceAvailable` is a thin wrapper: the composite oracle reports availability whenever Pyth can supply a price.",
+      "file": "src/extras/RootPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 112,
+          "end": 117
+        }
+      ],
+      "title": "",
+      "id": "28896"
+    },
+    {
+      "type": "highlight",
+      "description": "Deployment takes place inside an immutable constructor:\n- `deployWithCreate2` spawns the oracle with a caller-chosen `salt`.\n- The freshly created contract is immediately initialised with the governance address.",
+      "file": "src/extras/RootPriceOracleDeployer.sol",
+      "highlight": [
+        {
+          "start": 14,
+          "end": 21
+        }
+      ],
+      "title": "",
+      "id": "28897"
+    },
+    {
+      "type": "highlight",
+      "description": "The helper shown here executes the actual `CREATE2` call via a deterministic-deployment proxy. Anyone can pre-compute the **oracle**’s address from the `salt` and `creation code hash`.",
+      "file": "src/base/Create2Deployer.sol",
+      "highlight": [
+        {
+          "start": 24,
+          "end": 38
+        }
+      ],
+      "title": "",
+      "id": "28898"
+    },
+    {
+      "type": "textOnly",
+      "description": "Because the deployer stores the implementation directly (no proxy), the oracle is not upgradeable; instead, governance can rotate the underlying feeds through the authorised setters.  Its deterministic address allows front-end and on-chain integrations to reference it with certainty.",
+      "title": "",
+      "id": "28899"
+    }
+  ]
+}

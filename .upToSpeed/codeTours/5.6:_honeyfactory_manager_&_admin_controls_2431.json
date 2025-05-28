@@ -1,0 +1,227 @@
+{
+  "title": "5.6: HoneyFactory Manager & Admin Controls",
+  "id": "JsmHUE62rA3JbWzIQaJYUZja1e3WwTq1UIvReET5kFI=",
+  "originalId": 2431,
+  "position": 19,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "HoneyFactory exposes two tiers of \"governance knobs\". Addresses with `MANAGER_ROLE` can tune operational parameters; addresses with `DEFAULT_ADMIN_ROLE` (the protocol’s governance) can move deeper system settings. Every setter begins by calling `_checkRole`, so an on-chain role gate protects each knob before any storage is touched.",
+      "title": "",
+      "id": "28991"
+    },
+    {
+      "type": "highlight",
+      "description": "`VaultAdmin` defines the roles that every `HoneyFactory` function checks. `MANAGER_ROLE` governs day-to-day knobs, while `DEFAULT_ADMIN_ROLE` is the root authority.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 37,
+          "end": 45
+        }
+      ],
+      "title": "",
+      "id": "28992"
+    },
+    {
+      "type": "highlight",
+      "description": "During initialization governance receives `DEFAULT_ADMIN_ROLE` and becomes the only address able to grant further roles.  `MANAGER_ROLE` is not granted by default; it must be assigned explicitly later.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 107,
+          "end": 118
+        }
+      ],
+      "title": "",
+      "id": "28993"
+    },
+    {
+      "type": "highlight",
+      "description": "Several constants are reused by safety guards.  `ONE_HUNDRED_PERCENT_RATE` (`1 e18`) represents 100 %, `NINETY_EIGHT_PERCENT_RATE` (`98 e16`) ≈ 98 %, and `MAX_PEG_OFFSET` caps price-offset inputs.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 19,
+          "end": 30
+        }
+      ],
+      "title": "",
+      "id": "28994"
+    },
+    {
+      "type": "highlight",
+      "description": "`setMintRate` / `setRedeemRate` (`MANAGER_ROLE`)\n- role check on lines 124/139\n- must stay ≤ **100 %** (126/141)\n- must stay ≥ **98 %** (130/145)\nAfter passing, the value is stored and an event is emitted.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 122,
+          "end": 150
+        }
+      ],
+      "title": "",
+      "id": "28995"
+    },
+    {
+      "type": "highlight",
+      "description": "`setForcedBasketMode (MANAGER_ROLE)` toggles the `forcedBasketMode` boolean. No range checks are needed because the value is a flag.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 152,
+          "end": 158
+        }
+      ],
+      "title": "",
+      "id": "28996"
+    },
+    {
+      "type": "highlight",
+      "description": "`setMaxFeedDelay` (`MANAGER_ROLE`) updates the oracle-staleness tolerance. A manager may not exceed `MAX_PRICE_FEED_DELAY_TOLERANCE` (120 s), enforced on `line 165`.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 160,
+          "end": 170
+        }
+      ],
+      "title": "",
+      "id": "28997"
+    },
+    {
+      "type": "highlight",
+      "description": "`setDepegOffsets` (`MANAGER_ROLE`) allows per-asset price windows. Guards ensure:\n- the asset is registered (`175–177`)\n- both offsets ≤ `MAX_PEG_OFFSET` (`178–180`)",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 172,
+          "end": 184
+        }
+      ],
+      "title": "",
+      "id": "28998"
+    },
+    {
+      "type": "textOnly",
+      "description": "Everything above is callable only by `MANAGER_ROLE`.  The following setters require `DEFAULT_ADMIN_ROLE`.",
+      "title": "",
+      "id": "28999"
+    },
+    {
+      "type": "highlight",
+      "description": "`setPOLFeeCollectorFeeRate` (`ADMIN`) changes what portion of protocol fees flows to the PoL collector. Input must be **≤ 100 %** (232–233).",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 228,
+          "end": 237
+        }
+      ],
+      "title": "",
+      "id": "29000"
+    },
+    {
+      "type": "highlight",
+      "description": "`setLiquidationEnabled` (`ADMIN`) toggles the system-wide liquidation switch; a simple boolean update behind an admin gate.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 239,
+          "end": 244
+        }
+      ],
+      "title": "",
+      "id": "29001"
+    },
+    {
+      "type": "highlight",
+      "description": "`setLiquidationRate` (**ADMIN**) sets an extra premium for a specific collateral. The asset must already be registered (250–251).",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 246,
+          "end": 254
+        }
+      ],
+      "title": "",
+      "id": "29002"
+    },
+    {
+      "type": "highlight",
+      "description": "`setMinSharesToRecapitalize` (`ADMIN`) imposes a floor on recap operations.  The new value may never drop below `DEFAULT_MIN_SHARES_TO_RECAPITALIZE` (259–260).",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 256,
+          "end": 264
+        }
+      ],
+      "title": "",
+      "id": "29003"
+    },
+    {
+      "type": "highlight",
+      "description": "`setRecapitalizeBalanceThreshold` (`ADMIN`) records an asset-specific target balance. Because balances can naturally vary, no extra range checks are needed.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 266,
+          "end": 273
+        }
+      ],
+      "title": "",
+      "id": "29004"
+    },
+    {
+      "type": "highlight",
+      "description": "`setPriceOracle` (`ADMIN`) swaps the oracle address. Passing a zero address is explicitly disallowed **(279)**.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 275,
+          "end": 282
+        }
+      ],
+      "title": "",
+      "id": "29005"
+    },
+    {
+      "type": "textOnly",
+      "description": "Adding a brand-new collateral vault combines a public `HoneyFactory` entry point with an internal `VaultAdmin` helper.",
+      "title": "",
+      "id": "29006"
+    },
+    {
+      "type": "highlight",
+      "description": "`createVault` (public) kicks off deployment, seeds default caps/rates, and performs an immediate peg check. The heavy lifting is delegated to `_createVault`. ",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 285,
+          "end": 309
+        }
+      ],
+      "title": "",
+      "id": "29007"
+    },
+    {
+      "type": "highlight",
+      "description": "`_createVault` (internal, `ADMIN`) enforces the admin role, prevents duplicates, deploys a beacon proxy for the new `CollateralVault`, registers it, and emits `VaultCreated`.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 192,
+          "end": 213
+        }
+      ],
+      "title": "",
+      "id": "29008"
+    },
+    {
+      "type": "textOnly",
+      "description": "Recap of knobs and callers:\n- `MANAGER_ROLE` — `setMintRate`, `setRedeemRate`, `setForcedBasketMode`, `setMaxFeedDelay`, `setDepegOffsets`.\n- `DEFAULT_ADMIN_ROLE` — `setPOLFeeCollectorFeeRate`, `setLiquidationEnabled`, `setLiquidationRate`, `setMinSharesToRecapitalize`, `setRecapitalizeBalanceThreshold`, `setPriceOracle`, `createVault`.\nEvery function begins with a role gate and, where applicable, additional range or asset-registration checks, preventing unsafe parameter changes.",
+      "title": "",
+      "id": "29009"
+    }
+  ]
+}

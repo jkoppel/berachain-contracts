@@ -1,0 +1,195 @@
+{
+  "title": "3.4: IPOLErrors: Canonical Error Catalogue",
+  "id": "Ym96f9ALAHqF1ljbD47Ezq5qlO55c7lTk00saAcrxJ0=",
+  "originalId": 2412,
+  "position": 9,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Every **Proof-of-Liquidity contract** reverts with reasons drawn from a single `catalogue`. The next `snippets` locate that `catalogue`, show its groups, and illustrate how individual modules use the shared entries and how you map a raw `4-byte selector` back to a name.",
+      "title": "",
+      "id": "29010"
+    },
+    {
+      "type": "highlight",
+      "description": "The `catalogue interface` begins by inheriting a minimal `staking-layer error set`, then declares `PoL-specific entries`.",
+      "file": "src/pol/interfaces/IPOLErrors.sol",
+      "highlight": [
+        {
+          "start": 4,
+          "end": 9
+        }
+      ],
+      "title": "",
+      "id": "29011"
+    },
+    {
+      "type": "highlight",
+      "description": "The imported base lists only **seven generic staking errors** – a **tiny core** reused by every plane.",
+      "file": "src/base/IStakingRewardsErrors.sol",
+      "highlight": [
+        {
+          "start": 6,
+          "end": 15
+        }
+      ],
+      "title": "",
+      "id": "29012"
+    },
+    {
+      "type": "highlight",
+      "description": "Each catalogue entry is annotated with its 4-byte selector. When a trace returns raw data (e.g. `0x73fcd3fe`) you can match it to the adjacent comment instantly.",
+      "file": "src/pol/interfaces/IPOLErrors.sol",
+      "highlight": [
+        {
+          "start": 8,
+          "end": 25
+        }
+      ],
+      "title": "",
+      "id": "29013"
+    },
+    {
+      "type": "highlight",
+      "description": "Banner comments divide the catalogue by subsystem – this block belongs to the `Block-Reward-Controller` module.",
+      "file": "src/pol/interfaces/IPOLErrors.sol",
+      "highlight": [
+        {
+          "start": 65,
+          "end": 72
+        }
+      ],
+      "title": "",
+      "id": "29014"
+    },
+    {
+      "type": "highlight",
+      "description": "Inside that module, `InvalidRewardRate` is thrown when the owner tries to set a reward larger than the allowed maximum.",
+      "file": "src/pol/rewards/BlockRewardController.sol",
+      "highlight": [
+        {
+          "start": 116,
+          "end": 121
+        }
+      ],
+      "title": "",
+      "id": "29015"
+    },
+    {
+      "type": "highlight",
+      "description": "The next slice groups `staking-related issues` consumed by `vaults` and `reward chefs`.",
+      "file": "src/pol/interfaces/IPOLErrors.sol",
+      "highlight": [
+        {
+          "start": 78,
+          "end": 90
+        }
+      ],
+      "title": "",
+      "id": "29016"
+    },
+    {
+      "type": "highlight",
+      "description": "**BeraChef** uses `TooManyWeights` from that slice to stop operators supplying oversized allocation arrays.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 391,
+          "end": 395
+        }
+      ],
+      "title": "",
+      "id": "29017"
+    },
+    {
+      "type": "highlight",
+      "description": "Beacon-Roots helpers claim their own mini-section – note `TimestampAlreadyProcessed`.",
+      "file": "src/pol/interfaces/IPOLErrors.sol",
+      "highlight": [
+        {
+          "start": 121,
+          "end": 128
+        }
+      ],
+      "title": "",
+      "id": "29018"
+    },
+    {
+      "type": "highlight",
+      "description": "`BeaconRootsHelper` reverts with `TimestampAlreadyProcessed` when the same beacon slot is handled twice.",
+      "file": "src/pol/BeaconRootsHelper.sol",
+      "highlight": [
+        {
+          "start": 113,
+          "end": 116
+        }
+      ],
+      "title": "",
+      "id": "29019"
+    },
+    {
+      "type": "highlight",
+      "description": "Beacon-Deposit validation errors – `InvalidPubKeyLength` guards the 48-byte public-key rule.",
+      "file": "src/pol/interfaces/IPOLErrors.sol",
+      "highlight": [
+        {
+          "start": 142,
+          "end": 147
+        }
+      ],
+      "title": "",
+      "id": "29020"
+    },
+    {
+      "type": "highlight",
+      "description": "During a deposit, the contract checks the key length and reverts with **InvalidPubKeyLength** if it is wrong.",
+      "file": "src/pol/BeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 90,
+          "end": 96
+        }
+      ],
+      "title": "",
+      "id": "29021"
+    },
+    {
+      "type": "highlight",
+      "description": "The catalogue ends with incentive-distributor errors such as `InvalidArray`.",
+      "file": "src/pol/interfaces/IPOLErrors.sol",
+      "highlight": [
+        {
+          "start": 168,
+          "end": 174
+        }
+      ],
+      "title": "",
+      "id": "29022"
+    },
+    {
+      "type": "highlight",
+      "description": "When a caller submits an empty array of claims, `InvalidArray` is raised by the distributor.",
+      "file": "src/pol/rewards/BGTIncentiveDistributor.sol",
+      "highlight": [
+        {
+          "start": 141,
+          "end": 147
+        }
+      ],
+      "title": "",
+      "id": "29023"
+    },
+    {
+      "type": "textOnly",
+      "description": "Selector-to-name in practice: copy the 4-byte data from the revert (e.g. `0x0a431b2a`), run a simple search through the catalogue comments, and you land on **TimestampAlreadyProcessed**.  `Hardhat` traces, `Tenderly`, or `Etherscan` do the same once the interface is in the `ABI`.",
+      "title": "",
+      "id": "29024"
+    },
+    {
+      "type": "textOnly",
+      "description": "Why one shared catalogue?\n\n- **zero runtime cost** – interfaces do not inflate byte-code.\n- **single source of truth** keeps naming consistent across modules.\n- debugging is faster because the `selector table` is already written next to every error.",
+      "title": "",
+      "id": "29025"
+    }
+  ]
+}

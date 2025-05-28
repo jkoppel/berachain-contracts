@@ -1,0 +1,150 @@
+{
+  "title": "13.9: BeraChef_V0: Reward Allocation Management",
+  "id": "4ddJoCypD3LOhrxRleBz+3Qol4rehc6ZqGAD6mVW7Hs=",
+  "originalId": 2474,
+  "position": 62,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "**Block-reward routing** relies on two hard limits and a handful of core data structures.  We will look at them first, then trace the journey from an operator queuing new weights all the way to `Distributor` paying `receivers`.",
+      "title": "",
+      "id": "29576"
+    },
+    {
+      "type": "highlight",
+      "description": "`ONE_HUNDRED_PERCENT` encodes 100 % as `1e4` (basis-points style) while `MAX_REWARD_ALLOCATION_BLOCK_DELAY` caps how far in the future a new allocation can be scheduled (~30 days at two-second blocks).",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 22,
+          "end": 34
+        }
+      ],
+      "title": "",
+      "id": "29577"
+    },
+    {
+      "type": "highlight",
+      "description": "Persistent state lives inside `BeraChef`:\n\n- pointers to distributor & vault-factory\n\n- the `BeaconDeposit` contract that authenticates operators\n\n- governance-tunable `rewardAllocationBlockDelay` and `maxNumWeightsPerRewardAllocation`\n\n- mappings that hold each validator's active / queued allocations\n\n- the whitelist mapping that marks which vaults may receive rewards.\n\nThese fields are the levers governance and operators interact with.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 39,
+          "end": 60
+        }
+      ],
+      "title": "",
+      "id": "29578"
+    },
+    {
+      "type": "highlight",
+      "description": "Governance alone manages the whitelist.  `setVaultWhitelistedStatus` checks the vault really came from the factory (183-187), writes the flag, and, if a vault is removed, immediately rejects the change when it would invalidate the default allocation (190-195).  `updateWhitelistedVaultMetadata` is a lighter call that only edits off-chain metadata strings.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 174,
+          "end": 205
+        }
+      ],
+      "title": "",
+      "id": "29579"
+    },
+    {
+      "type": "highlight",
+      "description": "`_validateWeights` guards every proposed allocation. It rejects:\n\n- more entries than `maxNumWeightsPerRewardAllocation`\n- any weight of zero or above `maxWeightPerVault`\n- any receiver not on the whitelist\n- any total that does not sum exactly to `ONE_HUNDRED_PERCENT`.\n\nDuplicate receivers are caught earlier via `_checkForDuplicateReceivers`.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 387,
+          "end": 418
+        }
+      ],
+      "title": "",
+      "id": "29580"
+    },
+    {
+      "type": "highlight",
+      "description": "Operators queue a change with `queueNewRewardAllocation`.  `onlyOperator` validates the caller, the startBlock must be greater than block.number + rewardAllocationBlockDelay (241-243), only one queued allocation at a time is allowed (245-250), and the weights pass `_validateWeights` before being stored (252-259).",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 231,
+          "end": 265
+        }
+      ],
+      "title": "",
+      "id": "29581"
+    },
+    {
+      "type": "highlight",
+      "description": "`activateReadyQueuedRewardAllocation` is callable only by `Distributor`.  It first checks readiness (line 297), then promotes the queued struct to active and deletes the queue, ensuring single-use activation.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 296,
+          "end": 304
+        }
+      ],
+      "title": "",
+      "id": "29582"
+    },
+    {
+      "type": "highlight",
+      "description": "Readiness is a simple comparison: the queued `startBlock` must be non-zero and ≤ the current block number.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 344,
+          "end": 347
+        }
+      ],
+      "title": "",
+      "id": "29583"
+    },
+    {
+      "type": "highlight",
+      "description": "When other contracts ask for weights, `getActiveRewardAllocation` returns the validator-specific active set—but only if it is still valid. Otherwise it falls back to the governance-defined `defaultRewardAllocation`.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 310,
+          "end": 326
+        }
+      ],
+      "title": "",
+      "id": "29584"
+    },
+    {
+      "type": "highlight",
+      "description": "`_checkIfStillValid` is what keeps legacy allocations safe across upgrades: it re-evaluates each weight against the latest limits and whitelist, returning false at the first violation so callers automatically fall back to the default.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 451,
+          "end": 475
+        }
+      ],
+      "title": "",
+      "id": "29585"
+    },
+    {
+      "type": "highlight",
+      "description": "Distributor’s `_distributeFor` illustrates the full flow: 1 – it calls `BlockRewardController` to mint BGT, aborting early if **governance** has not yet set a default allocation (127-132); 2 – it triggers `activateReadyQueuedRewardAllocation` (134-136); 3 – it fetches `getActiveRewardAllocation` so any invalid or missing set falls back transparently (137-140).",
+      "file": "src/pol/rewards/Distributor.sol",
+      "highlight": [
+        {
+          "start": 124,
+          "end": 139
+        }
+      ],
+      "title": "",
+      "id": "29586"
+    },
+    {
+      "type": "textOnly",
+      "description": "Putting it all together:\n\n- `Governance` updates global limits and the vault whitelist.\n\n- `Operators` queue new weight sets at least `rewardAllocationBlockDelay` blocks ahead.\n\n- On the first block after `startBlock`, `Distributor` promotes the queued weights and begins paying receivers.\n\n- Any later governance change that would make a weight set unsafe automatically de-activates it thanks to `_checkIfStillValid`, forcing the validator to propose a fresh compliant allocation.\n\nWith these safeguards, both governance and validator operators can direct block rewards confidently and without risking stuck or unsafe allocations.",
+      "title": "",
+      "id": "29587"
+    }
+  ]
+}

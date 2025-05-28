@@ -1,0 +1,98 @@
+{
+  "title": "5.7: HoneyFactory Mint Flow",
+  "id": "8Pmw5r16B+BBy0eO5q28CLpaD7FO2y2IOjdwL/Iz+HE=",
+  "originalId": 2432,
+  "position": 20,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Follow a simple **Honey mint** where the user supplies a single, healthy collateral and `basket-mode` stays OFF. Each step below is lifted directly from the contracts so you can trace how `ERC-20` assets become freshly minted **Honey**.",
+      "title": "",
+      "id": "29039"
+    },
+    {
+      "type": "highlight",
+      "description": "The public mint entry-point first guards the call.\n- collateral must already be registered.\n- `basketMode` is computed on-chain and compared to what the `front-end` expected; any mismatch reverts.\nThese checks ensure the transaction context is correct before collateral logic runs.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 315,
+          "end": 333
+        }
+      ],
+      "title": "",
+      "id": "29040"
+    },
+    {
+      "type": "highlight",
+      "description": "Happy-path branch (`basket-mode` **OFF**).\n- 334-339 ‒ collateral must not be flagged \"bad\" and must still track its USD peg.\n- 340 ‒ internal `_mint` does the heavy lifting.\n- 341-343 ‒ once `Honey` is minted, the factory confirms that the portfolio's global weight cap was not breached.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 333,
+          "end": 344
+        }
+      ],
+      "title": "",
+      "id": "29041"
+    },
+    {
+      "type": "highlight",
+      "description": "Lines 345-364 show the alternative **basket-mode** path.  When every collateral is de-pegged or bad, users must deposit **all** assets proportionally; the `factory` derives each amount from `live vault weights`.  This stays dormant during our **happy-path** example but is worth identifying.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 345,
+          "end": 364
+        }
+      ],
+      "title": "",
+      "id": "29042"
+    },
+    {
+      "type": "highlight",
+      "description": "`_mint` converts the user’s tokens into **Honey** in five moves:\n1. 589 — `_approveAndDeposit` pulls tokens, approves the `vault`, and deposits; the `vault` returns share tokens.\n2. 593-595 — `_getHoneyMintedFromShares` translates those shares into **Honey** and splits out fee shares.\n3. 597-599 — `_handleFees` immediately delivers the **PoL share** and books the remainder; a relative-cap guard protects the asset’s weight when **basket-mode** is off.\n4. 601-602 — **Honey** is minted to the receiver.\n5. 603-604 — `vault` invariants are re-checked so the system always remains fully collateralised.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 584,
+          "end": 605
+        }
+      ],
+      "title": "",
+      "id": "29043"
+    },
+    {
+      "type": "highlight",
+      "description": "`_getHoneyMintedFromShares` is pure arithmetic:\n- Lines 640-642: `Honey` = `shares` × `mintRate` / 1e18\n- Lines 642-645: The difference becomes `feeShares`; `polFeeCollectorFeeRate` decides how much of that goes to `PoL` versus the `feeReceiver`",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 632,
+          "end": 645
+        }
+      ],
+      "title": "",
+      "id": "29044"
+    },
+    {
+      "type": "highlight",
+      "description": "`_approveAndDeposit` bridges collateral into the protocol:\n- 746 — pull the asset from `msg.sender` (requires prior `ERC-20` approval).\n- 747 — grant the vault allowance.\n- 748-749 — deposit and receive shares, the accounting unit used everywhere else.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 745,
+          "end": 749
+        }
+      ],
+      "title": "",
+      "id": "29045"
+    },
+    {
+      "type": "textOnly",
+      "description": "Putting it together: caller → `mint()` guards → `_approveAndDeposit` → vault shares → `_getHoneyMintedFromShares` (Honey amount + fee split) → `_handleFees` → `Honey.mint` → cap & invariant checks.  You can now follow every arithmetic step that turns external `ERC-20` collateral into new `Honey`.",
+      "title": "",
+      "id": "29046"
+    }
+  ]
+}

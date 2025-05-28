@@ -1,0 +1,163 @@
+{
+  "title": "15.2: RewardVault_V2 Data Model",
+  "id": "4ewfqn6Gyy97aI5niUEvsk9ILn053WinHgWbBdACik8=",
+  "originalId": 2482,
+  "position": 70,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "This walkthrough maps every on\t6chain variable that lives inside `RewardVault` so you can picture the exact storage layout and the safety checks wrapped around it.",
+      "title": "",
+      "id": "29719"
+    },
+    {
+      "type": "highlight",
+      "description": "Two file-scope constants form the contract’s first security perimeter. 61-62 cap the maximum possible `incentiveRate` (1 e36 ⇢ 1 e18 tokens per BGT for an 18-dec token) so arithmetic can never overflow. 64-67 hard-code a 500 k gas stipend for every external ERC-20 call inside the incentive loop, thwarting grief-attacks that attempt to exhaust gas and stall distribution.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 61,
+          "end": 67
+        }
+      ],
+      "title": "",
+      "id": "29720"
+    },
+    {
+      "type": "highlight",
+      "description": "`DelegateStake` is a compact per-account ledger:\n- line 45 `delegateTotalStaked` — aggregate amount staked by **all** delegates for this account.\n- line 46 `stakedByDelegate` — a nested map that records how much **each** delegate contributed.\nThese two values let the contract police both account-level and delegate-level withdrawals.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 41,
+          "end": 47
+        }
+      ],
+      "title": "",
+      "id": "29721"
+    },
+    {
+      "type": "highlight",
+      "description": "`_delegateStake` stores one `DelegateStake` per user; the first key is the reward-earning account, the second (inside the struct) is the delegate address.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 82,
+          "end": 83
+        }
+      ],
+      "title": "",
+      "id": "29722"
+    },
+    {
+      "type": "highlight",
+      "description": "`delegateStake()` writes to that mapping. After the generic `_stake` bump, lines 298-304 add the delegate’s slice and the running total — both under `unchecked` because `totalSupply` already guards against overflow.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 292,
+          "end": 304
+        }
+      ],
+      "title": "",
+      "id": "29723"
+    },
+    {
+      "type": "highlight",
+      "description": "`delegateWithdraw()` reads the same struct, validates the caller’s allowance (320-322) and then decrements both counters (322-324) before falling back to `_withdraw`.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 318,
+          "end": 326
+        }
+      ],
+      "title": "",
+      "id": "29724"
+    },
+    {
+      "type": "highlight",
+      "description": "Each whitelisted ERC-20 has an Incentive struct:\n- `minIncentiveRate` – minimum emission rate\n- `incentiveRate` – current emission rate\n- `amountRemaining` – available balance\n- `manager` – authorized modifier address",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 54,
+          "end": 58
+        }
+      ],
+      "title": "",
+      "id": "29725"
+    },
+    {
+      "type": "highlight",
+      "description": "`incentives` maps `token ⇒ Incentive`, while `whitelistedTokens` keeps an ordered list for iteration.  A token must appear in both to be active.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 87,
+          "end": 92
+        }
+      ],
+      "title": "",
+      "id": "29726"
+    },
+    {
+      "type": "highlight",
+      "description": "`whitelistIncentiveToken()` initialises a brand-new struct: it enforces the max-rate ceiling (191-192), pushes the token into `whitelistedTokens` (201) and sets both `incentiveRate` **and** `minIncentiveRate` to the same seed value (203-204).",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 190,
+          "end": 206
+        }
+      ],
+      "title": "",
+      "id": "29727"
+    },
+    {
+      "type": "highlight",
+      "description": "**`addIncentive()`** is the main mutation route. **Key checkpoints:**\n- line 367 aborts if the proposed `incentiveRate` breaches `MAX_INCENTIVE_RATE`.\n- lines 375-381 guarantee the top-up amount and the new rate both honour `minIncentiveRate`.\n- lines 383-389 move tokens in, add them to `amountRemaining`, and—only when the old tranche is depleted—let the manager update `incentiveRate` (389-392 safeguards against sneaky rate cuts).",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 357,
+          "end": 392
+        }
+      ],
+      "title": "",
+      "id": "29728"
+    },
+    {
+      "type": "highlight",
+      "description": "Later, `_processIncentives()` converts emitted BGT into token rewards with a single high-precision call to `FixedPointMathLib.mulDiv` (line 468). The result is immediately clamped to the vault’s current balance (470-471) so rounding or low reserves can never push the calculation past `amountRemaining`.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 465,
+          "end": 471
+        }
+      ],
+      "title": "",
+      "id": "29729"
+    },
+    {
+      "type": "highlight",
+      "description": "Full **STORAGE** catalogue grouped by purpose:\n- CONFIGURATION – `maxIncentiveTokensCount` (73-74), `distributor` (76-78), `beaconDepositContract` (79-81).\n- DELEGATION – `_delegateStake` (82-83) and per-user `_operators` (84-86).\n- INCENTIVES – `incentives` mapping (87-88) plus `whitelistedTokens` iterable array (90-91).\nEverything else (balances, rewards, timestamps) is inherited from `StakingRewards` and stored in its own layout.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 70,
+          "end": 92
+        }
+      ],
+      "title": "",
+      "id": "29730"
+    },
+    {
+      "type": "textOnly",
+      "description": "You now have the complete map: `constants` that set hard limits, `structs` that shape each concern, and the exact `storage slots` where they live — plus the **read/write paths** that keep them consistent.",
+      "title": "",
+      "id": "29731"
+    }
+  ]
+}

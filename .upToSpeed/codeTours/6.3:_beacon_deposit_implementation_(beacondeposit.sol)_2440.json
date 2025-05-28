@@ -1,0 +1,137 @@
+{
+  "title": "6.3: Beacon Deposit Implementation (BeaconDeposit.sol)",
+  "id": "lSzdYSvNurqq3S2nedKgxmQTbjdOxYrmtID9nx1agc0=",
+  "originalId": 2440,
+  "position": 28,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Re-open `BeaconDeposit.sol` and trace every rule that the public interface promises. The contract's behavior is governed by a few constants and four storage slots.",
+      "title": "",
+      "id": "29120"
+    },
+    {
+      "type": "highlight",
+      "description": "Deposits are counted in `gwei`, the smallest integer multiple of 1 `gwei` (1 × 10⁹ `wei`).  `Line 25` fixes the minimum at **10 000 `BERA` = 10 000 `gwei`**.  The section also fixes the exact byte-lengths every payload must meet and sets a one-day delay that will later guard operator changes.",
+      "file": "src/pol/BeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 22,
+          "end": 38
+        }
+      ],
+      "title": "",
+      "id": "29121"
+    },
+    {
+      "type": "highlight",
+      "description": "All persistent state lives here:\n\n- `depositCount` — monotonic index echoed in every `Deposit` event.\n- `genesisDepositsRoot` — immutable after deployment.\n- `_operatorByPubKey` — current operator for each validator key.\n- `queuedOperator` — two-field struct (`newOperator`, `queuedTimestamp`) used to time-lock hand-overs.",
+      "file": "src/pol/BeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 44,
+          "end": 65
+        }
+      ],
+      "title": "",
+      "id": "29122"
+    },
+    {
+      "type": "highlight",
+      "description": "`supportsInterface` shows the classic **ERC-165** pattern: return true for either the contract’s own interface id or for `IERC165`. Pure, cheap, and completely stateless.",
+      "file": "src/pol/BeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 69,
+          "end": 72
+        }
+      ],
+      "title": "",
+      "id": "29123"
+    },
+    {
+      "type": "highlight",
+      "description": "`deposit` enforces five layers of protection:\n1. Lines 93-103: strict byte-length checks reject malformed input early.\n2. Lines 106-113: on the first deposit the caller must supply a non-zero `operator`; the mapping is written and `OperatorUpdated` fires.\n3. Lines 114-118: later top-ups must pass `operator == 0`, blocking front-running attempts to hijack the mapping.\n4. Line 120: `_deposit()` performs value-specific validation.\n5. Lines 122-128: amounts below **10 000 BERA** revert; otherwise `Deposit` is emitted and `depositCount` is post-incremented.",
+      "file": "src/pol/BeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 83,
+          "end": 129
+        }
+      ],
+      "title": "",
+      "id": "29124"
+    },
+    {
+      "type": "highlight",
+      "description": "`_deposit` turns `msg.value` into gwei, reverts if it is not an exact multiple (190) or if it exceeds `uint64` (195).  The funds are immediately burned by sending them to `address(0)` (199) before returning the gwei amount.",
+      "file": "src/pol/BeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 188,
+          "end": 202
+        }
+      ],
+      "title": "",
+      "id": "29125"
+    },
+    {
+      "type": "highlight",
+      "description": "`_safeTransferETH` is a minimal Solady-style helper: one low-level `call` forwards all gas; on failure it stores the selector `ETHTransferFailed()` in memory and reverts — compact and branch-free.",
+      "file": "src/pol/BeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 210,
+          "end": 216
+        }
+      ],
+      "title": "",
+      "id": "29126"
+    },
+    {
+      "type": "highlight",
+      "description": "`requestOperatorChange` can only be invoked by the current operator (140).  A zero address is rejected (144).  It records the new operator and the current timestamp, then emits `OperatorChangeQueued`.",
+      "file": "src/pol/BeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 134,
+          "end": 151
+        }
+      ],
+      "title": "",
+      "id": "29127"
+    },
+    {
+      "type": "highlight",
+      "description": "`cancelOperatorChange` lets that same operator delete the queue entry at any time, emitting `OperatorChangeCancelled`.",
+      "file": "src/pol/BeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 154,
+          "end": 161
+        }
+      ],
+      "title": "",
+      "id": "29128"
+    },
+    {
+      "type": "highlight",
+      "description": "`acceptOperatorChange` is restricted to the **new** operator (`170`) and only after 24 hours have passed (`174`). It swaps the operator in the mapping, clears the queue, and announces the update.",
+      "file": "src/pol/BeaconDeposit.sol",
+      "highlight": [
+        {
+          "start": 164,
+          "end": 182
+        }
+      ],
+      "title": "",
+      "id": "29129"
+    },
+    {
+      "type": "textOnly",
+      "description": "Every public path — `deposit`, `queue`, `cancel`, `accept` — manipulates only the four storage slots shown earlier.  This narrow surface keeps the contract easy to reason about and audit.",
+      "title": "",
+      "id": "29130"
+    }
+  ]
+}

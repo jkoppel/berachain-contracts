@@ -1,0 +1,104 @@
+{
+  "title": "12.1: Fee Collector: Overview",
+  "id": "bRR8rRKh6qLX+WPSjbpgIo5JZAomMJBShYiuZ3yMtFg=",
+  "originalId": 2463,
+  "position": 51,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "The fee-collection logic lives in two contracts: an `interface` that describes the public surface and an `implementation` that provides the behaviour.",
+      "title": "",
+      "id": "29409"
+    },
+    {
+      "type": "highlight",
+      "description": "The interface begins with a set of events (lines 11-33).  By placing them first, the authors signal that every important action\u00151queuing, setting, claiming, donating\u00151emits a traceable log.",
+      "file": "src/pol/interfaces/IFeeCollector.sol",
+      "highlight": [
+        {
+          "start": 6,
+          "end": 16
+        }
+      ],
+      "title": "",
+      "id": "29410"
+    },
+    {
+      "type": "highlight",
+      "description": "Next comes a tiny **ADMIN-FUNCTIONS** block (lines 39-42).  Only one method, `queuePayoutAmountChange`, is allowed here: governance can schedule—but not immediately apply—a new fee.",
+      "file": "src/pol/interfaces/IFeeCollector.sol",
+      "highlight": [
+        {
+          "start": 36,
+          "end": 44
+        }
+      ],
+      "title": "",
+      "id": "29411"
+    },
+    {
+      "type": "highlight",
+      "description": "Four read-only **GETTERS** (lines 48-62) expose the contract’s configuration at any moment: the token used for payment, how much must be paid, what value is waiting to replace it, and where rewards are forwarded.",
+      "file": "src/pol/interfaces/IFeeCollector.sol",
+      "highlight": [
+        {
+          "start": 48,
+          "end": 63
+        }
+      ],
+      "title": "",
+      "id": "29412"
+    },
+    {
+      "type": "highlight",
+      "description": "Finally the **STATE-MUTATING FUNCTIONS** (lines 67-85) define the life-cycle entry points: claim accumulated fees, donate directly, and pause/unpause the whole collector.",
+      "file": "src/pol/interfaces/IFeeCollector.sol",
+      "highlight": [
+        {
+          "start": 64,
+          "end": 86
+        }
+      ],
+      "title": "",
+      "id": "29413"
+    },
+    {
+      "type": "highlight",
+      "description": "The implementation’s header (lines 15-19) states the purpose in the authors’ words: collect `dApp` fees, auction them for a payout token, and distribute that token to `BGT` stakers.",
+      "file": "src/pol/FeeCollector.sol",
+      "highlight": [
+        {
+          "start": 14,
+          "end": 21
+        }
+      ],
+      "title": "",
+      "id": "29414"
+    },
+    {
+      "type": "highlight",
+      "description": "Key moving parts live right after the imports. Lines 27-31 declare two role identifiers (`MANAGER_ROLE`, `PAUSER_ROLE`). Lines 32-43 publish four pieces of state every other function manipulates: `payoutToken`, `queuedPayoutAmount`, `payoutAmount`, and `rewardReceiver`.",
+      "file": "src/pol/FeeCollector.sol",
+      "highlight": [
+        {
+          "start": 26,
+          "end": 43
+        }
+      ],
+      "title": "",
+      "id": "29415"
+    },
+    {
+      "type": "textOnly",
+      "description": "Externally-visible actions in the implementation:\n- `initialize` – one-time setup\n- `queuePayoutAmountChange` – schedule a new fee\n- `claimFees` – pay the fee and sweep accrued tokens\n- `donate` – send payout-token straight to stakers\n- `pause` / `unpause` – circuit-breaker controls\nTogether they describe a simple cycle: schedule → pay → distribute → (optionally) pause.",
+      "title": "",
+      "id": "29416"
+    },
+    {
+      "type": "textOnly",
+      "description": "This completes the bird’s-eye overview.  Upcoming tours will first dissect the interface in detail and then walk through each implementation method.",
+      "title": "",
+      "id": "29417"
+    }
+  ]
+}

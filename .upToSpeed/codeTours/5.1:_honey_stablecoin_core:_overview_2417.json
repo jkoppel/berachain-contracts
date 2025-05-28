@@ -1,0 +1,149 @@
+{
+  "title": "5.1: Honey Stablecoin Core: Overview",
+  "id": "UHd/+i0A4Jazcc6kKZeBVQcM28/cuoGDjR5tISoqJ7U=",
+  "originalId": 2417,
+  "position": 14,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Here is the helicopter-view of the eight core contracts. First we flash each file’s name plus its opening signature, then we zoom twice into `HoneyFactory` – notice how every other piece routes through this hub.",
+      "title": "",
+      "id": "29026"
+    },
+    {
+      "type": "highlight",
+      "description": "`CollateralVault` – one clone per `ERC-20` collateral; it holds tokens and mints **“shares”** for `HoneyFactory` alone.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 12,
+          "end": 15
+        }
+      ],
+      "title": "",
+      "id": "29027"
+    },
+    {
+      "type": "highlight",
+      "description": "`VaultAdmin` – abstract mix-in inherited by `HoneyFactory`, packaging role control, pausing, fee ledgers and the helper that deploys `vault clones`.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 14,
+          "end": 16
+        }
+      ],
+      "title": "",
+      "id": "29028"
+    },
+    {
+      "type": "highlight",
+      "description": "Honey – the **ERC-20 stablecoin**. Only the factory address stored at `initialise()` can mint or burn.",
+      "file": "src/honey/Honey.sol",
+      "highlight": [
+        {
+          "start": 11,
+          "end": 13
+        }
+      ],
+      "title": "",
+      "id": "29029"
+    },
+    {
+      "type": "highlight",
+      "description": "`HoneyFactoryReader` – stateless helper that front-ends call to preview mint/redeem math by reading the factory.",
+      "file": "src/honey/HoneyFactoryReader.sol",
+      "highlight": [
+        {
+          "start": 14,
+          "end": 16
+        }
+      ],
+      "title": "",
+      "id": "29030"
+    },
+    {
+      "type": "highlight",
+      "description": "`HoneyDeployer` – boots the system once: it deploys the `UpgradeableBeacon`, `Honey`, `HoneyFactory` and `Reader` at deterministic addresses with `Create2`.",
+      "file": "src/honey/HoneyDeployer.sol",
+      "highlight": [
+        {
+          "start": 12,
+          "end": 15
+        }
+      ],
+      "title": "",
+      "id": "29031"
+    },
+    {
+      "type": "highlight",
+      "description": "`IHoneyFactory` – external ABI other contracts compile against (`mint`, `redeem`, `liquidate`, `recapitalize`…).",
+      "file": "src/honey/IHoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 1,
+          "end": 6
+        }
+      ],
+      "title": "",
+      "id": "29032"
+    },
+    {
+      "type": "highlight",
+      "description": "`IHoneyErrors` – shared custom error codes; every revert in the core re-uses this vocabulary.",
+      "file": "src/honey/IHoneyErrors.sol",
+      "highlight": [
+        {
+          "start": 1,
+          "end": 6
+        }
+      ],
+      "title": "",
+      "id": "29033"
+    },
+    {
+      "type": "textOnly",
+      "description": "High-level wiring\n- `HoneyFactory` → deploys `CollateralVault` clones via `VaultAdmin` and is the only caller allowed to move shares inside them.\n- `Honey` token trusts `HoneyFactory` for all mint/burn actions.\n- `HoneyFactoryReader` view-calls `HoneyFactory` to assist **UX**.\n- `HoneyDeployer` creates the beacon, `Honey`, `Factory` and `Reader` in one transaction.\n- All contracts share `IHoneyErrors`; external actors speak `IHoneyFactory`.",
+      "title": "",
+      "id": "29034"
+    },
+    {
+      "type": "highlight",
+      "description": "`HoneyFactory` – storage highlights.  `Constants`, `per-asset rate maps`, `peg offsets`, `caps`, `fee routing addresses`, `price-oracle handle` and `basket/liquidation flags` all live here.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 14,
+          "end": 44
+        }
+      ],
+      "title": "",
+      "id": "29035"
+    },
+    {
+      "type": "highlight",
+      "description": "`HoneyFactory` – user-facing API.  The trio `mint()`, `redeem()` and `liquidate()` swap collateral ↔ Honey, enforce caps, distribute fees and keep invariants intact.  Every pathway through the protocol funnels into these functions.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 315,
+          "end": 335
+        }
+      ],
+      "title": "",
+      "id": "29036"
+    },
+    {
+      "type": "textOnly",
+      "description": "Key terms you will meet repeatedly\n**share** – `ERC-4626` accounting unit emitted by a vault (always 18-decimals).\n**vault** – a `CollateralVault` clone that holds one collateral asset.\n**basket-mode** – state where `mint/redeem` must involve *all* vaults proportionally to their weights.\n**collateral** – any `ERC-20` that already has a registered vault.\n**POL fee collector** – **protocol-owned-liquidity** address that receives part (or all) of the `mint/redeem` fee.\n**mint/redeem rate** – 60.18-fixed-point coefficient translating vault `shares` ↔ `Honey`.",
+      "title": "",
+      "id": "29037"
+    },
+    {
+      "type": "textOnly",
+      "description": "Follow-up deep-dive tours\n1. `CollateralVault` mechanics – `1:1 share↔asset`, custody toggle, inflation guards.\n2. `VaultAdmin` governance – role lattice, fee lifecycle, deterministic clone salts.\n3. `Honey token` – `UUPS upgradeability` & `factory-only mint/burn`.\n4. `HoneyFactory` internals – rate maths, oracle checks, basket-mode, global/relative caps.\n5. Liquidation & recapitalisation – bad collateral flagging, premium calculus, safety rails.\n6. Reader helpers – on-chain maths for off-chain UX.\n7. Deployment flow – `Create2` beacons and predictable addresses.",
+      "title": "",
+      "id": "29038"
+    }
+  ]
+}

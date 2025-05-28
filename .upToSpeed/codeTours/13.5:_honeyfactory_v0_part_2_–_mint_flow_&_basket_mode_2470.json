@@ -1,0 +1,162 @@
+{
+  "title": "13.5: HoneyFactory_V0 Part 2 – Mint Flow & Basket Mode",
+  "id": "zn6OMzttkflUHhCdi2vU9uSQrsXAnNSQ2WHfj7cVfmY=",
+  "originalId": 2470,
+  "position": 58,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "We will trace the regular mint flow first, then watch what changes once basket-mode kicks in.",
+      "title": "",
+      "id": "29601"
+    },
+    {
+      "type": "highlight",
+      "description": "The public `mint` function begins with two fundamental security checks. First, it verifies the asset is properly registered in the system. Second, it ensures the caller's expectations about basket mode match the current system state.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 315,
+          "end": 332
+        }
+      ],
+      "title": "",
+      "id": "29602"
+    },
+    {
+      "type": "highlight",
+      "description": "When `basket-mode` is off `the factory` verifies that the asset is good collateral (line 335), still pegged (line 336) and that minting would respect the **global cap** (lines 341-343) before moving on.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 333,
+          "end": 344
+        }
+      ],
+      "title": "",
+      "id": "29603"
+    },
+    {
+      "type": "highlight",
+      "description": "With `basket-mode` on the same transaction mints against every vault. Current vault share weights (calculated later) decide how large each per-asset deposit must be (lines 351-360) and `_mint` is invoked once per collateral (line 362).",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 345,
+          "end": 364
+        }
+      ],
+      "title": "",
+      "id": "29604"
+    },
+    {
+      "type": "highlight",
+      "description": "`isBasketModeEnabled` drives the switch. For mint it returns **true** only if every collateral is either de-pegged or already marked bad; for redeem a single de-pegged asset is enough (logic at lines 538-552). `forcedBasketMode` overrides all checks (line 531).",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 530,
+          "end": 557
+        }
+      ],
+      "title": "",
+      "id": "29605"
+    },
+    {
+      "type": "highlight",
+      "description": "`_getWeights` converts each vault’s share balance into a 1e18-scaled weight, ignoring bad or paused collaterals depending on the flags (lines 675-681). The weights sum is normalised in lines 687-692.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 664,
+          "end": 693
+        }
+      ],
+      "title": "",
+      "id": "29606"
+    },
+    {
+      "type": "highlight",
+      "description": "Core minting happens in `_mint`. After depositing (line 589) the helper `_getHoneyMintedFromShares` decides how many shares become `HONEY` and how many become protocol fees (lines 593-594). Relative-cap enforcement (line 598) applies only when basket-mode is off; finally `honey.mint` credits the receiver (line 601) and `HoneyMinted` is emitted (line 604).",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 584,
+          "end": 604
+        }
+      ],
+      "title": "",
+      "id": "29607"
+    },
+    {
+      "type": "highlight",
+      "description": "`_approveAndDeposit` performs the `ERC-20` transfer from the user and deposits the tokens into the `ERC-4626` vault, returning the number of fresh shares.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 745,
+          "end": 749
+        }
+      ],
+      "title": "",
+      "id": "29608"
+    },
+    {
+      "type": "highlight",
+      "description": "`_getHoneyMintedFromShares` applies the per-asset `mintRate` (line 640) and splits the remaining shares into **POL fee-collector** (line 643) and `feeReceiver` (line 644).",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 632,
+          "end": 645
+        }
+      ],
+      "title": "",
+      "id": "29609"
+    },
+    {
+      "type": "highlight",
+      "description": "`_handleFees` immediately redeems the POL fee-collector’s shares to assets (lines 757-760) while keeping the fee-receiver portion inside the vault as pending shares (lines 761-765).",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 755,
+          "end": 765
+        }
+      ],
+      "title": "",
+      "id": "29610"
+    },
+    {
+      "type": "highlight",
+      "description": "Every successful mint logs the `HoneyMinted` event with full context for indexers and off-chain accounting.",
+      "file": "src/honey/IHoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 16,
+          "end": 24
+        }
+      ],
+      "title": "",
+      "id": "29611"
+    },
+    {
+      "type": "textOnly",
+      "description": "Example – single-asset happy path\n- `USDC` is registered, pegged and not bad; **basket-mode** is off.\n- Alice calls `mint(USDC, 1 000e6, alice, false)`.\n- 1 000 `USDC` are deposited → 1 000 shares.\n- At the default 0.9995 rate she receives 999.5 HONEY, 0.5 share is treated as fees (100 % to `POL` by default).\n- Relative and global caps pass → transaction succeeds and `HoneyMinted` is emitted.",
+      "title": "",
+      "id": "29612"
+    },
+    {
+      "type": "textOnly",
+      "description": "Example – **basket-mode** mint\n- Suppose every collateral is either paused or temporarily off-peg; `isBasketModeEnabled(true)` now returns true.\n- Caller supplies only `DAI` + expects **basket-mode** = true.\n- Factory uses live weights to compute proportional amounts for `USDC`, `USDT`… deposits each, running `_mint` per vault.\n- Resulting `HONEY` equals the sum of all per-vault mints, each with its own fee split; the collateral mix preserves the pre-existing weights.",
+      "title": "",
+      "id": "29613"
+    },
+    {
+      "type": "textOnly",
+      "description": "Minting flows therefore converge inside `_mint`; `basket-mode` merely widens the set of vaults that participate and derives their deposit amounts automatically, keeping fee logic and cap checks unchanged.",
+      "title": "",
+      "id": "29614"
+    }
+  ]
+}

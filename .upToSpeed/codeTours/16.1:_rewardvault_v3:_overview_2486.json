@@ -1,0 +1,105 @@
+{
+  "title": "16.1: RewardVault_V3: Overview",
+  "id": "/Wz7AbcNO6c51NqXtlp9u8A0GejjN1s6abTNIIj2k4g=",
+  "originalId": 2486,
+  "position": 74,
+  "steps": [
+    {
+      "type": "highlight",
+      "description": "The opening imports reveal the vault’s friends: `OpenZeppelin` upgrade-safe helpers (lines 4-7) and math (line 8) are followed by project-specific utilities and cross-module interfaces (lines 10-18).  Recognising `IBeaconDeposit`, `IBeraChef` and `IBGTIncentiveDistributor` now will pay off when we look at runtime logic.",
+      "file": "src/V3_Contracts/RewardVault_V3.sol",
+      "highlight": [
+        {
+          "start": 1,
+          "end": 18
+        }
+      ],
+      "title": "",
+      "id": "29684"
+    },
+    {
+      "type": "highlight",
+      "description": "Five mix-ins combine to form the vault. `PausableUpgradeable` and `ReentrancyGuardUpgradeable` add safety switches; `FactoryOwnable` installs factory-level governance; `StakingRewards` contributes the generic reward-per-token engine; `IRewardVault` is the public interface the rest of the protocol talks to.",
+      "file": "src/V3_Contracts/RewardVault_V3.sol",
+      "highlight": [
+        {
+          "start": 26,
+          "end": 33
+        }
+      ],
+      "title": "",
+      "id": "29685"
+    },
+    {
+      "type": "highlight",
+      "description": "Extra accounting beyond `StakingRewards`:  `DelegateStake` tracks how much each delegate has deposited for an account, while `Incentive` packages the parameters, budget and manager for every side-token that can be distributed.",
+      "file": "src/V3_Contracts/RewardVault_V3.sol",
+      "highlight": [
+        {
+          "start": 41,
+          "end": 59
+        }
+      ],
+      "title": "",
+      "id": "29686"
+    },
+    {
+      "type": "highlight",
+      "description": "State is laid out in five thematic groups: global knobs (`max token count`, `distributor`, `beacon deposit`), `delegate staking map`, `operator map`, `per-token incentives`, and the `whitelist array`. Remember these addresses when tracing reads and writes later.",
+      "file": "src/V3_Contracts/RewardVault_V3.sol",
+      "highlight": [
+        {
+          "start": 70,
+          "end": 92
+        }
+      ],
+      "title": "",
+      "id": "29687"
+    },
+    {
+      "type": "highlight",
+      "description": "`initialize()` wires the vault into the wider system: parents are initialised, the three-day reward window is set, and references to `staking token`, `reward token`, `distributor` and `BeaconDeposit` are stored. A default cap of two incentive tokens is also enforced.",
+      "file": "src/V3_Contracts/RewardVault_V3.sol",
+      "highlight": [
+        {
+          "start": 98,
+          "end": 118
+        }
+      ],
+      "title": "",
+      "id": "29688"
+    },
+    {
+      "type": "highlight",
+      "description": "`stake()` is the public gateway for **BGT** deposits. Its brevity shows that the heavy lifting happens in the inherited `_stake()`, keeping this contract focused on extensions like delegation and incentives.",
+      "file": "src/V3_Contracts/RewardVault_V3.sol",
+      "highlight": [
+        {
+          "start": 281,
+          "end": 285
+        }
+      ],
+      "title": "",
+      "id": "29689"
+    },
+    {
+      "type": "highlight",
+      "description": "`_processIncentives()` is the second runtime pillar. Every time `BGT` is emitted for a validator `pubkey`, this function decides how much of each incentive token goes to the operator and to the booster pool.",
+      "file": "src/V3_Contracts/RewardVault_V3.sol",
+      "highlight": [
+        {
+          "start": 444,
+          "end": 450
+        }
+      ],
+      "title": "",
+      "id": "29690"
+    },
+    {
+      "type": "textOnly",
+      "description": "With the collaborators, `storage layout` and two key execution paths located, you now know where `staking`, `delegation`, `incentive accounting` and `admin knobs` reside\r\nready for a deeper dive.",
+      "title": "",
+      "id": "29691"
+    }
+  ]
+}

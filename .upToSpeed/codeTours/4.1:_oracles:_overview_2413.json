@@ -1,0 +1,111 @@
+{
+  "title": "4.1: Oracles: Overview",
+  "id": "3iz05rdjaZSrx/EDRjPeTHa9++s/WVDDmsyi398+ktU=",
+  "originalId": 2413,
+  "position": 10,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "All oracle-related pieces live in `src/extras`:\n- `IPriceOracle.sol` – base USD-price interface\n- `IRootPriceOracle.sol` – extension for a dual-feed \"root\" oracle\n- `PeggedPriceOracle.sol` – returns a fixed 1 USD peg\n- `PythPriceOracle.sol` – pulls live prices from the Pyth Network\n- `RootPriceOracle.sol` – compares spot vs. Pyth and serves the bigger deviation\n- `PythPriceOracleDeployer.sol` – Create2 helper that deploys the Pyth oracle (implementation + proxy)\n- `RootPriceOracleDeployer.sol` – matching Create2 helper for the root oracle",
+      "title": "",
+      "id": "28827"
+    },
+    {
+      "type": "highlight",
+      "description": "The **base interface** everyone implements.  Lines 8-13 package a **price** together with its **timestamp**.  Lines 23, 33, 40 & 43 expose four **read-only methods** that every **concrete oracle** must provide.",
+      "file": "src/extras/IPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 8,
+          "end": 44
+        }
+      ],
+      "title": "",
+      "id": "28828"
+    },
+    {
+      "type": "highlight",
+      "description": "**Root oracles** just extend the surface: line 10 adds `UnreliablePrice`, while lines 14 & 18 announce when either underlying feed address is updated.",
+      "file": "src/extras/IRootPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 8,
+          "end": 19
+        }
+      ],
+      "title": "",
+      "id": "28829"
+    },
+    {
+      "type": "highlight",
+      "description": "First concrete oracle.  The header shows it **implements** `IPriceOracle` – its body (not shown here) simply returns 1 e18 for any asset.",
+      "file": "src/extras/PeggedPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 4,
+          "end": 12
+        }
+      ],
+      "title": "",
+      "id": "28830"
+    },
+    {
+      "type": "highlight",
+      "description": "Live-feed oracle.  Again **implements** `IPriceOracle` but imports upgrade-safe mix-ins and Pyth types before its own logic.",
+      "file": "src/extras/PythPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 4,
+          "end": 13
+        }
+      ],
+      "title": "",
+      "id": "28831"
+    },
+    {
+      "type": "highlight",
+      "description": "Composite oracle.  This contract **implements** `IRootPriceOracle`, signalling it follows the extended interface with extra error & events.",
+      "file": "src/extras/RootPriceOracle.sol",
+      "highlight": [
+        {
+          "start": 4,
+          "end": 14
+        }
+      ],
+      "title": "",
+      "id": "28832"
+    },
+    {
+      "type": "highlight",
+      "description": "Thin helper that inherits `Create2Deployer`; its constructor drops the **Pyth implementation and proxy** at deterministic salts.",
+      "file": "src/extras/PythPriceOracleDeployer.sol",
+      "highlight": [
+        {
+          "start": 4,
+          "end": 18
+        }
+      ],
+      "title": "",
+      "id": "28833"
+    },
+    {
+      "type": "highlight",
+      "description": "Mirrors the same pattern for the `dual-feed oracle` – just enough glue to guarantee a predictable address.",
+      "file": "src/extras/RootPriceOracleDeployer.sol",
+      "highlight": [
+        {
+          "start": 4,
+          "end": 17
+        }
+      ],
+      "title": "",
+      "id": "28834"
+    },
+    {
+      "type": "textOnly",
+      "description": "High-level picture: a single interface defines how prices are queried, `IRootPriceOracle` decorates it for dual-feed scenarios, three concrete contracts implement one or the other, and two slim `Create2` deployers make sure each oracle materialises at a known address.",
+      "title": "",
+      "id": "28835"
+    }
+  ]
+}

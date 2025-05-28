@@ -1,0 +1,130 @@
+{
+  "title": "10.5: Validator Commission Workflow",
+  "id": "SmrRAksUlBZqe7KNfG/zsCnXpTOdU7sdai+/kGO5W34=",
+  "originalId": 2459,
+  "position": 47,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Validator operators can charge a commission on the incentive tokens that flow through `BeraChef`. The process is intentionally two-step – they must first `queue` a new rate and only after a delay `activate` it. We will walk through the key contracts that make this happen.",
+      "title": "",
+      "id": "29361"
+    },
+    {
+      "type": "highlight",
+      "description": "Two constants frame the commission logic:\n- line 23 `ONE_HUNDRED_PERCENT` = `1 e4` – every rate is expressed in basis points.\n- line 26 `DEFAULT_COMMISSION_RATE` = `0.05 e4` (5%).\n- line 30 `MAX_COMMISSION_CHANGE_DELAY` caps how far the owner can push the waiting period (`≈ 30 days`).",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 22,
+          "end": 31
+        }
+      ],
+      "title": "",
+      "id": "29362"
+    },
+    {
+      "type": "highlight",
+      "description": "`onlyOperator` ties all commission actions to the validator’s registered operator – the address returned by `BeaconDeposit`.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 119,
+          "end": 124
+        }
+      ],
+      "title": "",
+      "id": "29363"
+    },
+    {
+      "type": "highlight",
+      "description": "`queueValCommission` introduces the new rate but does **not** apply it yet:\n1. line 269 rejects any value above `ONE_HUNDRED_PERCENT`.\n2. lines 273-275 enforce a single-queue – you cannot queue twice before activation.\n3. lines 276-277 store the current block + rate and emit `QueuedValCommission`.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 268,
+          "end": 277
+        }
+      ],
+      "title": "",
+      "id": "29364"
+    },
+    {
+      "type": "textOnly",
+      "description": "At this point the requested change is merely recorded; no reward calculation will see it until the mandatory delay passes.",
+      "title": "",
+      "id": "29365"
+    },
+    {
+      "type": "highlight",
+      "description": "`commissionChangeDelay` (line 64) is the configurable waiting period, stored once and read whenever a queued change is finalised.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 60,
+          "end": 66
+        }
+      ],
+      "title": "",
+      "id": "29366"
+    },
+    {
+      "type": "highlight",
+      "description": "`setCommissionChangeDelay` lets the contract owner adjust that delay, but never to 0 and never beyond `MAX_COMMISSION_CHANGE_DELAY`.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 218,
+          "end": 225
+        }
+      ],
+      "title": "",
+      "id": "29367"
+    },
+    {
+      "type": "highlight",
+      "description": "`activateQueuedValCommission` moves the rate from the queue into active storage:\n- line 284 computes `activationBlock = blockNumberLast + commissionChangeDelay`.\n- line 285 reverts if we are too early.\n- line 288 fetches the previous rate via `_getOperatorCommission`.\n- line 289 stores the new `CommissionRate` **struct**.\n- line 290 emits `ValCommissionSet`.\n- line 292 deletes the queued entry – keeping state clean.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 281,
+          "end": 293
+        }
+      ],
+      "title": "",
+      "id": "29368"
+    },
+    {
+      "type": "highlight",
+      "description": "`_getOperatorCommission` is the single source of truth – if a validator never set a rate it falls back to the **5%** default.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 490,
+          "end": 494
+        }
+      ],
+      "title": "",
+      "id": "29369"
+    },
+    {
+      "type": "highlight",
+      "description": "`getValidatorIncentiveTokenShare` shows how any caller converts a raw incentive amount into the operator’s share: (`amount` × `commissionRate`) ÷ `ONE_HUNDRED_PERCENT`.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 370,
+          "end": 380
+        }
+      ],
+      "title": "",
+      "id": "29370"
+    },
+    {
+      "type": "textOnly",
+      "description": "Putting it all together:\n1. The operator queues a new commission – bounded to `≤ 100` % and only if none is already pending.\n2. After commissionChangeDelay blocks anyone can call `activateQueuedValCommission`, stamping an activation block, updating storage, emitting an event, and clearing the queue.\n3. Reward logic always calls `_getOperatorCommission` – returning the `5` % default unless an active override exists.\n4. The operator’s portion of any incentive distribution is then calculated through `getValidatorIncentiveTokenShare`.\nThese steps guarantee that commission changes are intentional, delayed, and accurately applied when incentives are split.",
+      "title": "",
+      "id": "29371"
+    }
+  ]
+}

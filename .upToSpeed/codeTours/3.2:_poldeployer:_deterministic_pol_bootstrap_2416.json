@@ -1,0 +1,182 @@
+{
+  "title": "3.2: POLDeployer: Deterministic PoL Bootstrap",
+  "id": "m7KgYNZOxeuwaBUi81567ZuxASuncdZiadqHwA/mupw=",
+  "originalId": 2416,
+  "position": 7,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Begin by orienting yourself: `POLDeployer` exists purely to bootstrap the on-chain rewards system. Once its `constructor` finishes it never touches `storage` again. **Everything interesting happens during construction.**",
+      "title": "",
+      "id": "28800"
+    },
+    {
+      "type": "highlight",
+      "description": "The import block lists every artefact the deployment will create. Each one will end up behind its own **ERC-1967** proxy, and every proxy is placed with deterministic `CREATE2`.",
+      "file": "src/pol/POLDeployer.sol",
+      "highlight": [
+        {
+          "start": 4,
+          "end": 9
+        }
+      ],
+      "title": "",
+      "id": "28801"
+    },
+    {
+      "type": "textOnly",
+      "description": "Keep this list handy:\n\n1. the same names resurface when we trace the `constructor`.",
+      "title": "",
+      "id": "28802"
+    },
+    {
+      "type": "highlight",
+      "description": "Four system-wide constants live here instead of in downstream contracts:\n\n- `maxNumWeightsPerRewardAllocation` caps reward-splitting arrays.\n- `ZERO_VALIDATOR_PUBKEY_G_INDEX` & `PROPOSER_INDEX_G_INDEX` are reused beacon-chain helpers.\n- `BEACON_DEPOSIT` is a placeholder address stored here to dodge a \"stack too deep\" constructor.",
+      "file": "src/pol/POLDeployer.sol",
+      "highlight": [
+        {
+          "start": 14,
+          "end": 27
+        }
+      ],
+      "title": "",
+      "id": "28803"
+    },
+    {
+      "type": "highlight",
+      "description": "**Immutable** references record the freshly created proxy addresses. Note the **lower-camel, public, immutable naming convention** (e.g. `beraChef`). Because everything is immutable, `POLDeployer` keeps no mutable state after deployment.",
+      "file": "src/pol/POLDeployer.sol",
+      "highlight": [
+        {
+          "start": 28,
+          "end": 42
+        }
+      ],
+      "title": "",
+      "id": "28804"
+    },
+    {
+      "type": "highlight",
+      "description": "Constructor parameters supply the `BGT token`, the `governance address`, and four independent **salts**. These **salts** flow straight into `CREATE2`, so every final address is predictable off-chain.",
+      "file": "src/pol/POLDeployer.sol",
+      "highlight": [
+        {
+          "start": 44,
+          "end": 51
+        }
+      ],
+      "title": "",
+      "id": "28805"
+    },
+    {
+      "type": "highlight",
+      "description": "Step 1 – `BeraChef`: deploy the implementation at a deterministic address (line 53), then wrap it in an `ERC-1967` proxy via `deployProxyWithCreate2` (line 55) and store the typed reference.",
+      "file": "src/pol/POLDeployer.sol",
+      "highlight": [
+        {
+          "start": 52,
+          "end": 56
+        }
+      ],
+      "title": "",
+      "id": "28806"
+    },
+    {
+      "type": "highlight",
+      "description": "Step 2 – `BlockRewardController` follows the exact same implementation-then-proxy pattern.",
+      "file": "src/pol/POLDeployer.sol",
+      "highlight": [
+        {
+          "start": 57,
+          "end": 62
+        }
+      ],
+      "title": "",
+      "id": "28807"
+    },
+    {
+      "type": "highlight",
+      "description": "Step 3 – Distributor repeats the pattern yet again.",
+      "file": "src/pol/POLDeployer.sol",
+      "highlight": [
+        {
+          "start": 63,
+          "end": 67
+        }
+      ],
+      "title": "",
+      "id": "28808"
+    },
+    {
+      "type": "highlight",
+      "description": "Step 4 is a two-fer: deploy `RewardVault`’s implementation (`line 69`) solely so the upcoming factory can clone it, then deploy `RewardVaultFactory` behind its own proxy (`line 72`).",
+      "file": "src/pol/POLDeployer.sol",
+      "highlight": [
+        {
+          "start": 68,
+          "end": 72
+        }
+      ],
+      "title": "",
+      "id": "28809"
+    },
+    {
+      "type": "highlight",
+      "description": "`deployWithCreate2` writes the salt into memory, calls a well-known `CREATE2` factory (line 31) and returns the resulting address, guaranteeing determinism.",
+      "file": "src/base/Create2Deployer.sol",
+      "highlight": [
+        {
+          "start": 24,
+          "end": 38
+        }
+      ],
+      "title": "",
+      "id": "28810"
+    },
+    {
+      "type": "highlight",
+      "description": "`deployProxyWithCreate2` is just `deployWithCreate2` plus the **ERC-1967** proxy init-code assembled by `initCodeERC1967`. Same deterministic recipe, different bytecode.",
+      "file": "src/base/Create2Deployer.sol",
+      "highlight": [
+        {
+          "start": 59,
+          "end": 65
+        }
+      ],
+      "title": "",
+      "id": "28811"
+    },
+    {
+      "type": "highlight",
+      "description": "**Initialisation phase** – `BeraChef` receives `Distributor`, the `vault factory`, `governance`, the `beacon deposit address` and the `global weight cap`.",
+      "file": "src/pol/POLDeployer.sol",
+      "highlight": [
+        {
+          "start": 74,
+          "end": 81
+        }
+      ],
+      "title": "",
+      "id": "28812"
+    },
+    {
+      "type": "highlight",
+      "description": "`BlockRewardController`, `Distributor` and `RewardVaultFactory` are then wired together, each handed the shared governance address plus the cross-references they need to interact safely.",
+      "file": "src/pol/POLDeployer.sol",
+      "highlight": [
+        {
+          "start": 82,
+          "end": 91
+        }
+      ],
+      "title": "",
+      "id": "28813"
+    },
+    {
+      "type": "textOnly",
+      "description": "**Recap:** `POLDeployer` deterministically deploys four implementations and their proxies, stores the proxy addresses as immutables, runs four `initialise` calls to stitch everything together and then becomes inert. With only the constructor parameters and salts you can reproduce or verify every proxy address.",
+      "title": "",
+      "id": "28814"
+    }
+  ]
+}

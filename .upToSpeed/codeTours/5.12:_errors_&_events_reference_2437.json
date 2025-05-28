@@ -1,0 +1,42 @@
+{
+  "title": "5.12: Errors & Events Reference",
+  "id": "BUov9PXUqaBoksVTGOZsQB8uwOw6Jf6vQCM1NEmWYTg=",
+  "originalId": 2437,
+  "position": 25,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Everything an auditor needs to look-up in `Honey` lives in just two interfaces.\n\n- **slide 2** – every revert reason, already grouped by theme.\n- **slide 3** – every event the protocol can emit, grouped by purpose.\n\nKeep them open beside your `trace-tool`: no other files are required for quick explanations.",
+      "title": "",
+      "id": "29222"
+    },
+    {
+      "type": "revealFiles",
+      "files": [
+        "src/honey/IHoneyErrors.sol"
+      ],
+      "description": "{\n  \"title\": \"IHoneyErrors\",\n  \"description\": \"Single source of truth for all revert reasons\",\n  \"errorCategories\": [\n    {\n      \"name\": \"Access & ownership\",\n      \"lines\": \"7-21\",\n      \"errors\": [\"ZeroAddress\", \"MismatchedOwner\", \"UnauthorizedCaller\", \"NotFactory\"]\n    },\n    {\n      \"name\": \"Registration\",\n      \"lines\": \"11-13\",\n      \"errors\": [\"VaultAlreadyRegistered\", \"AssetNotRegistered\"]\n    },\n    {\n      \"name\": \"Caps & rates\",\n      \"lines\": \"17-19,27-29,53\",\n      \"errors\": [\"OverOneHundredPercentRate\", \"UnderNinetyEightPercentRate\", \"ExceedRelativeCap\", \"ExceedGlobalCap\", \"CapCanCauseDenialOfService\"]\n    },\n    {\n      \"name\": \"Liquidation flow\",\n      \"lines\": \"25,31-35\",\n      \"errors\": [\"AssetIsBadCollateral\", \"LiquidationDisabled\", \"AssetIsNotBadCollateral\", \"LiquidationWithReferenceCollateral\"]\n    },\n    {\n      \"name\": \"Recapitalisation\",\n      \"lines\": \"39-43\",\n      \"errors\": [\"ZeroWeight\", \"RecapitalizeNotNeeded\", \"InsufficientRecapitalizeAmount\"]\n    },\n    {\n      \"name\": \"Peg & basket mode\",\n      \"lines\": \"47,51\",\n      \"errors\": [\"NotPegged\", \"UnexpectedBasketModeStatus\"]\n    },\n    {\n      \"name\": \"Value checks\",\n      \"lines\": \"23,45,49\",\n      \"errors\": [\"InsufficientAssets\", \"AmountOutOfRange\", \"ZeroAmount\"]\n    },\n    {\n      \"name\": \"Pause / misc\",\n      \"lines\": \"37,55\",\n      \"errors\": [\"VaultPaused\", \"InvalidCustodyInfoInput\"]\n    }\n  ],\n  \"usageTip\": \"Match the revert name from a failing tx to the list above to know instantly which phase of the protocol raised it.\"\n}",
+      "title": "",
+      "id": "29223"
+    },
+    {
+      "type": "highlight",
+      "description": "# IHoneyFactory Events Overview\n\nAll events are declared before line 98 and are organized by functional groups:\n\n## Rate Configuration (Lines 8,11,14)\n- `MintRateSet`: Asset mint rate configuration\n- `RedeemRateSet`: Asset redemption rate configuration\n- `POLFeeCollectorFeeRateSet`: POL fee collector rate setting\n\n## Mint/Redeem Lifecycle (Lines 22,32)\n- `HoneyMinted`: Tracks honey minting operations\n- `HoneyRedeemed`: Tracks honey redemption operations\n\n## Mode & Peg Controls (Lines 38,44,48)\n- `BasketModeForced`: Basket mode enforcement status\n- `DepegOffsetsSet`: Asset depeg boundaries configuration\n- `LiquidationStatusSet`: Liquidation feature toggle\n\n## Collateral & Caps Management (Lines 53,58,62,66,71,75,80)\n- `ReferenceCollateralSet`: Reference collateral updates\n- `RecapitalizeBalanceThresholdSet`: Balance threshold for recapitalization\n- `MinSharesToRecapitalizeSet`: Minimum shares for recapitalization\n- `MaxFeedDelaySet`: Maximum feed delay configuration\n- `LiquidationRateSet`: Asset liquidation rate settings\n- `GlobalCapSet`: Global cap adjustments\n- `RelativeCapSet`: Asset-specific relative cap settings\n\n## Oracle Configuration (Line 84)\n- `PriceOracleSet`: Price oracle address updates\n\n## Runtime Operations (Lines 91,97)\n- `Liquidated`: Records liquidation events\n- `Recapitalized`: Tracks recapitalization operations\n\n💡 **Usage Tip**: Use this event grouping as your first reference when analyzing logs - each event's purpose is clearly indicated by its group.",
+      "file": "src/honey/IHoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 6,
+          "end": 98
+        }
+      ],
+      "title": "",
+      "id": "29224"
+    },
+    {
+      "type": "textOnly",
+      "description": "Search these two interfaces first: if a `Honey` transaction `reverts` or `emits a log`, the name you need is guaranteed to be here.",
+      "title": "",
+      "id": "29225"
+    }
+  ]
+}

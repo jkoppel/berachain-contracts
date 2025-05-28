@@ -1,0 +1,98 @@
+{
+  "title": "13.1: Legacy Contracts V0: Overview",
+  "id": "0zHrBVPeH02IS5XBNqOkgQ8TKZl92Qwz5slow2XoSPU=",
+  "originalId": 2466,
+  "position": 54,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "The V0 suite splits responsibilities across five contracts. Each one exposes a distinct set of governance roles and owns a specific part of the mint–stake–reward pipeline. A quick tour of their headers gives you the mental map.",
+      "title": "",
+      "id": "29458"
+    },
+    {
+      "type": "highlight",
+      "description": "`HoneyFactory_V0` is the entry-point for users: it mints & redeems the Honey stable-asset and **inherits** every admin/fee feature from `VaultAdmin`. Keep the file path in mind – every collateral-related call originates from here.",
+      "file": "src/v0_Contracts/HoneyFactory_V0.sol",
+      "highlight": [
+        {
+          "start": 14,
+          "end": 16
+        }
+      ],
+      "title": "",
+      "id": "29459"
+    },
+    {
+      "type": "highlight",
+      "description": "`VaultAdmin_V0` mixes into `HoneyFactory` and defines the control surface:  `MANAGER_ROLE`, `PAUSER_ROLE`, `DEFAULT_ADMIN_ROLE` plus storage for `beacon`, `feeReceiver`, `polFeeCollector` and the `vault/asset registries`.  Any fee routing or vault life-cycle change flows through these variables.",
+      "file": "src/v0_Contracts/VaultAdmin_V0.sol",
+      "highlight": [
+        {
+          "start": 38,
+          "end": 60
+        }
+      ],
+      "title": "",
+      "id": "29460"
+    },
+    {
+      "type": "highlight",
+      "description": "Each collateral is wrapped by a `CollateralVault_V0` – a fixed-rate `ERC-4626` clone. Only the factory (line 19-21) can mint/burn shares, ensuring **1-for-1** backing between on-chain assets and Honey supply.",
+      "file": "src/v0_Contracts/CollateralVault_V0.sol",
+      "highlight": [
+        {
+          "start": 11,
+          "end": 22
+        }
+      ],
+      "title": "",
+      "id": "29461"
+    },
+    {
+      "type": "highlight",
+      "description": "`RewardVaultFactory_V0` lives in the staking subsystem. Governance controls two new roles here – **VAULT_MANAGER_ROLE** & **VAULT_PAUSER_ROLE** – and clones reward vaults for any staking token that needs incentives.",
+      "file": "src/v0_Contracts/RewardVaultFactory_V0.sol",
+      "highlight": [
+        {
+          "start": 12,
+          "end": 27
+        }
+      ],
+      "title": "",
+      "id": "29462"
+    },
+    {
+      "type": "highlight",
+      "description": "`RewardVault_V0` is the user-facing staking contract: it tracks **BGT** rewards, optional incentive tokens and operator delegation. `Factory` ownership gates its admin functions; distributors feed rewards via `notifyRewardAmount`.",
+      "file": "src/v0_Contracts/RewardVault_V0.sol",
+      "highlight": [
+        {
+          "start": 16,
+          "end": 23
+        }
+      ],
+      "title": "",
+      "id": "29463"
+    },
+    {
+      "type": "highlight",
+      "description": "`BeraChef_V0` orchestrates reward distribution.  `Governance` whitelists vaults, operators queue weightings, and a privileged `distributor` later activates them – making this the policy layer that plugs on top of `RewardVaultFactory`’s products.",
+      "file": "src/v0_Contracts/BeraChef_V0.sol",
+      "highlight": [
+        {
+          "start": 13,
+          "end": 23
+        }
+      ],
+      "title": "",
+      "id": "29464"
+    },
+    {
+      "type": "textOnly",
+      "description": "{\n  \"systemOverview\": {\n    \"mainComponents\": [\n      {\n        \"interaction\": \"Users -> HoneyFactory <-> CollateralVaults\",\n        \"purpose\": \"deposit collateral, receive Honey, or burn Honey to redeem\",\n        \"adminDetails\": {\n          \"component\": \"VaultAdmin\",\n          \"functions\": [\"enforces roles\", \"collects static fee cut of vault shares\"],\n          \"feeTypes\": [\"feeReceiver\", \"polFeeCollector\"]\n        }\n      },\n      {\n        \"interaction\": \"RewardVaultFactory -> RewardVaults\",\n        \"purpose\": \"governance clones a staking vault per token\",\n        \"function\": \"shares BGT/incentive tokens over time\"\n      },\n      {\n        \"interaction\": \"BeraChef with RewardVaultFactory\",\n        \"process\": {\n          \"input\": \"validators/operators queue custom weight lists\",\n          \"execution\": \"Distributor contract activates them\",\n          \"output\": \"streaming rewards into the right vaults\"\n        }\n      }\n    ],\n    \"rolesHierarchy\": {\n      \"DEFAULT_ADMIN\": \"governs everything via VaultAdmin\",\n      \"MANAGER_AND_PAUSER\": \"fine-tune HoneyFactory and its vaults\",\n      \"VAULT_ROLES\": {\n        \"VAULT_MANAGER\": \"target reward vaults only\",\n        \"VAULT_PAUSER\": \"target reward vaults only\"\n      },\n      \"OPERATIONAL_ROLES\": {\n        \"Distributor\": \"drive the live reward flow\",\n        \"Operator\": \"drive the live reward flow\"\n      }\n    },\n    \"fileStructure\": {\n      \"basePath\": \"src/v0_Contracts/\",\n      \"organization\": \"mirrors this breakdown for intuitive navigation\"\n    }\n  }\n}",
+      "title": "",
+      "id": "29465"
+    }
+  ]
+}

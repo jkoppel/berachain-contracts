@@ -1,0 +1,124 @@
+{
+  "title": "9.3: RewardVault – Initialisation & Access Control",
+  "id": "7N2moxGdzxdRfGtiWOGjRbZCARssIRaJH+BCd8PLZK8=",
+  "originalId": 2450,
+  "position": 38,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "This walkthrough illustrates how a `RewardVault` is born and governed. We'll step through its `initialize` wiring, the factory-controlled role boundaries, and the pausable reentrancy protections that underpin its security.",
+      "title": "",
+      "id": "29226"
+    },
+    {
+      "type": "highlight",
+      "description": "The vault's initialization sets up its configuration and security model. The factory passes in contract addresses and becomes the vault's owner through the first initializer. The initialization chain sets up pausability, reentrancy protection, and staking rewards with a fixed 3-day rewards duration. The vault also establishes its initial incentive token capacity and distributor relationship.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 98,
+          "end": 118
+        }
+      ],
+      "title": "",
+      "id": "29227"
+    },
+    {
+      "type": "highlight",
+      "description": "This initialization step establishes the fundamental ownership structure - the deploying factory becomes the owner, creating the foundation for all future permission checks.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 105,
+          "end": 110
+        }
+      ],
+      "title": "",
+      "id": "29228"
+    },
+    {
+      "type": "highlight",
+      "description": "Let's examine four key modifiers that establish the vault's security boundaries. These modifiers create a clear hierarchy of permissions - from the distributor who handles rewards, to operators who can act on behalf of users, to basic balance checks, and finally to token whitelisting that prevents unauthorized incentive tokens. Each modifier serves as a guard rail for specific vault operations.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 124,
+          "end": 145
+        }
+      ],
+      "title": "",
+      "id": "29229"
+    },
+    {
+      "type": "highlight",
+      "description": "`setDistributor` (lines 150–155) is gated by `onlyFactoryOwner`, enabling the factory owner to swap the distributor address at will, while guarding against zero address.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 150,
+          "end": 155
+        }
+      ],
+      "title": "",
+      "id": "29230"
+    },
+    {
+      "type": "highlight",
+      "description": "`whitelistIncentiveToken` (lines 182–208) lets the factory owner add a new incentive token. Guards enforce `minIncentiveRate > 0` and ≤ `MAX_INCENTIVE_RATE`, non-zero token and manager addresses, and that the whitelist isn’t full. An `IncentiveTokenWhitelisted` event (line 207) announces success.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 182,
+          "end": 208
+        }
+      ],
+      "title": "",
+      "id": "29231"
+    },
+    {
+      "type": "highlight",
+      "description": "Two incentive-management calls with distinct factory roles:\n- `removeIncentiveToken` (211–216) uses `onlyFactoryVaultManager` to delist a token.\n- `updateIncentiveManager` (219–233) remains under the stricter `onlyFactoryOwner` guard.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 211,
+          "end": 233
+        }
+      ],
+      "title": "",
+      "id": "29232"
+    },
+    {
+      "type": "highlight",
+      "description": "`setMaxIncentiveTokensCount` (236–242) can raise the cap but reverts if the new limit is below the current `whitelistedTokens.length` (`line 237`), preventing orphaned incentives.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 236,
+          "end": 242
+        }
+      ],
+      "title": "",
+      "id": "29233"
+    },
+    {
+      "type": "highlight",
+      "description": "**Emergency controls honor a role hierarchy:**\n- `pause()` (244–247) is behind `onlyFactoryVaultPauser`.\n- `unpause()` (249–252) requires `onlyFactoryVaultManager`.\nOnly a higher-privileged manager can resume normal operations.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 244,
+          "end": 252
+        }
+      ],
+      "title": "",
+      "id": "29234"
+    },
+    {
+      "type": "textOnly",
+      "description": "Remember that at birth the vault also invoked `__Pausable_init()` and `__ReentrancyGuard_init()` (lines 109–110), endowing all state-changing methods with pausable and reentrancy protections.",
+      "title": "",
+      "id": "29235"
+    }
+  ]
+}

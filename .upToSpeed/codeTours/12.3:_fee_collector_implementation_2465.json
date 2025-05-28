@@ -1,0 +1,150 @@
+{
+  "title": "12.3: Fee Collector implementation",
+  "id": "W7RqPwj4/Bb5++ahPddRUIviOhrgnFcXEia/MY3bMF0=",
+  "originalId": 2465,
+  "position": 53,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Start with the big picture: the collector accepts protocol fees, asks the caller to pay a fixed `payout` price in a separate token, then forwards that payout to `BGT` stakers.  We will follow the exact lines that enforce those transfers and the surrounding safeguards.",
+      "title": "",
+      "id": "29478"
+    },
+    {
+      "type": "highlight",
+      "description": "The opening comment describes the two token streams we will track: fees come in from `dApps`, payout tokens go out to the staking system.",
+      "file": "src/pol/FeeCollector.sol",
+      "highlight": [
+        {
+          "start": 14,
+          "end": 21
+        }
+      ],
+      "title": "",
+      "id": "29479"
+    },
+    {
+      "type": "highlight",
+      "description": "Inheritance (line 22) mixes pausing, role control and **UUPS-style** upgrades. Lines 23-24 attach `SafeERC20` wrappers to every `IERC20` call and implement the `Utils` helpers.",
+      "file": "src/pol/FeeCollector.sol",
+      "highlight": [
+        {
+          "start": 6,
+          "end": 25
+        }
+      ],
+      "title": "",
+      "id": "29480"
+    },
+    {
+      "type": "highlight",
+      "description": "Lines 27-32 define two bespoke roles. Lines 33-42 hold the core state:\n- `payoutToken` – the token callers must spend.\n- `payoutAmount` – current price.\n- `queuedPayoutAmount` – next price, activated later.\n- `rewardReceiver` – the `BGTStaker` that redistributes rewards.",
+      "file": "src/pol/FeeCollector.sol",
+      "highlight": [
+        {
+          "start": 26,
+          "end": 42
+        }
+      ],
+      "title": "",
+      "id": "29481"
+    },
+    {
+      "type": "highlight",
+      "description": "**Initialisation** rejects zero addresses (61-63) and a zero payout (64). It grants governance the admin role (66) and lets `MANAGER` manage `PAUSER` (68). The very first `PayoutAmountSet` (74-75) records the initial price.",
+      "file": "src/pol/FeeCollector.sol",
+      "highlight": [
+        {
+          "start": 58,
+          "end": 75
+        }
+      ],
+      "title": "",
+      "id": "29482"
+    },
+    {
+      "type": "highlight",
+      "description": "**`queuePayoutAmountChange`** is **admin-only**. A zero value reverts (`85`). The new amount is only staged (`87-88`) and an event announces the pending change.",
+      "file": "src/pol/FeeCollector.sol",
+      "highlight": [
+        {
+          "start": 83,
+          "end": 88
+        }
+      ],
+      "title": "",
+      "id": "29483"
+    },
+    {
+      "type": "highlight",
+      "description": "`claimFees` is the main execution path:\n1. Guarded by `whenNotPaused` (95).\n2. Pulls `payoutAmount` of `payoutToken` from the caller to the staker (97).\n3. Notifies staking rewards (99).\n4. Streams every fee token balance to the recipient (101-106).\n5. Emits aggregate and per-token events (105-111).\n6. If a price was queued, `_setPayoutAmount` finalises it (112-113).",
+      "file": "src/pol/FeeCollector.sol",
+      "highlight": [
+        {
+          "start": 94,
+          "end": 113
+        }
+      ],
+      "title": "",
+      "id": "29484"
+    },
+    {
+      "type": "highlight",
+      "description": "Safety details inside `claimFees`:\n- All transfers use `SafeERC20` (97 & 104).\n- The loop counter lives in an `unchecked` block (106-108) only after the upper-bound check `i < _feeTokens.length`.\n- The outer `whenNotPaused` modifier lets managers freeze the whole path instantly.",
+      "file": "src/pol/FeeCollector.sol",
+      "highlight": [
+        {
+          "start": 95,
+          "end": 108
+        }
+      ],
+      "title": "",
+      "id": "29485"
+    },
+    {
+      "type": "highlight",
+      "description": "`donate` is an optional boost for stakers. The caller must supply at least the current `payoutAmount` (118) and the tokens are forwarded directly to the reward receiver (121-122).",
+      "file": "src/pol/FeeCollector.sol",
+      "highlight": [
+        {
+          "start": 115,
+          "end": 124
+        }
+      ],
+      "title": "",
+      "id": "29486"
+    },
+    {
+      "type": "highlight",
+      "description": "**Pause controls**: only **PAUSER** can halt (128-130) but only **MANAGER** can resume (133-135). Because **MANAGER** administers **PAUSER**, managers can always revoke or override a misbehaving pauser.",
+      "file": "src/pol/FeeCollector.sol",
+      "highlight": [
+        {
+          "start": 127,
+          "end": 135
+        }
+      ],
+      "title": "",
+      "id": "29487"
+    },
+    {
+      "type": "highlight",
+      "description": "`_setPayoutAmount` (138-142) swaps the staged value into `payoutAmount`, zeros the queue, and emits `PayoutAmountSet`. Because it is called only from `claimFees`, a queued change never activates before at least one more full-price claim.",
+      "file": "src/pol/FeeCollector.sol",
+      "highlight": [
+        {
+          "start": 137,
+          "end": 142
+        }
+      ],
+      "title": "",
+      "id": "29488"
+    },
+    {
+      "type": "textOnly",
+      "description": "End-to-end: governance queues a new price → the next fee claimant pays the old price, receives fees, and triggers `_setPayoutAmount` → future claimants pay the new price.  Throughout, `SafeERC20`, role gates and the `pause switch` guard every token transfer.",
+      "title": "",
+      "id": "29489"
+    }
+  ]
+}

@@ -1,0 +1,202 @@
+{
+  "title": "16.2: RewardVault_V3: Storage & Structs",
+  "id": "qYDBsyORtx3EpTXgRUR536cFd3PLYS8TlzT1iJe9QNw=",
+  "originalId": 2487,
+  "position": 75,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "This tour dissects every piece of `state` that the `rewards vault` keeps, then ties each `slot` to the `functions` that touch it.",
+      "title": "",
+      "id": "29692"
+    },
+    {
+      "type": "highlight",
+      "description": "`DelegateStake` stores two layers of information:\n- **line 45** captures the total amount that **all** delegates have staked for a user, which lets the `vault` tell self-stake from delegate-stake in O(1).\n- **line 46** adds a nested map so the `contract` can also track how much each individual delegate has supplied.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 41,
+          "end": 47
+        }
+      ],
+      "title": "",
+      "id": "29693"
+    },
+    {
+      "type": "highlight",
+      "description": "`delegateStake()` mutates both members in lock-step.\n- **line 301** increases `delegateTotalStaked` by the incoming amount.\n- **line 304** adds the same amount to the caller's personal bucket.  \nThe pattern keeps aggregate math constant-time while still allowing per-delegate checks.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 293,
+          "end": 305
+        }
+      ],
+      "title": "",
+      "id": "29694"
+    },
+    {
+      "type": "highlight",
+      "description": "`delegateWithdraw()` performs the inverse operation.\nAfter validating that the caller's own bucket is large enough (line 321),\n- line 322 writes the reduced per-delegate balance, and\n- line 324 subtracts the same amount from the aggregate counter, preserving consistency.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 318,
+          "end": 324
+        }
+      ],
+      "title": "",
+      "id": "29695"
+    },
+    {
+      "type": "highlight",
+      "description": "Incentive bundles four parameters for each rewarded **ERC-20** token:\n- `minIncentiveRate` – spam-prevention floor.\n- `incentiveRate` – live rate (tokens per BGT emission).\n- `amountRemaining` – distributable budget still held by the vault.\n- `manager` – the only address allowed to top-up or retune this token.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 49,
+          "end": 58
+        }
+      ],
+      "title": "",
+      "id": "29696"
+    },
+    {
+      "type": "highlight",
+      "description": "`addIncentive()` is the primary mutator.\n- line 383 tops-up `amountRemaining` with freshly transferred tokens.\n- lines 386-392 decide whether `incentiveRate` can be updated (it may fall when the previous budget is depleted, or rise at any time).\nThe caller must match the stored manager address (line 373).",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 368,
+          "end": 396
+        }
+      ],
+      "title": "",
+      "id": "29697"
+    },
+    {
+      "type": "highlight",
+      "description": "`_processIncentives()` consumes the budget on every `BGT` emission.\n`line 468` computes the token payout = `bgtEmitted × incentiveRate ÷ 1e18` and `line 470` caps it by the remaining budget.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 465,
+          "end": 471
+        }
+      ],
+      "title": "",
+      "id": "29698"
+    },
+    {
+      "type": "highlight",
+      "description": "After the transfers succeed or fail, **line 519** writes the new `amountRemaining` back to storage, preserving the accounting.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 518,
+          "end": 520
+        }
+      ],
+      "title": "",
+      "id": "29699"
+    },
+    {
+      "type": "highlight",
+      "description": "Two hard-coded guards enforce global safety limits:\n- `MAX_INCENTIVE_RATE` (line `61`) caps `incentiveRate` to prevent 256-bit overflow or economic nonsense.\n- `SAFE_GAS_LIMIT` (line `67`) is later used in low-level token calls so that a single mis-behaving token cannot lock incentive distribution.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 61,
+          "end": 68
+        }
+      ],
+      "title": "",
+      "id": "29700"
+    },
+    {
+      "type": "highlight",
+      "description": "`SAFE_GAS_LIMIT` in action: each `approve` / `receiveIncentive` call is wrapped with the **500 k gas cap** (lines 495–501), stopping unlimited-gas griefing attacks.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 495,
+          "end": 501
+        }
+      ],
+      "title": "",
+      "id": "29701"
+    },
+    {
+      "type": "highlight",
+      "description": "The storage block groups all on-chain state.\n\n- lines 73-80 – **global parameters** that apply to the whole vault (limits, helper addresses).\n- lines 82-86 – **per-account maps** that grow with user activity.\n- lines 87-92 – the **incentive registry**: mapping plus helper list.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 70,
+          "end": 92
+        }
+      ],
+      "title": "",
+      "id": "29702"
+    },
+    {
+      "type": "highlight",
+      "description": "Example global mutation: `setDistributor()` lets governance point the vault at a new reward distributor by updating the `distributor` slot (line 153).",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 151,
+          "end": 154
+        }
+      ],
+      "title": "",
+      "id": "29703"
+    },
+    {
+      "type": "highlight",
+      "description": "Another global parameter: `setMaxIncentiveTokensCount()` adjusts how many incentive tokens can be whitelisted, mutating `maxIncentiveTokensCount` (**line 240**).",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 235,
+          "end": 242
+        }
+      ],
+      "title": "",
+      "id": "29704"
+    },
+    {
+      "type": "highlight",
+      "description": "Per-account map mutation: users call `setOperator()` to store an operator address in `_operators` (line 353).",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 353,
+          "end": 354
+        }
+      ],
+      "title": "",
+      "id": "29705"
+    },
+    {
+      "type": "highlight",
+      "description": "`whitelistIncentiveToken()` initialises a new **Incentive** struct and appends the token to `whitelistedTokens`, touching every field shown earlier.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 190,
+          "end": 207
+        }
+      ],
+      "title": "",
+      "id": "29706"
+    },
+    {
+      "type": "textOnly",
+      "description": "| storage variable | at least one mutator |\n| --- | --- |\n| `maxIncentiveTokensCount` | `initialize`, `setMaxIncentiveTokensCount` |\n| `distributor` | `initialize`, `setDistributor` |\n| `beaconDepositContract` | `initialize` |\n| `_delegateStake` | `delegateStake`, `delegateWithdraw` |\n| `_operators` | `setOperator` |\n| `incentives[token].incentiveRate` | `whitelistIncentiveToken`, `addIncentive` |\n| `incentives[token].amountRemaining` | `addIncentive`, `accountIncentives`, `_processIncentives` |\n| `incentives[token].manager` | `whitelistIncentiveToken`, `updateIncentiveManager` |\n| `whitelistedTokens` | `whitelistIncentiveToken`, `removeIncentiveToken` |\n\nYou can now trace every piece of vault state to the behaviour that reads or writes it.",
+      "title": "",
+      "id": "29707"
+    }
+  ]
+}

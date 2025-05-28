@@ -1,0 +1,99 @@
+{
+  "title": "15.1: RewardVault_V2: Overview",
+  "id": "uwHYkClp8X7yejtNaIKAbjWyQfas1HNnhACvY/XmrYM=",
+  "originalId": 2481,
+  "position": 69,
+  "steps": [
+    {
+      "type": "highlight",
+      "description": "The import block brings in `ERC-20` helpers, upgradeable safety modules, math utilities, a helper library, core interfaces (`BeaconDeposit`, `RewardVault_V1`, `BeraChef`, `Distributor`, `BGTIncentiveDistributor`) and base contracts (`FactoryOwnable`, `StakingRewards`), laying every external brick the vault relies on.",
+      "file": "src/V2_Contracts/RewardVault_V2.sol",
+      "highlight": [
+        {
+          "start": 4,
+          "end": 18
+        }
+      ],
+      "title": "",
+      "id": "29667"
+    },
+    {
+      "type": "highlight",
+      "description": "The inheritance list shows this vault is pausable, protected from re-entrancy, governed by the factory’s owner roles, backed by the `SNX-style StakingRewards` engine, and committed to the original `V1 ABI`.",
+      "file": "src/V2_Contracts/RewardVault_V2.sol",
+      "highlight": [
+        {
+          "start": 26,
+          "end": 32
+        }
+      ],
+      "title": "",
+      "id": "29668"
+    },
+    {
+      "type": "highlight",
+      "description": "These eye-catching ASCII banners prefix every major block, giving you an easy visual search cue.",
+      "file": "src/V2_Contracts/RewardVault_V2.sol",
+      "highlight": [
+        {
+          "start": 37,
+          "end": 40
+        }
+      ],
+      "title": "",
+      "id": "29669"
+    },
+    {
+      "type": "highlight",
+      "description": "`DelegateStake` keeps per-user delegation totals, `Incentive` stores per-token incentive settings, and together they drive delegation and incentive accounting.",
+      "file": "src/V2_Contracts/RewardVault_V2.sol",
+      "highlight": [
+        {
+          "start": 41,
+          "end": 59
+        }
+      ],
+      "title": "",
+      "id": "29670"
+    },
+    {
+      "type": "highlight",
+      "description": "Storage variables include a cap on incentive tokens, the distributor address, the `BeaconDeposit` reference, user-to-DelegateStake and user-to-operator mappings, the token-to-Incentive map, and an array of whitelisted tokens.",
+      "file": "src/V2_Contracts/RewardVault_V2.sol",
+      "highlight": [
+        {
+          "start": 73,
+          "end": 92
+        }
+      ],
+      "title": "",
+      "id": "29671"
+    },
+    {
+      "type": "highlight",
+      "description": "Below the **public-API** banners are three main sections: `ADMIN FUNCTIONS` for configuration, `GETTERS` for view helpers, and `WRITES` for state-mutating actions like staking, withdrawing, and adding incentives.",
+      "file": "src/V2_Contracts/RewardVault_V2.sol",
+      "highlight": [
+        {
+          "start": 145,
+          "end": 281
+        }
+      ],
+      "title": "",
+      "id": "29672"
+    },
+    {
+      "type": "highlight",
+      "description": "The `_processIncentives` function header reveals the internal engine that converts a `BGT` emission into per-token payouts—a **core routine** we will explore later.",
+      "file": "src/V2_Contracts/RewardVault_V2.sol",
+      "highlight": [
+        {
+          "start": 428,
+          "end": 433
+        }
+      ],
+      "title": "",
+      "id": "29673"
+    }
+  ]
+}

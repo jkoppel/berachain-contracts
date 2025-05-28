@@ -1,0 +1,98 @@
+{
+  "title": "9.2: RewardVault Storage & Constants",
+  "id": "/9H0J7RH0xRsI4kMjCTgDDXyNXyeVOpOYI6vezTrfQg=",
+  "originalId": 2449,
+  "position": 37,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "This walkthrough maps out everything the `vault` keeps in storage: `hard-coded limits`, `per-account delegation records`, `per-token incentive records`, and the `view functions` that expose them.",
+      "title": "",
+      "id": "29289"
+    },
+    {
+      "type": "highlight",
+      "description": "Two defensive constants shape all incentive logic:\n- `MAX_INCENTIVE_RATE` (lines 61-62) equals 1 × 10^36. For an 18-decimal token that caps emissions at 1 × 10^18 **whole tokens** per single BGT emitted.\n- `SAFE_GAS_LIMIT` (line 64-67) hard-limits external calls (approve, transferFrom, incentive distributor) to 500 000 gas, preventing grief-tokens from blocking execution with huge gas usage.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 61,
+          "end": 68
+        }
+      ],
+      "title": "",
+      "id": "29290"
+    },
+    {
+      "type": "highlight",
+      "description": "**DelegateStake** (41-47) captures stake made **by others** for one user.\n- `delegateTotalStaked` tallies *all* delegated stake that belongs to the user.\n- `stakedByDelegate` is an inner mapping `delegate ⇒ amount`, letting the vault charge or refund each delegate precisely.\nAn outer mapping (`address ⇒ DelegateStake`) stored later links every user to exactly one of these structs, giving us a true two-level mapping of `user → (delegate → amount)`.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 41,
+          "end": 47
+        }
+      ],
+      "title": "",
+      "id": "29291"
+    },
+    {
+      "type": "highlight",
+      "description": "Each `Incentive` struct (49-59) manages one reward token:\n- `minIncentiveRate` – minimum per-BGT rate; prevents trivial spam deposits.\n- `incentiveRate` – active emission rate (tokens per BGT).\n- `amountRemaining` – balance still available for future emissions.\n- `manager` – `address` authorised to call `addIncentive` / `accountIncentives` for this token.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 49,
+          "end": 59
+        }
+      ],
+      "title": "",
+      "id": "29292"
+    },
+    {
+      "type": "highlight",
+      "description": "Persistent variables (73-92) fall into three buckets:\n- configuration – `maxIncentiveTokensCount`, `distributor`, `beaconDepositContract`\n- delegation bookkeeping – `_delegateStake` (outer mapping mentioned earlier) and `_operators` (per-user helper for off-chain operators)\n- incentive bookkeeping – `incentives` mapping (`token` → `Incentive`) plus the ordered `whitelistedTokens` array",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 73,
+          "end": 92
+        }
+      ],
+      "title": "",
+      "id": "29293"
+    },
+    {
+      "type": "highlight",
+      "description": "The interface surfaces **read-only getters** (90-118) so external callers can inspect those storage buckets without touching internal mappings.",
+      "file": "src/pol/interfaces/IRewardVault.sol",
+      "highlight": [
+        {
+          "start": 90,
+          "end": 118
+        }
+      ],
+      "title": "",
+      "id": "29294"
+    },
+    {
+      "type": "highlight",
+      "description": "Concrete implementations show how storage is returned:\n- `getWhitelistedTokensCount` (264-266) returns `whitelistedTokens.length`.\n- `getWhitelistedTokens` (268-271) copies the array for off-chain use.\n- `getTotalDelegateStaked` (274-276) exposes `delegateTotalStaked` for a user.\n- `getDelegateStake` (279-281) dives into the second-level mapping for a specific delegate.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 258,
+          "end": 281
+        }
+      ],
+      "title": "",
+      "id": "29295"
+    },
+    {
+      "type": "textOnly",
+      "description": "Understanding these fields now will make every mutation function in later walkthroughs much easier to follow.",
+      "title": "",
+      "id": "29296"
+    }
+  ]
+}

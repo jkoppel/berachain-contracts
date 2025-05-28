@@ -1,0 +1,267 @@
+{
+  "title": "13.4: HoneyFactory_V0 Part 1 – State & Governance Controls",
+  "id": "fEC7GilSmemYweE/MVPtD7u1fEkNECNE7w0PRZToK8c=",
+  "originalId": 2469,
+  "position": 57,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Before analysing Honey's business rules it helps to map the constants, storage layout and the privileged \"knobs\" that managers and admins can turn. This tour will\n- catalogue every immutable constant that sets global limits\n- walk through the storage that records live configuration\n- show how `initialise()` wires default values\n- review each `Manager` function\n- review each `Admin` function\nAll excerpts come from `HoneyFactory` unless explicitly noted.",
+      "title": "",
+      "id": "29490"
+    },
+    {
+      "type": "highlight",
+      "description": "Key compile-time parameters:\n- 20  `ONE_HUNDRED_PERCENT_RATE` = `1e18` (**100 %**)\n- 23  `NINETY_EIGHT_PERCENT_RATE` = `0.98e18` (**98 %** floor)\n- 26  `DEFAULT_PEG_OFFSET` = `0.002e18` (±**0.2 %**)\n- 29  `DEFAULT_MINT_REDEEM_RATE` = `0.9995e18`\n- 33  `DEFAULT_MIN_SHARES_TO_RECAPITALIZE` = 1 share\n- 37  `MAX_PEG_OFFSET` = `0.02e18` (**2 %**)\n- 40  `MAX_PRICE_FEED_DELAY_TOLERANCE` = 120 seconds\nThese values act as hard-stops that runtime code cannot over-ride.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 17,
+          "end": 40
+        }
+      ],
+      "title": "",
+      "id": "29491"
+    },
+    {
+      "type": "highlight",
+      "description": "**Runtime storage map:**\n- 43-48  addresses & POL fee split\n- 50-53  per-asset mint / redeem rates\n- 55-60  per-asset peg windows and liquidation premium\n- 62-66  system flags (forced basket mode, liquidation enabled)\n- 68-73  price oracle + max data age\n- 74-77  caps: reference collateral, per-asset relative, global\n- 78-83  recapitalisation targets & min share requirement\n\nTogether these variables are the full protocol control surface.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 42,
+          "end": 84
+        }
+      ],
+      "title": "",
+      "id": "29492"
+    },
+    {
+      "type": "highlight",
+      "description": "Privileges are enforced with `OpenZeppelin AccessControl`:\n- `DEFAULT_ADMIN_ROLE` – governance / owner\n- `MANAGER_ROLE` – risk & parameter tuning\n- `PAUSER_ROLE` – emergency halts (admin-managed by manager)\nEvery setter we look at checks one of these roles before mutating state.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 37,
+          "end": 43
+        }
+      ],
+      "title": "",
+      "id": "29493"
+    },
+    {
+      "type": "highlight",
+      "description": "`initialize(governance, honey, polCollector, feeReceiver, priceOracle, beacon):`\n- stores the external contract addresses after non-zero checks (`102-114`)\n- 108 starts with 100% of fees routed to POL collector\n- 111 `priceFeedMaxDelay` = 10 s   (well inside the 120 s ceiling)\n- 112 `minSharesToRecapitalize` = 1 share\n- 114 `globalCap` = 100% to avoid bootstrap dead-locks\n- 115 liquidation disabled by default\nThis sets safe defaults before any manager intervention.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 89,
+          "end": 116
+        }
+      ],
+      "title": "",
+      "id": "29494"
+    },
+    {
+      "type": "highlight",
+      "description": "Manager setter – `setMintRate(asset, rate)`:\n- 126 rejects rates above **100 %**\n- 130 enforces the **98 %** floor\nMint rates therefore live in [`0.98`, `1.0`] × `asset-shares`.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 122,
+          "end": 135
+        }
+      ],
+      "title": "",
+      "id": "29495"
+    },
+    {
+      "type": "highlight",
+      "description": "`setRedeemRate` mirrors the same guard-rails for the redemption side.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 137,
+          "end": 150
+        }
+      ],
+      "title": "",
+      "id": "29496"
+    },
+    {
+      "type": "highlight",
+      "description": "`setForcedBasketMode(bool)`: flips basket-mode override and emits an event. No additional logic.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 152,
+          "end": 158
+        }
+      ],
+      "title": "",
+      "id": "29497"
+    },
+    {
+      "type": "highlight",
+      "description": "`setMaxFeedDelay(maxTolerance):`\n- Line 165 enforces the absolute 120 s ceiling from the constant, preventing dangerous staleness values.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 160,
+          "end": 170
+        }
+      ],
+      "title": "",
+      "id": "29498"
+    },
+    {
+      "type": "highlight",
+      "description": "`setDepegOffsets`(asset, lower, upper):\n- 175 ensures the asset is registered\n- 178-180 each offset must be ≤ 2% (`MAX_PEG_OFFSET`)\nThese values define the per-asset price window that still counts as \"pegged\".",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 172,
+          "end": 184
+        }
+      ],
+      "title": "",
+      "id": "29499"
+    },
+    {
+      "type": "highlight",
+      "description": "`setReferenceCollateral(asset)`: swaps the baseline asset against which relative caps are calculated. Requires the `asset` to be registered.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 186,
+          "end": 194
+        }
+      ],
+      "title": "",
+      "id": "29500"
+    },
+    {
+      "type": "highlight",
+      "description": "`setGlobalCap(limit):`\n- 202-208 computes the largest current weight\n- 209-211 forbids lowering the cap below that maximum to avoid instant DoS on redeem\nSafe values are then committed to storage.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 196,
+          "end": 215
+        }
+      ],
+      "title": "",
+      "id": "29501"
+    },
+    {
+      "type": "highlight",
+      "description": "`setRelativeCap(asset, limit)`: direct write of per-asset weight ceiling. Trusts the manager to pass a sensible value.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 217,
+          "end": 222
+        }
+      ],
+      "title": "",
+      "id": "29502"
+    },
+    {
+      "type": "highlight",
+      "description": "Admin setter – `setPOLFeeCollectorFeeRate(rate)`:\n- 232-234 protects the **100 %** upper bound\nThe split is later used by mint/redeem fee accounting.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 228,
+          "end": 237
+        }
+      ],
+      "title": "",
+      "id": "29503"
+    },
+    {
+      "type": "highlight",
+      "description": "`setLiquidationEnabled(bool)`: a single flag gating the liquidation function.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 239,
+          "end": 244
+        }
+      ],
+      "title": "",
+      "id": "29504"
+    },
+    {
+      "type": "highlight",
+      "description": "`setLiquidationRate(asset, extraRate):`\n- requires a registered asset (`250`)\n- stores the premium that turns shares into a `>1` multiplier when liquidating bad collateral.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 246,
+          "end": 254
+        }
+      ],
+      "title": "",
+      "id": "29505"
+    },
+    {
+      "type": "highlight",
+      "description": "`setMinSharesToRecapitalize(minShares)`: cannot drop below the compile-time **1 share floor** (259-261).",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 256,
+          "end": 264
+        }
+      ],
+      "title": "",
+      "id": "29506"
+    },
+    {
+      "type": "highlight",
+      "description": "`setRecapitalizeBalanceThreshold(asset, target)`: per-asset target amount that triggers recap incentives.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 266,
+          "end": 273
+        }
+      ],
+      "title": "",
+      "id": "29507"
+    },
+    {
+      "type": "highlight",
+      "description": "`setPriceOracle(address)`: after a zero-address guard the new oracle is stored and broadcast.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 275,
+          "end": 282
+        }
+      ],
+      "title": "",
+      "id": "29508"
+    },
+    {
+      "type": "highlight",
+      "description": "`createVault(asset)`:\n- First asset becomes the reference collateral (290-292)\n- Deploys a deterministic proxy vault via `LibClone`\n- Initializes `mint/redeem rates`, `caps` and `peg offsets` to defaults (296-308)\n\nThis is the only path that adds assets to the system.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 289,
+          "end": 309
+        }
+      ],
+      "title": "",
+      "id": "29509"
+    },
+    {
+      "type": "textOnly",
+      "description": "Recap:\n* **Constants** define non-negotiable safety rails\n* **Storage variables** expose every live risk & configuration parameter\n* `initialize()` applies conservative defaults\n* **Managers** can tune rates, pegs, caps and operational modes within strict bounds\n* **Admins** retain the heavier levers (`oracle swap`, `fee split`, `vault deployment` and `liquidation enablement`)\n\nUnderstanding these mappings completes the governance & risk control map needed before reading the core mint/redeem logic.",
+      "title": "",
+      "id": "29510"
+    }
+  ]
+}

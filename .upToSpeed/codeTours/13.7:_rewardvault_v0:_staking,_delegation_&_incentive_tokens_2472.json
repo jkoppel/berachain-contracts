@@ -1,0 +1,241 @@
+{
+  "title": "13.7: RewardVault_V0: Staking, Delegation & Incentive Tokens",
+  "id": "QaYSgcWfWpfAdqzyDb8lkmw0bu11qHxs1nZoTSX8vLg=",
+  "originalId": 2472,
+  "position": 60,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "`RewardVault` is the contract that actually holds stake and orchestrates both BGT block-rewards and any extra \"incentive\" tokens.  Two small storage structs drive most of the accounting.",
+      "title": "",
+      "id": "29524"
+    },
+    {
+      "type": "highlight",
+      "description": "`DelegateStake` keeps a per-validator breakdown of delegated deposits.  Line 45 aggregates the total tokens external delegates placed for the validator, while line 46 records each delegate’s individual amount.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 41,
+          "end": 47
+        }
+      ],
+      "title": "",
+      "id": "29525"
+    },
+    {
+      "type": "highlight",
+      "description": "`Incentive` tracks a whitelist of **ERC-20** reward tokens. Besides the live and minimum `incentiveRate`, it stores how much remains and who may top it up. Line 61 hard-caps every rate (`MAX_INCENTIVE_RATE`) to keep maths in safe bounds.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 49,
+          "end": 63
+        }
+      ],
+      "title": "",
+      "id": "29526"
+    },
+    {
+      "type": "highlight",
+      "description": "`initialize` wires the vault:\n- `beaconDepositContract` lets the vault discover each validator's operator\n- `bgt` is the reward token\n- `distributor` later grants allowance so the vault can pull freshly minted `BGT`\n- `stakingToken` is what users lock. A 3-day reward period is configured and the incentive-token cap starts at three",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 98,
+          "end": 118
+        }
+      ],
+      "title": "",
+      "id": "29527"
+    },
+    {
+      "type": "highlight",
+      "description": "Three modifiers gate most actions:\n- `onlyDistributor` (125-127) restricts reward notification.\n- `onlyOperatorOrUser` (129-134) lets a pre-registered operator act on behalf of a staker.\n- `checkSelfStakedBalance` (136-139) prevents a validator from touching tokens that came from delegates.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 124,
+          "end": 139
+        }
+      ],
+      "title": "",
+      "id": "29528"
+    },
+    {
+      "type": "highlight",
+      "description": "`stake` is the vanilla path: the caller’s tokens are forwarded to the shared `_stake` logic and recorded against their own balance.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 287,
+          "end": 291
+        }
+      ],
+      "title": "",
+      "id": "29529"
+    },
+    {
+      "type": "highlight",
+      "description": "`delegateStake` lets someone else boost a validator:\n- Line 294 forbids self-delegation.\n- Lines 298-305 increment both the total delegated amount and the delegate's personal slot before emitting the event.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 292,
+          "end": 306
+        }
+      ],
+      "title": "",
+      "id": "29530"
+    },
+    {
+      "type": "highlight",
+      "description": "`_checkSelfStakedBalance` underpins the withdraw guards: it subtracts `delegateTotalStaked` so only a user’s *own* tokens count as withdrawable self-stake.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 430,
+          "end": 435
+        }
+      ],
+      "title": "",
+      "id": "29531"
+    },
+    {
+      "type": "highlight",
+      "description": "**Withdraw paths mirror staking:**\n- `withdraw` (311-312) releases self-stake after the balance check.\n- `delegateWithdraw` (315-327) first debits the delegate's sub-account, shrinks `delegateTotalStaked`, then calls the shared core.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 310,
+          "end": 328
+        }
+      ],
+      "title": "",
+      "id": "29532"
+    },
+    {
+      "type": "highlight",
+      "description": "`exit` bundles a self-stake withdrawal with a reward claim. Line 346 again subtracts delegates to leave their funds untouched.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 343,
+          "end": 349
+        }
+      ],
+      "title": "",
+      "id": "29533"
+    },
+    {
+      "type": "highlight",
+      "description": "`setOperator` gives a validator’s keys to another address. Because `onlyOperatorOrUser` checks this mapping, that operator can later claim rewards or adjust delegations.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 352,
+          "end": 355
+        }
+      ],
+      "title": "",
+      "id": "29534"
+    },
+    {
+      "type": "highlight",
+      "description": "Governance whitelists new incentive tokens through `whitelistIncentiveToken`. The function enforces a non-zero, capped `minIncentiveRate`, rejects `zero` addresses, and blocks additions once the `maxIncentiveTokensCount` limit is hit.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 181,
+          "end": 208
+        }
+      ],
+      "title": "",
+      "id": "29535"
+    },
+    {
+      "type": "highlight",
+      "description": "**`addIncentive`** lets the token's `manager` preload funds and (optionally) update `incentiveRate`.\n**Key guards:**\n- Line 367 applies the global cap.\n- Lines 372-377 require the authorised manager and at least one `minIncentiveRate` worth of tokens.\n- Lines 385-396 allow rate increases freely but only let decreases once previous tranches are exhausted.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 358,
+          "end": 399
+        }
+      ],
+      "title": "",
+      "id": "29536"
+    },
+    {
+      "type": "highlight",
+      "description": "`_processIncentives` is executed every time new BGT is notified.  It fetches the validator’s operator (**459-460**), the downstream distributor (**461-462**) and then, line **468**, computes the owed amount for each incentive token.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 456,
+          "end": 471
+        }
+      ],
+      "title": "",
+      "id": "29537"
+    },
+    {
+      "type": "highlight",
+      "description": "Validator commission comes first: BeraChef returns the operator’s share (474-475) and, if non-zero, the vault transfers it directly using `trySafeTransfer` under the default 500 k gas cap.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 478,
+          "end": 486
+        }
+      ],
+      "title": "",
+      "id": "29538"
+    },
+    {
+      "type": "highlight",
+      "description": "The non-commission slice is sent to `BGTIncentiveDistributor`.  The vault issues an `approve` (495-497) and calls `receiveIncentive` (500-505) with the same gas ceiling.  Any failure resets the allowance (506-511) and logs an event so distribution can continue next cycle.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 491,
+          "end": 518
+        }
+      ],
+      "title": "",
+      "id": "29539"
+    },
+    {
+      "type": "highlight",
+      "description": "BeraChef decides the commission percentage via `getValidatorIncentiveTokenShare`. If the operator never customised its rate, a 5% default is used then multiplied against the token slice calculated in the vault.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 370,
+          "end": 381
+        }
+      ],
+      "title": "",
+      "id": "29540"
+    },
+    {
+      "type": "highlight",
+      "description": "Inside `_validateWeights` BeraChef insists every weight points at a `whitelistedVault` (406-408).  That ties reward-allocation entries back to the specific `RewardVault` contracts deployed from the factory.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 398,
+          "end": 410
+        }
+      ],
+      "title": "",
+      "id": "29541"
+    },
+    {
+      "type": "textOnly",
+      "description": "Putting it all together: `Distributor` mints `BGT`, `RewardVault` claims its allowance and distributes `BGT` plus proportional incentive tokens.  `BeraChef` carves out **validator commission** and ensures **reward-allocation weights** only reference approved vaults, while the vault itself keeps strict accounting between self-stake and delegated stake so exits cannot drain someone else’s funds.",
+      "title": "",
+      "id": "29542"
+    }
+  ]
+}

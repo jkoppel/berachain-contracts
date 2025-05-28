@@ -1,0 +1,98 @@
+{
+  "title": "5.2: Honey Token",
+  "id": "uHav9ABZqZPUlpYu/02zz+g7Jtrm9afKnSiHApvmnHM=",
+  "originalId": 2422,
+  "position": 15,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "`Honey.sol` is intentionally tiny. In this tour we will trace the few lines that matter to token supply and upgradeability.",
+      "title": "",
+      "id": "28877"
+    },
+    {
+      "type": "highlight",
+      "description": "The contract simply inherits `Solady`’s lightweight `ERC-20` plus `OpenZeppelin`’s `AccessControl` and `UUPS` helpers. No economic rules appear here—just the scaffolding needed for an upgradeable `ERC-20`.",
+      "file": "src/honey/Honey.sol",
+      "highlight": [
+        {
+          "start": 4,
+          "end": 14
+        }
+      ],
+      "title": "",
+      "id": "28878"
+    },
+    {
+      "type": "highlight",
+      "description": "Line 20 stores a single `factory` address. Whoever controls this slot controls every token that will ever exist.",
+      "file": "src/honey/Honey.sol",
+      "highlight": [
+        {
+          "start": 19,
+          "end": 22
+        }
+      ],
+      "title": "",
+      "id": "28879"
+    },
+    {
+      "type": "highlight",
+      "description": "`onlyFactory` is a hard gate: if `msg.sender` differs from the recorded factory the call reverts. Every supply-changing function uses this `modifier`.",
+      "file": "src/honey/Honey.sol",
+      "highlight": [
+        {
+          "start": 40,
+          "end": 43
+        }
+      ],
+      "title": "",
+      "id": "28880"
+    },
+    {
+      "type": "highlight",
+      "description": "`mint()` does nothing but pass the `onlyFactory` check and delegate to **ERC-20**’s internal `_mint`. No fees, caps, or other logic appear.",
+      "file": "src/honey/Honey.sol",
+      "highlight": [
+        {
+          "start": 45,
+          "end": 51
+        }
+      ],
+      "title": "",
+      "id": "28881"
+    },
+    {
+      "type": "highlight",
+      "description": "`burn()` mirrors `mint()`: only the factory can destroy tokens via `_burn`.",
+      "file": "src/honey/Honey.sol",
+      "highlight": [
+        {
+          "start": 53,
+          "end": 59
+        }
+      ],
+      "title": "",
+      "id": "28882"
+    },
+    {
+      "type": "highlight",
+      "description": "`initialize` assigns the `DEFAULT_ADMIN_ROLE` to governance, and `_authorizeUpgrade` insists that role approves any new implementation. The factory cannot self-upgrade the token.",
+      "file": "src/honey/Honey.sol",
+      "highlight": [
+        {
+          "start": 27,
+          "end": 38
+        }
+      ],
+      "title": "",
+      "id": "28883"
+    },
+    {
+      "type": "textOnly",
+      "description": "Because `mint` and `burn` are the only ways to change total supply\t64and both are irrevocably locked to the factory\t64every economic rule lives in `HoneyFactory`.  `Honey.sol` itself is a minimal vessel whose code can be changed only by governance, not by the factory.",
+      "title": "",
+      "id": "28884"
+    }
+  ]
+}

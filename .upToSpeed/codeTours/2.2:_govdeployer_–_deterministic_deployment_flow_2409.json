@@ -1,0 +1,98 @@
+{
+  "title": "2.2: GovDeployer – Deterministic Deployment Flow",
+  "id": "FSkk5OVyjTvUc4nl2PUZCfKwhSRuT3s45wMbUl5MUck=",
+  "originalId": 2409,
+  "position": 3,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "This tour follows `GovDeployer`’s constructor – the **single entry-point** a chain-operator calls to materialise the entire governance stack.",
+      "title": "",
+      "id": "28782"
+    },
+    {
+      "type": "highlight",
+      "description": "The constructor signature exposes every dial the operator can tune: the `voting token`, an optional `guardian`, `proposal/voting timing`, `quorum` and `timelock parameters`, plus two `CREATE2` salts that make the resulting contract addresses predictable.",
+      "file": "src/gov/GovDeployer.sol",
+      "highlight": [
+        {
+          "start": 24,
+          "end": 41
+        }
+      ],
+      "title": "",
+      "id": "28783"
+    },
+    {
+      "type": "highlight",
+      "description": "The first action inside the `constructor` is to spawn two implementation + proxy pairs using those salts. **Line 45** deploys `BerachainGovernance`, **line 49** deploys `TimeLock` – both routed through the same `_deploy` helper so each sits at its own deterministic address.",
+      "file": "src/gov/GovDeployer.sol",
+      "highlight": [
+        {
+          "start": 45,
+          "end": 50
+        }
+      ],
+      "title": "",
+      "id": "28784"
+    },
+    {
+      "type": "highlight",
+      "description": "`_deploy` itself is only four lines long: it pushes the raw implementation with `deployWithCreate2`, then immediately drops an `ERC-1967` proxy at another `CREATE2` address.  No external intervention is needed, guaranteeing that implementation and proxy are paired atomically.",
+      "file": "src/gov/GovDeployer.sol",
+      "highlight": [
+        {
+          "start": 82,
+          "end": 85
+        }
+      ],
+      "title": "",
+      "id": "28785"
+    },
+    {
+      "type": "highlight",
+      "description": "Next the freshly-minted Timelock is initialised.  The deployer temporarily gives itself admin rights (55), sets the optional guardian as a **CANCELLER** (57), and then revokes its own admin role (59).  From here on only the governor and (optionally) guardian retain privileges.",
+      "file": "src/gov/GovDeployer.sol",
+      "highlight": [
+        {
+          "start": 52,
+          "end": 60
+        }
+      ],
+      "title": "",
+      "id": "28786"
+    },
+    {
+      "type": "highlight",
+      "description": "Governor parameters are packed into an `InitialGovernorParameters` struct (61-66) and passed into `governance.initialize` (68), which wires the governor to the voting token and the just-prepared timelock.",
+      "file": "src/gov/GovDeployer.sol",
+      "highlight": [
+        {
+          "start": 61,
+          "end": 68
+        }
+      ],
+      "title": "",
+      "id": "28787"
+    },
+    {
+      "type": "highlight",
+      "description": "Two safety nets guard the whole procedure. `_checkIfERC20Votes` (91-95) reverts unless the supplied token implements both `IVotes` and `ERC20Metadata`; `_supportsERC20VotesAndMetadata` (102-109) performs those runtime interface checks.",
+      "file": "src/gov/GovDeployer.sol",
+      "highlight": [
+        {
+          "start": 91,
+          "end": 109
+        }
+      ],
+      "title": "",
+      "id": "28788"
+    },
+    {
+      "type": "textOnly",
+      "description": "In one `constructor call` the factory deterministically deploys `proxy-based governor` and `timelock contracts`, stitches them together, hands control to token-holders and the optional guardian, and verifies the voting token – ensuring the governance stack is born fully-formed and secure.",
+      "title": "",
+      "id": "28789"
+    }
+  ]
+}

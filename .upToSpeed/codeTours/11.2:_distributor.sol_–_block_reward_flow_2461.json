@@ -1,0 +1,163 @@
+{
+  "title": "11.2: Distributor.sol – Block Reward Flow",
+  "id": "+Z9DSibxBH6MDtcoLQ/I3Rdu4RjxfrqOboDEMnKWl5o=",
+  "originalId": 2461,
+  "position": 49,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "**Follow a single happy-path call** that mints BGT and spreads it across reward vaults. We begin inside `Distributor`, prove beacon data, calculate each vault’s share, and finish at `RewardVault.notifyRewardAmount`.",
+      "title": "",
+      "id": "29432"
+    },
+    {
+      "type": "highlight",
+      "description": "Distributor's state variables:  \n- line 45   `beraChef` – asks for reward-allocation weights per validator.\n- lines 49-50 `blockRewardController` – mints & measures how much BGT this block is worth.\n- line 52   `bgt` – **ERC-20 token** that ultimately moves.",
+      "file": "src/pol/rewards/Distributor.sol",
+      "highlight": [
+        {
+          "start": 44,
+          "end": 53
+        }
+      ],
+      "title": "",
+      "id": "29433"
+    },
+    {
+      "type": "highlight",
+      "description": "Weights are stored in basis-points.  `ONE_HUNDRED_PERCENT` = `1e4` means 5000 represents 50%.",
+      "file": "src/pol/rewards/Distributor.sol",
+      "highlight": [
+        {
+          "start": 37,
+          "end": 39
+        }
+      ],
+      "title": "",
+      "id": "29434"
+    },
+    {
+      "type": "highlight",
+      "description": "`distributeFor` proves beacon data before touching economics:\n1. `_line 111_` pulls the parent `beacon-block` root for `nextTimestamp`.\n2. `_line 114_` verifies `proposerIndex`.\n3. `_line 117_` verifies the supplied `pubkey` sits at that index.\nBad proofs revert, so rewards can only be claimed with genuine chain data.",
+      "file": "src/pol/rewards/Distributor.sol",
+      "highlight": [
+        {
+          "start": 110,
+          "end": 118
+        }
+      ],
+      "title": "",
+      "id": "29435"
+    },
+    {
+      "type": "highlight",
+      "description": "After proofs pass, logic jumps to the private `_distributeFor` – every economic operation lives there.",
+      "file": "src/pol/rewards/Distributor.sol",
+      "highlight": [
+        {
+          "start": 119,
+          "end": 121
+        }
+      ],
+      "title": "",
+      "id": "29436"
+    },
+    {
+      "type": "highlight",
+      "description": "Step 1 – mint / measure the reward.\n- `line 127` calls `blockRewardController.processRewards`, which mints `BGT` and returns the amount.\n- If `beraChef` isn't ready or the reward is zero, `lines 128-131` exit early, preventing accidental emission.",
+      "file": "src/pol/rewards/Distributor.sol",
+      "highlight": [
+        {
+          "start": 125,
+          "end": 133
+        }
+      ],
+      "title": "",
+      "id": "29437"
+    },
+    {
+      "type": "highlight",
+      "description": "Step 2 – `queued-activation pattern`.  A queued allocation whose `start-block` has arrived is switched to *active* so the new weights are used immediately.",
+      "file": "src/pol/rewards/Distributor.sol",
+      "highlight": [
+        {
+          "start": 134,
+          "end": 135
+        }
+      ],
+      "title": "",
+      "id": "29438"
+    },
+    {
+      "type": "highlight",
+      "description": "**Step 3** – fetch the active `RewardAllocation` and unpack its `Weight` list (lines 142-145).  This array drives the splitting loop that follows.",
+      "file": "src/pol/rewards/Distributor.sol",
+      "highlight": [
+        {
+          "start": 139,
+          "end": 146
+        }
+      ],
+      "title": "",
+      "id": "29439"
+    },
+    {
+      "type": "highlight",
+      "description": "Weight holds:\n- `receiver` – `reward-vault address`.\n- `percentageNumerator` – share in the `1e4` system introduced earlier.",
+      "file": "src/pol/interfaces/IBeraChef.sol",
+      "highlight": [
+        {
+          "start": 20,
+          "end": 29
+        }
+      ],
+      "title": "",
+      "id": "29440"
+    },
+    {
+      "type": "highlight",
+      "description": "The for-loop converts each weight into an amount:\n- **lines 149-151** give the last vault the remainder so rounding never loses BGT.\n- **line 154** uses `fullMulDiv(rewardRate, percentageNumerator, 1e4)` for precise fixed-point maths.",
+      "file": "src/pol/rewards/Distributor.sol",
+      "highlight": [
+        {
+          "start": 148,
+          "end": 156
+        }
+      ],
+      "title": "",
+      "id": "29441"
+    },
+    {
+      "type": "highlight",
+      "description": "For each slice we then:\n1. _line 160_ bump allowance so the vault can pull `BGT` (keeps the soul-bound token’s approvals clean).\n2. _line 163_ call `RewardVault.notifyRewardAmount` – the vault updates its accounting.\n3. _line 165_ emit `Distributed` so indexers can track emissions.",
+      "file": "src/pol/rewards/Distributor.sol",
+      "highlight": [
+        {
+          "start": 158,
+          "end": 165
+        }
+      ],
+      "title": "",
+      "id": "29442"
+    },
+    {
+      "type": "highlight",
+      "description": "The event logs validator `pubkey`, `timestamp`, `receiver vault`, and `amount` – tying the whole journey together.",
+      "file": "src/pol/interfaces/IDistributor.sol",
+      "highlight": [
+        {
+          "start": 10,
+          "end": 14
+        }
+      ],
+      "title": "",
+      "id": "29443"
+    },
+    {
+      "type": "textOnly",
+      "description": "You can now trace an on-chain call end-to-end: `Distributor.distributeFor` → `_distributeFor` → `RewardVault.notifyRewardAmount`, understanding every check, calculation, and transfer along the way.",
+      "title": "",
+      "id": "29444"
+    }
+  ]
+}

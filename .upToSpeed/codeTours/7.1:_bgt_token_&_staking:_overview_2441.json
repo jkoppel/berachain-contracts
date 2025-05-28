@@ -1,0 +1,149 @@
+{
+  "title": "7.1: BGT Token & Staking: Overview",
+  "id": "zOThEHHgEmxmAAP8mi94OwfT+afrMg56SXdcg5xYeeY=",
+  "originalId": 2441,
+  "position": 29,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "An aerial view of the `governance-token component`.",
+      "title": "",
+      "id": "29175"
+    },
+    {
+      "type": "highlight",
+      "description": "`BGT.sol` weighs in at roughly 460 lines. It is the `ERC-20` with voting that also tracks boosts and controls **minting**, so most logic lives here.",
+      "file": "src/pol/BGT.sol",
+      "highlight": [
+        {
+          "start": 25,
+          "end": 42
+        }
+      ],
+      "title": "",
+      "id": "29176"
+    },
+    {
+      "type": "highlight",
+      "description": "`BGTStaker.sol` is lean (≈120 lines).  It inherits a generic staking helper so delegators can earn fee rewards without moving tokens.",
+      "file": "src/pol/BGTStaker.sol",
+      "highlight": [
+        {
+          "start": 15,
+          "end": 22
+        }
+      ],
+      "title": "",
+      "id": "29177"
+    },
+    {
+      "type": "highlight",
+      "description": "`BGTFeeDeployer.sol` is tiny (≈40 lines). Its whole job is to deploy the previous two contracts deterministically via **CREATE2**.",
+      "file": "src/pol/BGTFeeDeployer.sol",
+      "highlight": [
+        {
+          "start": 8,
+          "end": 19
+        }
+      ],
+      "title": "",
+      "id": "29178"
+    },
+    {
+      "type": "textOnly",
+      "description": "The public interfaces expose what can be `called`.",
+      "title": "",
+      "id": "29179"
+    },
+    {
+      "type": "highlight",
+      "description": "`IBGT` extends `ERC-20`, **metadata** and **voting interfaces**, signalling that `BGT` behaves like a standard, vote-enabled token.",
+      "file": "src/pol/interfaces/IBGT.sol",
+      "highlight": [
+        {
+          "start": 7,
+          "end": 15
+        }
+      ],
+      "title": "",
+      "id": "29180"
+    },
+    {
+      "type": "highlight",
+      "description": "`IBGTStaker` builds on a generic `IStakingRewards` interface and adds only a handful of admin hooks, hinting at a very focused role.",
+      "file": "src/pol/interfaces/IBGTStaker.sol",
+      "highlight": [
+        {
+          "start": 7,
+          "end": 15
+        }
+      ],
+      "title": "",
+      "id": "29181"
+    },
+    {
+      "type": "textOnly",
+      "description": "A few concrete `snippets` illustrate each contract’s purpose.",
+      "title": "",
+      "id": "29182"
+    },
+    {
+      "type": "highlight",
+      "description": "`QueuedBoost` stores how much BGT a user wants to boost with and the block it was queued – the first step in the boosting workflow.",
+      "file": "src/pol/BGT.sol",
+      "highlight": [
+        {
+          "start": 69,
+          "end": 75
+        }
+      ],
+      "title": "",
+      "id": "29183"
+    },
+    {
+      "type": "highlight",
+      "description": "`mint()` is the lone gate for new supply, callable only by the `BlockRewardController`.",
+      "file": "src/pol/BGT.sol",
+      "highlight": [
+        {
+          "start": 173,
+          "end": 176
+        }
+      ],
+      "title": "",
+      "id": "29184"
+    },
+    {
+      "type": "highlight",
+      "description": "`notifyRewardAmount()` is the single entry-point the FeeCollector uses to push dApp fees into the staking contract.",
+      "file": "src/pol/BGTStaker.sol",
+      "highlight": [
+        {
+          "start": 76,
+          "end": 80
+        }
+      ],
+      "title": "",
+      "id": "29185"
+    },
+    {
+      "type": "highlight",
+      "description": "The `constructor` performs the full deterministic deployment dance: `implementation`, `proxy`, then initialise `staker` and `fee collector` – all in one transaction.",
+      "file": "src/pol/BGTFeeDeployer.sol",
+      "highlight": [
+        {
+          "start": 20,
+          "end": 41
+        }
+      ],
+      "title": "",
+      "id": "29186"
+    },
+    {
+      "type": "textOnly",
+      "description": "You can now list the three key files, describe each role (`minting & boosting`, `fee-reward staking`, `deterministic deployment`) and point to where **boosting**, **staking** and **deployment** happen.",
+      "title": "",
+      "id": "29187"
+    }
+  ]
+}

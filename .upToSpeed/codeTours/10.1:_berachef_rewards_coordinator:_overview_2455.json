@@ -1,0 +1,130 @@
+{
+  "title": "10.1: BeraChef Rewards Coordinator: Overview",
+  "id": "3ZYz+vFvWB645G6UlcQKtakrYsgRwBConqhRFURfrdY=",
+  "originalId": 2455,
+  "position": 43,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "This short tour covers the **Rewards Coordinator** implemented in `BeraChef.sol`. The tour examines the component's file location, mission statement, and the organizational structure of the contract's sections.",
+      "title": "",
+      "id": "29398"
+    },
+    {
+      "type": "textOnly",
+      "description": "All of the coordinator's logic is confined to two files:\n- `src/pol/rewards/BeraChef.sol` – implementation\n- `src/pol/interfaces/IBeraChef.sol` – public ABI",
+      "title": "",
+      "id": "29399"
+    },
+    {
+      "type": "highlight",
+      "description": "Lines 13-18 set the scene: the contract manages validators’ reward allocations and the whitelist of vaults that may receive them.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 13,
+          "end": 18
+        }
+      ],
+      "title": "",
+      "id": "29400"
+    },
+    {
+      "type": "highlight",
+      "description": "The inheritance list (line 19) shows `OwnableUpgradeable` and `UUPSUpgradeable`, signalling governance ownership and proxy-upgrade safety, alongside the `IBeraChef` interface.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 19,
+          "end": 20
+        }
+      ],
+      "title": "",
+      "id": "29401"
+    },
+    {
+      "type": "highlight",
+      "description": "Just under the **STORAGE** banner you can already spot the three external collaborators kept on-chain: `distributor`, `factory` (`RewardVaultFactory`) and `beaconDepositContract`.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 35,
+          "end": 44
+        }
+      ],
+      "title": "",
+      "id": "29402"
+    },
+    {
+      "type": "highlight",
+      "description": "**MODIFIERS** – access guards like `onlyDistributor` and `onlyOperator` live here.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 108,
+          "end": 112
+        }
+      ],
+      "title": "",
+      "id": "29403"
+    },
+    {
+      "type": "highlight",
+      "description": "Banner: **ADMIN FUNCTIONS** – owner-only levers used by governance to tune limits, delays and the default allocation.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 126,
+          "end": 130
+        }
+      ],
+      "title": "",
+      "id": "29404"
+    },
+    {
+      "type": "highlight",
+      "description": "Banner: **SETTERS** – endpoints where operators queue changes and the distributor later activates them.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 227,
+          "end": 230
+        }
+      ],
+      "title": "",
+      "id": "29405"
+    },
+    {
+      "type": "highlight",
+      "description": "Banner: **GETTERS** – read-only helpers exposing every piece of public state.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 306,
+          "end": 309
+        }
+      ],
+      "title": "",
+      "id": "29406"
+    },
+    {
+      "type": "highlight",
+      "description": "Banner: **INTERNAL** – validation and utility routines that enforce all the invariants.",
+      "file": "src/pol/rewards/BeraChef.sol",
+      "highlight": [
+        {
+          "start": 384,
+          "end": 386
+        }
+      ],
+      "title": "",
+      "id": "29407"
+    },
+    {
+      "type": "textOnly",
+      "description": "You can now describe `BeraChef`’s role (**reward allocation & vault whitelisting**), locate its two files, and navigate straight to `storage`, `modifiers`, `admin calls`, `setters`, `getters` or `helper logic` thanks to the banner layout.",
+      "title": "",
+      "id": "29408"
+    }
+  ]
+}

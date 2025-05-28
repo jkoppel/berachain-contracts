@@ -1,0 +1,150 @@
+{
+  "title": "13.2: VaultAdmin_V0: Roles, Vault Registry & Fee Accounting",
+  "id": "gmhfQH1AQa40urfXqqPi6Qc+odZsU7ic6+qauR5VDQg=",
+  "originalId": 2467,
+  "position": 55,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "`VaultAdmin` is the authority every collateral vault answers to.  We will look at the roles it defines, how it is initialised, what it keeps in storage, how it spawns new vaults, and finally how it pauses / un-pauses vaults and books / withdraws protocol fees.",
+      "title": "",
+      "id": "29466"
+    },
+    {
+      "type": "highlight",
+      "description": "Two custom role constants sit next to OpenZeppelin's `DEFAULT_ADMIN_ROLE` (`bytes32(0)`):\n- `MANAGER_ROLE` – supervisors that can un-pause the system and manage `PAUSER`s.\n- `PAUSER_ROLE`  – emergency guardians that can pause the factory or an individual vault.\nThe mapping between the two roles is wired later during `init`.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 37,
+          "end": 43
+        }
+      ],
+      "title": "",
+      "id": "29467"
+    },
+    {
+      "type": "highlight",
+      "description": "**`__VaultAdmin_init`** is the upgrade-safe entry point executed by the concrete factory (e.g. `HoneyFactory`):\n1. all OZ mix-ins are initialised (88-90);\n2. it delegates most work to **`__VaultAdmin_init_unchained`**;\n3. line 95 makes **`MANAGER_ROLE`** the admin of **`PAUSER_ROLE`** – only managers can grant or revoke pauser accounts.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 75,
+          "end": 97
+        }
+      ],
+      "title": "",
+      "id": "29468"
+    },
+    {
+      "type": "highlight",
+      "description": "`__VaultAdmin_init_unchained` wires the live addresses:\n- `governance` gets `DEFAULT_ADMIN_ROLE` (113) – the absolute owner;\n- `beacon` is cached so new vaults know what logic to run (112);\n- `feeReceiver` & `polFeeCollector` are stored and events emitted (115-118).\nAny zero address reverts, keeping deployments honest.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 98,
+          "end": 119
+        }
+      ],
+      "title": "",
+      "id": "29469"
+    },
+    {
+      "type": "highlight",
+      "description": "Key registry & accounting slots:\n- `registeredAssets` – every collateral token ever registered.\n- `vaults` – maps each asset to its dedicated CollateralVault.\n- `isBadCollateralAsset` – flag that disables minting for de-pegged or liquidated assets.\n- `collectedFees[receiver][asset]` – shares owed to a receiver but not yet redeemed.\n- `collectedAssetFees[asset]` – total fee shares parked inside the vault for that asset.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 54,
+          "end": 68
+        }
+      ],
+      "title": "",
+      "id": "29470"
+    },
+    {
+      "type": "highlight",
+      "description": "This internal function creates new vaults with administrative safeguards. Only admin users can create vaults, and each asset can only have one vault. The function uses a deterministic deployment pattern - meaning the same asset will always result in the same vault address. After deployment, the new vault is initialized with its asset and registered in the system. The function concludes by announcing the creation through an event.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 192,
+          "end": 214
+        }
+      ],
+      "title": "",
+      "id": "29471"
+    },
+    {
+      "type": "highlight",
+      "description": "Pausing the entire factory:\n- `pause()` – only **PAUSER_ROLE** (148-150).\n- `unpause()` – only **MANAGER_ROLE** (154-156).\nBoth rely on `OZ PausableUpgradeable`.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 145,
+          "end": 157
+        }
+      ],
+      "title": "",
+      "id": "29472"
+    },
+    {
+      "type": "highlight",
+      "description": "Pausing a specific vault uses the same role split:\n- `pauseVault(asset)` – `PAUSER_ROLE` (163-167).\n- `unpauseVault(asset)` – `MANAGER_ROLE` (173-176).\nThe call is delegated to the vault's own `pause`/`unpause` functions.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 160,
+          "end": 177
+        }
+      ],
+      "title": "",
+      "id": "29473"
+    },
+    {
+      "type": "highlight",
+      "description": "Inside each `CollateralVault`, `pause`/`unpause` are guarded by `onlyFactory` (63-66): only the factory address captured at `initialise` can toggle state. This tight coupling ensures governance always acts through `VaultAdmin`.",
+      "file": "src/honey/CollateralVault.sol",
+      "highlight": [
+        {
+          "start": 72,
+          "end": 82
+        }
+      ],
+      "title": "",
+      "id": "29474"
+    },
+    {
+      "type": "highlight",
+      "description": "Fee withdrawal flow:\n- `withdrawAllFees(receiver)` (259-267) loops over every registered asset and calls `_withdrawCollectedFee`.\n- `_withdrawCollectedFee` (281-295) resets the receiver's shares, updates per-asset counters, redeems shares from the vault and transfers the underlying asset, then emits `CollectedFeeWithdrawn`.",
+      "file": "src/honey/VaultAdmin.sol",
+      "highlight": [
+        {
+          "start": 256,
+          "end": 295
+        }
+      ],
+      "title": "",
+      "id": "29475"
+    },
+    {
+      "type": "highlight",
+      "description": "Those shares accumulate via `_handleFees` (755-765):\n- POL shares are redeemed immediately to `polFeeCollector` (759-760).\n- feeReceiver shares are stashed in `collectedFees` & `collectedAssetFees` (763-764).\nThis closes the loop with the withdrawal logic we just saw.",
+      "file": "src/honey/HoneyFactory.sol",
+      "highlight": [
+        {
+          "start": 755,
+          "end": 765
+        }
+      ],
+      "title": "",
+      "id": "29476"
+    },
+    {
+      "type": "textOnly",
+      "description": "Putting it all together, `VaultAdmin` enforces **role-based governance**, **deterministic vault deployment**, **emergency pausing** and **precise, book-kept fee distribution** across every **collateral vault** in the system.",
+      "title": "",
+      "id": "29477"
+    }
+  ]
+}

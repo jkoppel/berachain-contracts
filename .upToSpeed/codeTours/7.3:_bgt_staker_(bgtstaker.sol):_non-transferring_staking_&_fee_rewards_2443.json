@@ -1,0 +1,189 @@
+{
+  "title": "7.3: BGT Staker (BGTStaker.sol): Non-Transferring Staking & Fee Rewards",
+  "id": "BQ9Gc7dsLIaDSy8LPHWLMjYk0rMeJR7gA9PRM0mxjMU=",
+  "originalId": 2443,
+  "position": 31,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "`BGTStaker` grafts staking-rewards logic onto the `BGT` token without ever moving `BGT` itself. This tour traces deployment, security hooks, user flows, and reward mechanics.",
+      "title": "",
+      "id": "29188"
+    },
+    {
+      "type": "highlight",
+      "description": "First the implementation contract disables further initialisation (35-37). `initialise()` then:\n- records governance via `Ownable` (48),\n- installs the staking engine with a seven-day cycle (49),\n- completes UUPS setup (50),\n- and remembers the fee-collector that will inject rewards (51).",
+      "file": "src/pol/BGTStaker.sol",
+      "highlight": [
+        {
+          "start": 34,
+          "end": 52
+        }
+      ],
+      "title": "",
+      "id": "29189"
+    },
+    {
+      "type": "highlight",
+      "description": "The delegated `StakingRewards_init` persists the stake token (`BGT`), reward token, and `rewardsDuration` (7 days).  No other state changes occur here.",
+      "file": "src/base/StakingRewards.sol",
+      "highlight": [
+        {
+          "start": 74,
+          "end": 89
+        }
+      ],
+      "title": "",
+      "id": "29190"
+    },
+    {
+      "type": "highlight",
+      "description": "`onlyBGT` (59-62) restricts stake/withdraw to calls originating from the BGT contract, tying staking strictly to on-chain balance changes.  `onlyFeeCollector` (64-67) gates reward injections to a single trusted account.",
+      "file": "src/pol/BGTStaker.sol",
+      "highlight": [
+        {
+          "start": 58,
+          "end": 68
+        }
+      ],
+      "title": "",
+      "id": "29191"
+    },
+    {
+      "type": "highlight",
+      "description": "External API: each function is a thin pass-through to the generic helpers provided by `StakingRewards` — keeping `BGTStaker` itself minimal.",
+      "file": "src/pol/BGTStaker.sol",
+      "highlight": [
+        {
+          "start": 94,
+          "end": 110
+        }
+      ],
+      "title": "",
+      "id": "29192"
+    },
+    {
+      "type": "highlight",
+      "description": "`stake` updates `reward accounting`, mints the virtual balance, and would normally `transfer tokens at line 179`. That transfer is the part `BGTStaker` overrides.",
+      "file": "src/base/StakingRewards.sol",
+      "highlight": [
+        {
+          "start": 156,
+          "end": 181
+        }
+      ],
+      "title": "",
+      "id": "29193"
+    },
+    {
+      "type": "highlight",
+      "description": "`_withdraw` is the mirror image: update rewards, burn virtual balance, possibly recycle leftover rewards, then call the transfer hook at `line 211`.",
+      "file": "src/base/StakingRewards.sol",
+      "highlight": [
+        {
+          "start": 192,
+          "end": 214
+        }
+      ],
+      "title": "",
+      "id": "29194"
+    },
+    {
+      "type": "highlight",
+      "description": "`_getReward` settles a user’s unclaimed rewards and relies on `rewardToken.safeTransfer` to pay them out.",
+      "file": "src/base/StakingRewards.sol",
+      "highlight": [
+        {
+          "start": 133,
+          "end": 146
+        }
+      ],
+      "title": "",
+      "id": "29195"
+    },
+    {
+      "type": "highlight",
+      "description": "Both **transfer hooks** are blank, so `stake/withdraw` only touch **internal counters** — `BGT` balances stay where they are.",
+      "file": "src/pol/BGTStaker.sol",
+      "highlight": [
+        {
+          "start": 116,
+          "end": 120
+        }
+      ],
+      "title": "",
+      "id": "29196"
+    },
+    {
+      "type": "highlight",
+      "description": "For comparison: the default implementation would have executed a `stakeToken.safeTransferFrom` here.",
+      "file": "src/base/StakingRewards.sol",
+      "highlight": [
+        {
+          "start": 187,
+          "end": 189
+        }
+      ],
+      "title": "",
+      "id": "29197"
+    },
+    {
+      "type": "highlight",
+      "description": "…and `safeTransfer` on withdrawal.  `BGTStaker` neuters both.",
+      "file": "src/base/StakingRewards.sol",
+      "highlight": [
+        {
+          "start": 216,
+          "end": 219
+        }
+      ],
+      "title": "",
+      "id": "29198"
+    },
+    {
+      "type": "highlight",
+      "description": "**Administrative surface:**\n- `notifyRewardAmount()` (77-79) is fee-collector-only and forwards to the engine.\n- `setRewardsDuration()` (88-91) lets governance change the cycle length between periods.",
+      "file": "src/pol/BGTStaker.sol",
+      "highlight": [
+        {
+          "start": 76,
+          "end": 91
+        }
+      ],
+      "title": "",
+      "id": "29199"
+    },
+    {
+      "type": "highlight",
+      "description": "`_notifyRewardAmount()` adds the incoming tokens to `undistributedRewards`, checks solvency, recalculates `rewardRate` and `periodFinish`, and emits `RewardAdded`.",
+      "file": "src/base/StakingRewards.sol",
+      "highlight": [
+        {
+          "start": 104,
+          "end": 123
+        }
+      ],
+      "title": "",
+      "id": "29200"
+    },
+    {
+      "type": "highlight",
+      "description": "`_setRewardsDuration()` merely writes a new `rewardsDuration` after verifying it is non-zero.",
+      "file": "src/base/StakingRewards.sol",
+      "highlight": [
+        {
+          "start": 241,
+          "end": 247
+        }
+      ],
+      "title": "",
+      "id": "29201"
+    },
+    {
+      "type": "textOnly",
+      "description": "Key take-aways:\n- Deployment wires tokens, governance, fee-collector and fixes a default 7-day window.\n- `onlyBGT` & `onlyFeeCollector` minimise the attack surface.\n- User calls map directly onto the battle-tested `StakingRewards` internals.\n- Empty transfer hooks mean staking is purely accounting – `BGT` itself never leaves users' wallets.\n- Fee collector injects dApp fees via `notifyRewardAmount()`; governance can alter cadence with `setRewardsDuration()`.\nEverything else — accounting math and solvency checks — is inherited from the generic engine.",
+      "title": "",
+      "id": "29202"
+    }
+  ]
+}

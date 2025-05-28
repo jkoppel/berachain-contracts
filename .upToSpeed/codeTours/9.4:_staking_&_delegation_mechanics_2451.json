@@ -1,0 +1,124 @@
+{
+  "title": "9.4: Staking & Delegation Mechanics",
+  "id": "BkorX0RQHD++IFz+fheIKreh83cuIZO8YhqVAxE/JeI=",
+  "originalId": 2451,
+  "position": 39,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "Follow the flow of tokens as a user deposits, delegates, withdraws, or exits the vault. We will move from the **internal helper** that actually transfers tokens up to the **public APIs** and their safety checks.",
+      "title": "",
+      "id": "29297"
+    },
+    {
+      "type": "highlight",
+      "description": "The shared `_stake` routine, inherited by `RewardVault`, updates supply, records the user’s balance, and pulls tokens into the contract before emitting `Staked`. `RewardVault` re-uses this rather than duplicating deposit logic.",
+      "file": "src/base/StakingRewards.sol",
+      "highlight": [
+        {
+          "start": 156,
+          "end": 176
+        }
+      ],
+      "title": "",
+      "id": "29298"
+    },
+    {
+      "type": "highlight",
+      "description": "A plain self-stake is nothing more than a thin wrapper that forwards to `_stake` with the caller as beneficiary.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 287,
+          "end": 291
+        }
+      ],
+      "title": "",
+      "id": "29299"
+    },
+    {
+      "type": "highlight",
+      "description": "Delegated staking adds two extra steps:\n- Line 294 prevents self-delegation.\n- Lines 298-305 increment `delegateTotalStaked` and `stakedByDelegate[msg.sender]`, then fires `DelegateStaked` so external indexers can track it.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 293,
+          "end": 307
+        }
+      ],
+      "title": "",
+      "id": "29300"
+    },
+    {
+      "type": "highlight",
+      "description": "A normal withdraw is guarded by `checkSelfStakedBalance`, ensuring the caller touches only the portion she deposited herself.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 309,
+          "end": 312
+        }
+      ],
+      "title": "",
+      "id": "29301"
+    },
+    {
+      "type": "highlight",
+      "description": "Delegated withdraw mirrors staking:\n- Lines 319-324 verify the delegate's allowance, decrement both counters, and then call the shared `_withdraw`\n- The `DelegateWithdrawn` event records the action",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 315,
+          "end": 328
+        }
+      ],
+      "title": "",
+      "id": "29302"
+    },
+    {
+      "type": "highlight",
+      "description": "`exit` simply combines a self-withdraw (line 346-347) with an immediate reward claim (line 348-349).",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 344,
+          "end": 349
+        }
+      ],
+      "title": "",
+      "id": "29303"
+    },
+    {
+      "type": "highlight",
+      "description": "`_checkSelfStakedBalance` enforces that `self-staked = total balance − delegated balance`; attempts to exceed that amount revert.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 428,
+          "end": 436
+        }
+      ],
+      "title": "",
+      "id": "29304"
+    },
+    {
+      "type": "highlight",
+      "description": "The public interface exposes the same `delegateStake` / `delegateWithdraw` entry-points, guaranteeing external code interacts with the exact logic we just traced.",
+      "file": "src/pol/interfaces/IRewardVault.sol",
+      "highlight": [
+        {
+          "start": 191,
+          "end": 204
+        }
+      ],
+      "title": "",
+      "id": "29305"
+    },
+    {
+      "type": "textOnly",
+      "description": "**Key rule**: an account’s usable balance for itself is `total − delegateTotal`. Delegates manage only their own slice, and every withdrawal path checks those numbers, preventing over-spends while still funnelling all token movement through the battle-tested `_stake` / `_withdraw` routines.",
+      "title": "",
+      "id": "29306"
+    }
+  ]
+}

@@ -1,0 +1,137 @@
+{
+  "title": "14.4: RewardVault V1 – Staking & Delegation Mechanics",
+  "id": "CNr6+VfPNI81CsKJlBS5TDi5ctoyaUAEAUr+xJTqmvo=",
+  "originalId": 2478,
+  "position": 66,
+  "steps": [
+    {
+      "type": "textOnly",
+      "description": "This tour follows a `token` as it flows through `stake`, `delegate stake`, and the matching `withdrawal paths`, focusing on how each `call` mutates `storage` and preserves `invariants`.",
+      "title": "",
+      "id": "29622"
+    },
+    {
+      "type": "highlight",
+      "description": "Every user has a `DelegateStake` bucket. The aggregate `delegateTotalStaked` tracks how much of the user’s balance was supplied by third-party delegates, while the secondary mapping keeps a per-delegate breakdown.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 41,
+          "end": 47
+        }
+      ],
+      "title": "",
+      "id": "29623"
+    },
+    {
+      "type": "highlight",
+      "description": "`stake()` is a shallow wrapper: after the `whenNotPaused` and re-entrancy guard it simply forwards to `_stake` defined in the `StakingRewards` base contract, so **all** balance & supply mutations happen there.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 287,
+          "end": 290
+        }
+      ],
+      "title": "",
+      "id": "29624"
+    },
+    {
+      "type": "highlight",
+      "description": "The delegate staking function adds another layer to the staking mechanism. After blocking self-delegation at the start, it builds on the base staking logic we just saw. The interesting part comes in the delegate bookkeeping section, where it maintains two key metrics: the total amount staked through delegation and individual delegate contributions. The unchecked block is safe due to the totalSupply bounds established earlier.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 292,
+          "end": 306
+        }
+      ],
+      "title": "",
+      "id": "29625"
+    },
+    {
+      "type": "highlight",
+      "description": "Self-withdrawals are guarded by `_checkSelfStakedBalance`. It derives `selfStaked = balance – delegateTotalStaked`; if the requested amount would exceed that figure the call reverts with `InsufficientSelfStake` – guaranteeing a user can never spend tokens that a delegate might later reclaim.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 428,
+          "end": 435
+        }
+      ],
+      "title": "",
+      "id": "29626"
+    },
+    {
+      "type": "highlight",
+      "description": "With the invariant satisfied, `withdraw` just hands control to `_withdraw` (from `StakingRewards`) which debits the user’s balance, shrinks `totalSupply`, transfers tokens, and emits the standard `Withdrawn` event.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 309,
+          "end": 312
+        }
+      ],
+      "title": "",
+      "id": "29627"
+    },
+    {
+      "type": "highlight",
+      "description": "`delegateWithdraw` is the mirror image of `delegateStake`. It checks the caller really owns the requested slice (lines 319-322), decrements both `stakedByDelegate` and `delegateTotalStaked` (line 324) then calls `_withdraw` for the actual token transfer before emitting **DelegateWithdrawn**.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 315,
+          "end": 326
+        }
+      ],
+      "title": "",
+      "id": "29628"
+    },
+    {
+      "type": "highlight",
+      "description": "`exit` showcases why the earlier accounting matters: it calculates the caller’s *own* stake by subtracting delegated stake, withdraws that amount, and immediately forwards to `_getReward` – bundling withdrawal and reward claim in one transaction.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 344,
+          "end": 349
+        }
+      ],
+      "title": "",
+      "id": "29629"
+    },
+    {
+      "type": "highlight",
+      "description": "`onlyOperatorOrUser` lets an account nominate an operator that may act on its behalf, but only if the mapping says so.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 129,
+          "end": 134
+        }
+      ],
+      "title": "",
+      "id": "29630"
+    },
+    {
+      "type": "highlight",
+      "description": "`setOperator` is the sole write to that mapping – a simple assignment followed by an event – completing the operator model.",
+      "file": "src/pol/rewards/RewardVault.sol",
+      "highlight": [
+        {
+          "start": 352,
+          "end": 355
+        }
+      ],
+      "title": "",
+      "id": "29631"
+    },
+    {
+      "type": "textOnly",
+      "description": "Together these routines keep `totalSupply`, account balances, and delegate tallies perfectly in sync while enforcing that a user can only withdraw their self-stake and that delegates can never over-withdraw.",
+      "title": "",
+      "id": "29632"
+    }
+  ]
+}
